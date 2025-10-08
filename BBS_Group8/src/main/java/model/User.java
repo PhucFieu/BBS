@@ -58,11 +58,11 @@ public class User {
     }
 
     // Getters and Setters
-    public int getUserId() {
+    public UUID getUserId() {
         return userId;
     }
 
-    public void setUserId(int userId) {
+    public void setUserId(UUID userId) {
         this.userId = userId;
     }
 
