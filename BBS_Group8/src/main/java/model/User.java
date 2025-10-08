@@ -1,4 +1,4 @@
-package com.mycompany.bbs.model_group8;
+package model;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
