@@ -1,9 +1,10 @@
 package model;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 public class Bus {
-    private int busId;
+    private UUID busId;
     private String busNumber;
     private String busType;
     private int totalSeats;
@@ -29,11 +30,11 @@ public class Bus {
     }
 
     // Getters and Setters
-    public int getBusId() {
+    public UUID getBusId() {
         return busId;
     }
 
-    public void setBusId(int busId) {
+    public void setBusId(UUID busId) {
         this.busId = busId;
     }
 
