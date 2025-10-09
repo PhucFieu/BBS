@@ -1,11 +1,13 @@
 package model;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.UUID;
 
 public class User {
 
-    private int userId;
+    private UUID userId;
     private String username;
     private String password;
     private String fullName;
@@ -15,7 +17,7 @@ public class User {
     private String status; // ACTIVE, INACTIVE
     private String idCard;
     private String address;
-    private String dateOfBirth;
+    private LocalDate dateOfBirth;
     private String gender;
     private LocalDateTime lastLogin;
     private LocalDateTime createdDate;
@@ -58,11 +60,11 @@ public class User {
     }
 
     // Getters and Setters
-    public int getUserId() {
+    public UUID getUserId() {
         return userId;
     }
 
-    public void setUserId(int userId) {
+    public void setUserId(UUID userId) {
         this.userId = userId;
     }
 
