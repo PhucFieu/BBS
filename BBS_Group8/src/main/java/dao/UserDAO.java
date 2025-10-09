@@ -3,7 +3,6 @@ package dao;
 import model.User;
 import util.DBConnection;
 import util.PasswordUtils;
-
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -32,7 +31,9 @@ public class UserDAO {
         }
         return null;
     }
-    
+    /* This is 
+    *
+    */
     public User getUserById(int userId) throws SQLException {
         String sql = "SELECT * FROM Users WHERE user_id = ? AND status = 'ACTIVE'";
         
@@ -106,7 +107,7 @@ public class UserDAO {
             stmt.setString(1, user.getFullName());
             stmt.setString(2, user.getEmail());
             stmt.setString(3, user.getRole());
-            stmt.setInt(4, user.getUserId());
+            stmt.setString(4, user.getUserId().toString());
             
             return stmt.executeUpdate() > 0;
         }
@@ -136,13 +137,13 @@ public class UserDAO {
         }
     }
     
-    private boolean updateLastLogin(int userId) throws SQLException {
+    private boolean updateLastLogin(UUID userId) throws SQLException {
         String sql = "UPDATE Users SET last_login = GETDATE() WHERE user_id = ?";
         
         try (Connection conn = DBConnection.getInstance().getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             
-            stmt.setInt(1, userId);
+            stmt.setString(1, userId.toString());
             return stmt.executeUpdate() > 0;
         }
     }
