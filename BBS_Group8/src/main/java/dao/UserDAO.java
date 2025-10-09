@@ -31,9 +31,8 @@ public class UserDAO {
         }
         return null;
     }
-    /* This is 
-    *
-    */
+
+    
     public User getUserById(int userId) throws SQLException {
         String sql = "SELECT * FROM Users WHERE user_id = ? AND status = 'ACTIVE'";
         
