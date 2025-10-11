@@ -1,14 +1,13 @@
 package model;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 public class Bus {
-    private int busId;
+    private UUID busId;
     private String busNumber;
     private String busType;
     private int totalSeats;
-    private int availableSeats;
-    private String driverId;
     private String licensePlate;
     private String status;
     private LocalDateTime createdDate;
@@ -16,24 +15,26 @@ public class Bus {
 
     // Constructors
     public Bus() {
+        this.busId = UUID.randomUUID();
+        this.status = "ACTIVE";
+        this.createdDate = LocalDateTime.now();
+        this.updatedDate = LocalDateTime.now();
     }
 
-    public Bus(String busNumber, String busType, int totalSeats, String driverName, String licensePlate) {
+    public Bus(String busNumber, String busType, int totalSeats, String licensePlate) {
+        this();
         this.busNumber = busNumber;
         this.busType = busType;
         this.totalSeats = totalSeats;
-        this.availableSeats = totalSeats;
-        this.driverId = driverName;
         this.licensePlate = licensePlate;
-        this.status = "ACTIVE";
     }
 
     // Getters and Setters
-    public int getBusId() {
+    public UUID getBusId() {
         return busId;
     }
 
-    public void setBusId(int busId) {
+    public void setBusId(UUID busId) {
         this.busId = busId;
     }
 
@@ -59,22 +60,6 @@ public class Bus {
 
     public void setTotalSeats(int totalSeats) {
         this.totalSeats = totalSeats;
-    }
-
-    public int getAvailableSeats() {
-        return availableSeats;
-    }
-
-    public void setAvailableSeats(int availableSeats) {
-        this.availableSeats = availableSeats;
-    }
-
-    public String getDriverId() {
-        return driverId;
-    }
-
-    public void setDriverId(String driverID) {
-        this.driverId = driverId;
     }
 
     public String getLicensePlate() {
@@ -116,10 +101,8 @@ public class Bus {
                 ", busNumber='" + busNumber + '\'' +
                 ", busType='" + busType + '\'' +
                 ", totalSeats=" + totalSeats +
-                ", availableSeats=" + availableSeats +
-                ", driverName='" + driverId + '\'' +
                 ", licensePlate='" + licensePlate + '\'' +
                 ", status='" + status + '\'' +
                 '}';
     }
-} 
+}
