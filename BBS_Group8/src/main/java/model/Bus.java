@@ -10,6 +10,7 @@ public class Bus {
     private int totalSeats;
     private String licensePlate;
     private String status;
+    private String driverName; // Added driverName property
     private LocalDateTime createdDate;
     private LocalDateTime updatedDate;
 
@@ -78,6 +79,14 @@ public class Bus {
         this.status = status;
     }
 
+    public String getDriverName() {
+        return driverName;
+    }
+
+    public void setDriverName(String driverName) {
+        this.driverName = driverName;
+    }
+
     public LocalDateTime getCreatedDate() {
         return createdDate;
     }
@@ -92,6 +101,14 @@ public class Bus {
 
     public void setUpdatedDate(LocalDateTime updatedDate) {
         this.updatedDate = updatedDate;
+    }
+
+    // Method to get available seats (for now, returns total seats - would need
+    // booking logic for actual implementation)
+    public int getAvailableSeats() {
+        // TODO: This should calculate actual available seats based on bookings
+        // For now, return total seats as a temporary fix
+        return this.totalSeats;
     }
 
     @Override

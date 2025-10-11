@@ -6,7 +6,7 @@
 
             <head>
                 <jsp:include page="/views/partials/head.jsp">
-                    <jsp:param name="title" value="Bus Management - Bus Booking System" />
+                    <jsp:param name="title" value="Bus Management - BusTicket System" />
                 </jsp:include>
                 <style>
                     .bus-card {
@@ -66,20 +66,20 @@
                         <div class="search-form">
                             <div class="row g-3">
                                 <div class="col-md-3">
-                                    <label for="busType" class="form-label">Loại xe</label>
+                                    <label for="busType" class="form-label">Bus Type</label>
                                     <select class="form-select" id="busType">
-                                        <option value="">Tất cả</option>
-                                        <option value="Xe khách 45 chỗ">Xe khách 45 chỗ</option>
-                                        <option value="Xe khách 35 chỗ">Xe khách 35 chỗ</option>
-                                        <option value="Xe khách 25 chỗ">Xe khách 25 chỗ</option>
+                                        <option value="">All</option>
+                                        <option value="45-seat Bus">45-seat Bus</option>
+                                        <option value="35-seat Bus">35-seat Bus</option>
+                                        <option value="25-seat Bus">25-seat Bus</option>
                                     </select>
                                 </div>
                                 <div class="col-md-3">
-                                    <label for="status" class="form-label">Trạng thái</label>
+                                    <label for="status" class="form-label">Status</label>
                                     <select class="form-select" id="status">
-                                        <option value="">Tất cả</option>
-                                        <option value="ACTIVE">Hoạt động</option>
-                                        <option value="INACTIVE">Không hoạt động</option>
+                                        <option value="">All</option>
+                                        <option value="ACTIVE">Active</option>
+                                        <option value="INACTIVE">Inactive</option>
                                     </select>
                                 </div>
                                 <div class="col-md-6 d-flex align-items-end">
