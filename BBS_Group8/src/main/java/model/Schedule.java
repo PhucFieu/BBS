@@ -4,7 +4,10 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.UUID;
-
+/**
+ *
+ * @author PhúcNH CE190359
+ */
 public class Schedule {
     private UUID scheduleId;
     private UUID routeId;
