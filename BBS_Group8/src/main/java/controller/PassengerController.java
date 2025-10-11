@@ -16,6 +16,10 @@ import jakarta.servlet.http.HttpServletResponse;
 import model.User;
 import util.AuthUtils;
 
+/**
+ *
+ * @author TàiNH CE190387
+ */
 @WebServlet("/passengers/*")
 public class PassengerController extends HttpServlet {
     private UserDAO userDAO;
