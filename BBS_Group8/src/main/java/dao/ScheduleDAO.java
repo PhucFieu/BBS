@@ -16,6 +16,10 @@ import model.Schedule;
 import util.DBConnection;
 import util.UUIDUtils;
 
+/**
+ *
+ * @author PhúcNH CE190359
+ */
 public class ScheduleDAO {
 
     public List<Schedule> getAllSchedules() throws SQLException {

@@ -5,6 +5,10 @@ import java.sql.SQLException;
 import java.util.UUID;
 
 /**
+ *
+ * @author PhúcNH CE190359
+ */
+/**
  * Utility class for handling UUID conversions from database ResultSet
  */
 public class UUIDUtils {

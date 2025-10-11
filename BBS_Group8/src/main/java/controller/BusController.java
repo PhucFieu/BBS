@@ -14,7 +14,7 @@ import jakarta.servlet.http.HttpServletResponse;
 
 /**
  *
- * @author Admin
+ * @author PhúcNH CE190359
  */
 @WebServlet(name = "BusController", urlPatterns = {"/BusController"})
 public class BusController extends HttpServlet {
