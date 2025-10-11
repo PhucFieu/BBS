@@ -4,13 +4,13 @@ import java.sql.*;
 import java.time.LocalDate;
 import java.util.*;
 import java.math.BigDecimal;
-import model.Ticket;
+import model.Tickets;
 import util.DBConnection;
 
 public class TicketDAO {
 
-    public List<Ticket> getAllTickets() throws SQLException {
-        List<Ticket> list = new ArrayList<>();
+    public List<Tickets> getAllTickets() throws SQLException {
+        List<Tickets> list = new ArrayList<>();
         String sql = "SELECT t.*, s.departure_date, s.departure_time, r.route_name, r.departure_city, r.destination_city, b.bus_number, b.driver_name " +
                      "FROM Tickets t " +
                      "JOIN Schedule s ON t.schedule_id = s.schedule_id " +
@@ -25,7 +25,7 @@ public class TicketDAO {
         return list;
     }
 
-    public Ticket getTicketById(UUID ticketId) throws SQLException {
+    public Tickets getTicketById(UUID ticketId) throws SQLException {
         String sql = "SELECT t.*, s.departure_date, s.departure_time, r.route_name, r.departure_city, r.destination_city, b.bus_number, b.driver_name " +
                      "FROM Tickets t " +
                      "JOIN Schedule s ON t.schedule_id = s.schedule_id " +
@@ -41,7 +41,7 @@ public class TicketDAO {
         return null;
     }
 
-    public Ticket getTicketByNumber(String ticketNumber) throws SQLException {
+    public Tickets getTicketByNumber(String ticketNumber) throws SQLException {
         String sql = "SELECT t.*, s.departure_date, s.departure_time, r.route_name, r.departure_city, r.destination_city, b.bus_number, b.driver_name " +
                      "FROM Tickets t " +
                      "JOIN Schedule s ON t.schedule_id = s.schedule_id " +
@@ -57,8 +57,8 @@ public class TicketDAO {
         return null;
     }
 
-    public List<Ticket> getTicketsByUserId(UUID userId) throws SQLException {
-        List<Ticket> list = new ArrayList<>();
+    public List<Tickets> getTicketsByUserId(UUID userId) throws SQLException {
+        List<Tickets> list = new ArrayList<>();
         String sql = "SELECT t.*, s.departure_date, s.departure_time, r.route_name, r.departure_city, r.destination_city, b.bus_number, b.driver_name " +
                      "FROM Tickets t " +
                      "JOIN Schedule s ON t.schedule_id = s.schedule_id " +
@@ -74,7 +74,7 @@ public class TicketDAO {
         return list;
     }
 
-    public boolean addTicket(Ticket t) throws SQLException {
+    public boolean addTicket(Tickets t) throws SQLException {
         String sql = "INSERT INTO Tickets (ticket_id, ticket_number, schedule_id, user_id, passenger_name, seat_number, ticket_price, status, payment_status, booking_date, created_date) " +
                      "VALUES (NEWID(), ?, ?, ?, ?, ?, ?, ?, ?, GETDATE(), GETDATE())";
         try (Connection conn = DBConnection.getInstance().getConnection();
@@ -91,7 +91,7 @@ public class TicketDAO {
         }
     }
 
-    public boolean updateTicket(Ticket t) throws SQLException {
+    public boolean updateTicket(Tickets t) throws SQLException {
         String sql = "UPDATE Tickets SET schedule_id=?, passenger_name=?, seat_number=?, ticket_price=?, status=?, payment_status=?, updated_date=GETDATE() WHERE ticket_id=?";
         try (Connection conn = DBConnection.getInstance().getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -159,8 +159,8 @@ public class TicketDAO {
         }
     }
 
-    public List<Ticket> getRecentTickets(int limit) throws SQLException {
-        List<Ticket> list = new ArrayList<>();
+    public List<Tickets> getRecentTickets(int limit) throws SQLException {
+        List<Tickets> list = new ArrayList<>();
         String sql = "SELECT TOP (?) t.*, s.departure_date, s.departure_time, r.route_name FROM Tickets t " +
                      "JOIN Schedule s ON t.schedule_id = s.schedule_id " +
                      "JOIN Routes r ON s.route_id = r.route_id ORDER BY t.created_date DESC";
@@ -173,8 +173,8 @@ public class TicketDAO {
         return list;
     }
 
-    public List<Ticket> getTicketsByDate(LocalDate date) throws SQLException {
-        List<Ticket> list = new ArrayList<>();
+    public List<Tickets> getTicketsByDate(LocalDate date) throws SQLException {
+        List<Tickets> list = new ArrayList<>();
         String sql = "SELECT t.*, s.departure_date, s.departure_time, r.route_name FROM Tickets t " +
                      "JOIN Schedule s ON t.schedule_id = s.schedule_id " +
                      "JOIN Routes r ON s.route_id = r.route_id WHERE s.departure_date = ?";
@@ -187,8 +187,8 @@ public class TicketDAO {
         return list;
     }
 
-    public List<Ticket> getTicketsByMonth(int month, int year) throws SQLException {
-        List<Ticket> list = new ArrayList<>();
+    public List<Tickets> getTicketsByMonth(int month, int year) throws SQLException {
+        List<Tickets> list = new ArrayList<>();
         String sql = "SELECT t.*, s.departure_date, s.departure_time, r.route_name FROM Tickets t " +
                      "JOIN Schedule s ON t.schedule_id = s.schedule_id " +
                      "JOIN Routes r ON s.route_id = r.route_id WHERE MONTH(s.departure_date)=? AND YEAR(s.departure_date)=?";
@@ -214,8 +214,8 @@ public class TicketDAO {
         return list;
     }
 
-    private Ticket mapResultSetToTicket(ResultSet rs) throws SQLException {
-        Ticket t = new Ticket();
+    private Tickets mapResultSetToTicket(ResultSet rs) throws SQLException {
+        Tickets t = new Tickets();
         t.setTicketId(UUID.fromString(rs.getString("ticket_id")));
         t.setTicketNumber(rs.getString("ticket_number"));
         t.setScheduleId(UUID.fromString(rs.getString("schedule_id")));
