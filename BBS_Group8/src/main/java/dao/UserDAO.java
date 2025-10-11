@@ -16,6 +16,11 @@ import util.DBConnection;
 import util.PasswordUtils;
 import util.UUIDUtils;
 
+
+/**
+ *
+ * @author TàiNH CE190387
+ */
 public class UserDAO {
 
     public User authenticate(String username, String password) throws SQLException {
