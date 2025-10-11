@@ -8,6 +8,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ *
+ * @author TàiNH CE190387
+ */
 public class UserDAO {
     
     public User authenticate(String username, String password) throws SQLException {
