@@ -28,7 +28,7 @@ public class Tickets {
     private User user;
 
     // Constructors
-    public Ticket() {
+    public Tickets() {
         this.ticketId = UUID.randomUUID();
         this.status = TicketStatus.CONFIRMED;
         this.paymentStatus = PaymentStatus.PENDING;

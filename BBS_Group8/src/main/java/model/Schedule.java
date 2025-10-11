@@ -1,21 +1,14 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package model;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.UUID;
 
-/**
- *
- * @author PhúcNH CE190359
- */
 public class Schedule {
-     private int scheduleId;
-    private int routeId;
-    private int busId;
+    private UUID scheduleId;
+    private UUID routeId;
+    private UUID busId;
     private LocalDate departureDate;
     private LocalTime departureTime;
     private LocalTime estimatedArrivalTime;
@@ -24,57 +17,176 @@ public class Schedule {
     private LocalDateTime createdDate;
     private LocalDateTime updatedDate;
 
+    // Related objects
+    private Routes route;
+    private Bus bus;
 
-    public Schedule() {}
+    // Display fields
+    private String routeName;
+    private String departureCity;
+    private String destinationCity;
+    private String busNumber;
+    private String driverName;
 
-    public Schedule(int scheduleId, int routeId, int busId, LocalDate departureDate,
-                    LocalTime departureTime, LocalTime estimatedArrivalTime,
-                    int availableSeats, String status,
-                    LocalDateTime createdDate, LocalDateTime updatedDate) {
-        this.scheduleId = scheduleId;
+    // Constructors
+    public Schedule() {
+        this.scheduleId = UUID.randomUUID();
+        this.status = "SCHEDULED";
+        this.createdDate = LocalDateTime.now();
+        this.updatedDate = LocalDateTime.now();
+    }
+
+    public Schedule(UUID routeId, UUID busId, LocalDate departureDate,
+            LocalTime departureTime, LocalTime estimatedArrivalTime,
+            int availableSeats) {
+        this();
         this.routeId = routeId;
         this.busId = busId;
         this.departureDate = departureDate;
         this.departureTime = departureTime;
         this.estimatedArrivalTime = estimatedArrivalTime;
         this.availableSeats = availableSeats;
+    }
+
+    // Getters and Setters
+    public UUID getScheduleId() {
+        return scheduleId;
+    }
+
+    public void setScheduleId(UUID scheduleId) {
+        this.scheduleId = scheduleId;
+    }
+
+    public UUID getRouteId() {
+        return routeId;
+    }
+
+    public void setRouteId(UUID routeId) {
+        this.routeId = routeId;
+    }
+
+    public UUID getBusId() {
+        return busId;
+    }
+
+    public void setBusId(UUID busId) {
+        this.busId = busId;
+    }
+
+    public LocalDate getDepartureDate() {
+        return departureDate;
+    }
+
+    public void setDepartureDate(LocalDate departureDate) {
+        this.departureDate = departureDate;
+    }
+
+    public LocalTime getDepartureTime() {
+        return departureTime;
+    }
+
+    public void setDepartureTime(LocalTime departureTime) {
+        this.departureTime = departureTime;
+    }
+
+    public LocalTime getEstimatedArrivalTime() {
+        return estimatedArrivalTime;
+    }
+
+    public void setEstimatedArrivalTime(LocalTime estimatedArrivalTime) {
+        this.estimatedArrivalTime = estimatedArrivalTime;
+    }
+
+    public int getAvailableSeats() {
+        return availableSeats;
+    }
+
+    public void setAvailableSeats(int availableSeats) {
+        this.availableSeats = availableSeats;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
         this.status = status;
+    }
+
+    public LocalDateTime getCreatedDate() {
+        return createdDate;
+    }
+
+    public void setCreatedDate(LocalDateTime createdDate) {
         this.createdDate = createdDate;
+    }
+
+    public LocalDateTime getUpdatedDate() {
+        return updatedDate;
+    }
+
+    public void setUpdatedDate(LocalDateTime updatedDate) {
         this.updatedDate = updatedDate;
     }
 
-    // ✅ Getter & Setter
-    public int getScheduleId() { return scheduleId; }
-    public void setScheduleId(int scheduleId) { this.scheduleId = scheduleId; }
+    // Related objects
+    public Routes getRoute() {
+        return route;
+    }
 
-    public int getRouteId() { return routeId; }
-    public void setRouteId(int routeId) { this.routeId = routeId; }
+    public void setRoute(Routes route) {
+        this.route = route;
+    }
 
-    public int getBusId() { return busId; }
-    public void setBusId(int busId) { this.busId = busId; }
+    public Bus getBus() {
+        return bus;
+    }
 
-    public LocalDate getDepartureDate() { return departureDate; }
-    public void setDepartureDate(LocalDate departureDate) { this.departureDate = departureDate; }
+    public void setBus(Bus bus) {
+        this.bus = bus;
+    }
 
-    public LocalTime getDepartureTime() { return departureTime; }
-    public void setDepartureTime(LocalTime departureTime) { this.departureTime = departureTime; }
+    // Display fields
+    public String getRouteName() {
+        return routeName;
+    }
 
-    public LocalTime getEstimatedArrivalTime() { return estimatedArrivalTime; }
-    public void setEstimatedArrivalTime(LocalTime estimatedArrivalTime) { this.estimatedArrivalTime = estimatedArrivalTime; }
+    public void setRouteName(String routeName) {
+        this.routeName = routeName;
+    }
 
-    public int getAvailableSeats() { return availableSeats; }
-    public void setAvailableSeats(int availableSeats) { this.availableSeats = availableSeats; }
+    public String getDepartureCity() {
+        return departureCity;
+    }
 
-    public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
+    public void setDepartureCity(String departureCity) {
+        this.departureCity = departureCity;
+    }
 
-    public LocalDateTime getCreatedDate() { return createdDate; }
-    public void setCreatedDate(LocalDateTime createdDate) { this.createdDate = createdDate; }
+    public String getDestinationCity() {
+        return destinationCity;
+    }
 
-    public LocalDateTime getUpdatedDate() { return updatedDate; }
-    public void setUpdatedDate(LocalDateTime updatedDate) { this.updatedDate = updatedDate; }
+    public void setDestinationCity(String destinationCity) {
+        this.destinationCity = destinationCity;
+    }
 
-    // ✅ Override toString()
+    public String getBusNumber() {
+        return busNumber;
+    }
+
+    public void setBusNumber(String busNumber) {
+        this.busNumber = busNumber;
+    }
+
+    public String getDriverName() {
+        return driverName;
+    }
+
+    public void setDriverName(String driverName) {
+        this.driverName = driverName;
+    }
+
     @Override
     public String toString() {
         return "Schedule{" +
@@ -86,9 +198,6 @@ public class Schedule {
                 ", estimatedArrivalTime=" + estimatedArrivalTime +
                 ", availableSeats=" + availableSeats +
                 ", status='" + status + '\'' +
-                ", createdDate=" + createdDate +
-                ", updatedDate=" + updatedDate +
                 '}';
     }
 }
-
