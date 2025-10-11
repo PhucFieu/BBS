@@ -13,6 +13,7 @@ import java.util.UUID;
 
 import model.Bus;
 import util.DBConnection;
+import util.UUIDUtils;
 
 public class BusDAO {
 
@@ -147,7 +148,7 @@ public class BusDAO {
                 + "JOIN Buses b ON s.bus_id = b.bus_id "
                 + "WHERE s.route_id = ? "
                 + "AND s.departure_date = ? "
-                + "AND s.departure_time = ? "
+                + "AND CAST(s.departure_time AS TIME) = ? "
                 + "AND b.status = 'ACTIVE' "
                 + "AND s.available_seats > 0";
 
@@ -202,7 +203,7 @@ public class BusDAO {
     private Bus mapResultSetToBus(ResultSet rs) throws SQLException {
         Bus bus = new Bus();
 
-        bus.setBusId((UUID) rs.getObject("bus_id"));
+        bus.setBusId(UUIDUtils.getUUIDFromResultSet(rs, "bus_id"));
         bus.setBusNumber(rs.getString("bus_number"));
         bus.setBusType(rs.getString("bus_type"));
         bus.setTotalSeats(rs.getInt("total_seats"));
