@@ -4,39 +4,55 @@
  */
 package model;
 
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.UUID;
+
 /**
  *
  * @author Nguyen Phat Tai
  */
-import java.math.BigDecimal;
-import java.util.Date;
-import java.util.UUID;
-
 public class Routes {
-    private UUID routeId;               // route_id
-    private String routeName;           // route_name
-    private String departureCity;       // departure_city
-    private String destinationCity;     // destination_city
-    private BigDecimal distance;        // distance
-    private int durationHours;          // duration_hours
-    private BigDecimal basePrice;       // base_price
-    private String status;              // status
-    private Date createdDate;           // created_date
-    private Date updatedDate;           // updated_date
+    private UUID routeId; // route_id
+    private String routeName; // route_name
+    private String departureCity; // departure_city
+    private String destinationCity; // destination_city
+    private BigDecimal distance; // distance
+    private int durationHours; // duration_hours
+    private BigDecimal basePrice; // base_price
+    private String status; // status
+    private LocalDateTime createdDate;
+    private LocalDateTime updatedDate;
 
     // Constructor mặc định
     public Routes() {
         this.routeId = UUID.randomUUID();
         this.status = "ACTIVE";
-        this.createdDate = new Date();
-        this.updatedDate = new Date();
+        this.createdDate = LocalDateTime.now();
+        this.updatedDate = LocalDateTime.now();
+    }
+
+    // Constructor với 6 tham số
+    public Routes(String routeName, String departureCity, String destinationCity,
+            BigDecimal distance, int durationHours, BigDecimal basePrice) {
+        this.routeId = UUID.randomUUID();
+        this.routeName = routeName;
+        this.departureCity = departureCity;
+        this.destinationCity = destinationCity;
+        this.distance = distance;
+        this.durationHours = durationHours;
+        this.basePrice = basePrice;
+        this.status = "ACTIVE";
+        this.createdDate = LocalDateTime.now();
+        this.updatedDate = LocalDateTime.now();
     }
 
     // Constructor đầy đủ
-    public Routes(UUID routeId, String routeName, String departureCity, String destinationCity,
-                  BigDecimal distance, int durationHours, BigDecimal basePrice,
-                  String status, Date createdDate, Date updatedDate) {
-        this.routeId = routeId;
+    public Routes(String routeName, String departureCity, String destinationCity,
+            BigDecimal distance, int durationHours, BigDecimal basePrice,
+            String status, LocalDateTime createdDate, LocalDateTime updatedDate) {
+        this.routeId = UUID.randomUUID();
         this.routeName = routeName;
         this.departureCity = departureCity;
         this.destinationCity = destinationCity;
@@ -113,19 +129,19 @@ public class Routes {
         this.status = status;
     }
 
-    public Date getCreatedDate() {
+    public LocalDateTime getCreatedDate() {
         return createdDate;
     }
 
-    public void setCreatedDate(Date createdDate) {
+    public void setCreatedDate(LocalDateTime createdDate) {
         this.createdDate = createdDate;
     }
 
-    public Date getUpdatedDate() {
+    public LocalDateTime getUpdatedDate() {
         return updatedDate;
     }
 
-    public void setUpdatedDate(Date updatedDate) {
+    public void setUpdatedDate(LocalDateTime updatedDate) {
         this.updatedDate = updatedDate;
     }
 
@@ -146,4 +162,3 @@ public class Routes {
                 '}';
     }
 }
-
