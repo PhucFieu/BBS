@@ -2,6 +2,7 @@ package util;
 
 import fpt.edu.vn.busticket.model.User;
 import jakarta.servlet.http.HttpSession;
+import model.User;
 
 public class AuthUtils {
     
