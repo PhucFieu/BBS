@@ -2,7 +2,7 @@ package controller;
 
 import java.io.IOException;
 
-import dao.RouteDAO;
+import dao.RoutesDAO;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -12,12 +12,12 @@ import jakarta.servlet.http.HttpServletResponse;
 @WebServlet(name = "HomeController", urlPatterns = { "", "/home" })
 public class HomeController extends HttpServlet {
 
-    private RouteDAO routeDAO;
+    private RoutesDAO routeDAO;
 
     @Override
     public void init() throws ServletException {
         super.init();
-        routeDAO = new RouteDAO();
+        routeDAO = new RoutesDAO();
     }
 
     @Override
