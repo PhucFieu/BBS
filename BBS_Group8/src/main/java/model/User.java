@@ -35,7 +35,7 @@ public class User {
         String password,
         String fullName,
         String email,
-        String phoneNumber,
+        String PhoneNumber,
         String role
     ) {
         this.username = username;
@@ -43,7 +43,7 @@ public class User {
         this.fullName = fullName;
         this.email = email;
         this.role = role;
-        this.phoneNumber = phoneNumber;
+        this.phoneNumber = PhoneNumber;
         this.createdDate = LocalDateTime.now();
         this.updatedDate = LocalDateTime.now();
         this.status = "ACTIVE";
