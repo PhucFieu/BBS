@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.UUID;
 
 import dao.BusDAO;
-import dao.RouteDAO;
+import dao.RoutesDAO;
 import dao.TicketDAO;
 import dao.UserDAO;
 import jakarta.servlet.ServletException;
@@ -29,14 +29,14 @@ import model.User;
 @WebServlet("/admin/*")
 public class AdminController extends HttpServlet {
     private UserDAO userDAO;
-    private RouteDAO routeDAO;
+    private RoutesDAO routeDAO;
     private BusDAO busDAO;
     private TicketDAO ticketDAO;
 
     @Override
     public void init() throws ServletException {
         userDAO = new UserDAO();
-        routeDAO = new RouteDAO();
+        routeDAO = new RoutesDAO();
         busDAO = new BusDAO();
         ticketDAO = new TicketDAO();
     }
