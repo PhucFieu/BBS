@@ -1,11 +1,10 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package controller;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.sql.SQLException;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -19,6 +18,7 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
+import model.Bus;
 import model.Routes;
 import model.Tickets;
 import model.User;
@@ -71,6 +71,12 @@ public class AdminController extends HttpServlet {
             } else if (pathInfo.equals("/user/add")) {
                 // Add user form
                 showAddUserForm(request, response);
+            } else if (pathInfo.equals("/tickets")) {
+                // Ticket management
+                showTickets(request, response);
+            } else if (pathInfo.equals("/tickets/add")) {
+                // Show admin ticket form
+                showAdminTicketForm(request, response);
             } else if (pathInfo.equals("/statistics")) {
                 // System statistics
                 showStatistics(request, response);
@@ -103,6 +109,9 @@ public class AdminController extends HttpServlet {
             } else if (pathInfo.equals("/user/add")) {
                 // Add new user
                 addUser(request, response);
+            } else if (pathInfo.equals("/tickets/add")) {
+                // Add new ticket via admin
+                addAdminTicket(request, response);
             } else {
                 response.sendError(HttpServletResponse.SC_NOT_FOUND);
             }
@@ -169,7 +178,8 @@ public class AdminController extends HttpServlet {
 
     private void showAddUserForm(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        request.getRequestDispatcher("/views/admin/user-form.jsp").forward(request, response);
+        // Forward to the dedicated add user form
+        request.getRequestDispatcher("/views/admin/add-user-form.jsp").forward(request, response);
     }
 
     private void showEditUserForm(HttpServletRequest request, HttpServletResponse response)
@@ -326,8 +336,8 @@ public class AdminController extends HttpServlet {
 
         // Get user statistics by role
         int adminUsers = userDAO.getUsersByRole("ADMIN").size();
-        int staffUsers = userDAO.getUsersByRole("STAFF").size();
-        int customerUsers = userDAO.getUsersByRole("CUSTOMER").size();
+        int driverUsers = userDAO.getUsersByRole("DRIVER").size();
+        int regularUsers = userDAO.getUsersByRole("USER").size();
 
         // Get recent statistics
         List<User> recentUsers = userDAO.getRecentUsers(10);
@@ -339,8 +349,8 @@ public class AdminController extends HttpServlet {
         request.setAttribute("totalTickets", totalTickets);
         request.setAttribute("totalPassengers", totalPassengers);
         request.setAttribute("adminUsers", adminUsers);
-        request.setAttribute("staffUsers", staffUsers);
-        request.setAttribute("customerUsers", customerUsers);
+        request.setAttribute("driverUsers", driverUsers);
+        request.setAttribute("regularUsers", regularUsers);
         request.setAttribute("recentUsers", recentUsers);
         request.setAttribute("recentTickets", recentTickets);
 
@@ -363,5 +373,127 @@ public class AdminController extends HttpServlet {
             throws ServletException, IOException {
         request.setAttribute("error", message);
         request.getRequestDispatcher("/views/error.jsp").forward(request, response);
+    }
+
+    /**
+     * Show admin tickets management page
+     */
+    private void showTickets(HttpServletRequest request, HttpServletResponse response)
+            throws SQLException, ServletException, IOException {
+        // For now, just get all tickets - you can add search functionality later
+        List<Tickets> tickets = ticketDAO.getAllTickets();
+
+        request.setAttribute("tickets", tickets);
+
+        request.getRequestDispatcher("/views/admin/tickets.jsp").forward(request, response);
+    }
+
+    /**
+     * Show admin ticket form with all necessary data
+     */
+    private void showAdminTicketForm(HttpServletRequest request, HttpServletResponse response)
+            throws SQLException, ServletException, IOException {
+        // Get all routes
+        List<Routes> routes = routeDAO.getAllRoutes();
+
+        // Get all buses
+        List<Bus> buses = busDAO.getAllBuses();
+
+        // Get all passengers (users with PASSENGER role)
+        List<User> passengers = userDAO.getUsersByRole("PASSENGER");
+
+        // Set current date for form
+        LocalDate currentDate = LocalDate.now();
+
+        // Set attributes
+        request.setAttribute("routes", routes);
+        request.setAttribute("buses", buses);
+        request.setAttribute("passengers", passengers);
+        request.setAttribute("currentDate", currentDate.toString());
+
+        request.getRequestDispatcher("/views/admin/admin-ticket-form.jsp").forward(request, response);
+    }
+
+    /**
+     * Add new ticket via admin form
+     */
+    private void addAdminTicket(HttpServletRequest request, HttpServletResponse response)
+            throws SQLException, IOException {
+
+        try {
+            // Get form parameters
+            String routeIdStr = request.getParameter("routeId");
+            String busIdStr = request.getParameter("busId");
+            String userIdStr = request.getParameter("userId");
+            String departureDateStr = request.getParameter("departureDate");
+            String departureTimeStr = request.getParameter("departureTime");
+            String seatNumberStr = request.getParameter("seatNumber");
+            String ticketPriceStr = request.getParameter("ticketPrice");
+            String status = request.getParameter("status");
+            String paymentStatus = request.getParameter("paymentStatus");
+
+            // Validate required parameters
+            if (routeIdStr == null || busIdStr == null || userIdStr == null ||
+                    departureDateStr == null || departureTimeStr == null ||
+                    seatNumberStr == null || ticketPriceStr == null) {
+                response.sendRedirect(request.getContextPath() +
+                        "/admin/tickets/add?error=All fields are required");
+                return;
+            }
+
+            // Parse parameters
+            UUID routeId = UUID.fromString(routeIdStr);
+            UUID busId = UUID.fromString(busIdStr);
+            UUID userId = UUID.fromString(userIdStr);
+            LocalDate departureDate = LocalDate.parse(departureDateStr);
+            LocalTime departureTime = LocalTime.parse(departureTimeStr);
+            int seatNumber = Integer.parseInt(seatNumberStr);
+            double ticketPrice = Double.parseDouble(ticketPriceStr);
+
+            // Create new ticket
+            Tickets ticket = new Tickets();
+            ticket.setTicketId(UUID.randomUUID());
+            ticket.setTicketNumber(generateTicketNumber());
+            ticket.setUserId(userId);
+            ticket.setSeatNumber(seatNumber);
+            ticket.setTicketPrice(BigDecimal.valueOf(ticketPrice));
+            ticket.setStatus(status != null ? status : "PENDING");
+            ticket.setPaymentStatus(paymentStatus != null ? paymentStatus : "PENDING");
+
+            // For simplicity, set scheduleId to null for now
+            // In a full implementation, you would find/create the appropriate schedule
+            ticket.setScheduleId(null);
+
+            // Save ticket using the existing DAO method
+            boolean success = ticketDAO.addTicket(ticket);
+
+            if (success) {
+                response.sendRedirect(request.getContextPath() +
+                        "/admin/dashboard?success=Ticket created successfully! Ticket number: "
+                        + ticket.getTicketNumber());
+            } else {
+                response.sendRedirect(request.getContextPath() +
+                        "/admin/tickets/add?error=Failed to create ticket");
+            }
+
+        } catch (NumberFormatException | java.time.format.DateTimeParseException e) {
+            response.sendRedirect(request.getContextPath() +
+                    "/admin/tickets/add?error=Invalid input format: " + e.getMessage());
+        } catch (SQLException e) {
+            System.err.println("Database error creating admin ticket: " + e.getMessage());
+            response.sendRedirect(request.getContextPath() +
+                    "/admin/tickets/add?error=Database error: " + e.getMessage());
+        } catch (Exception e) {
+            System.err.println("Unexpected error creating admin ticket: " + e.getMessage());
+            response.sendRedirect(request.getContextPath() +
+                    "/admin/tickets/add?error=Unexpected error occurred");
+        }
+    }
+
+    /**
+     * Generate a unique ticket number
+     */
+    private String generateTicketNumber() {
+        return "TKT" + System.currentTimeMillis();
     }
 }

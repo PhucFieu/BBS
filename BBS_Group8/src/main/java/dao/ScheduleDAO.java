@@ -15,7 +15,6 @@ import java.util.UUID;
 import model.Schedule;
 import util.DBConnection;
 import util.UUIDUtils;
-
 /**
  *
  * @author PhúcNH CE190359
@@ -221,6 +220,41 @@ public class ScheduleDAO {
         }
     }
 
+    public List<Schedule> getSchedulesByRouteAndBus(UUID routeId, UUID busId) throws SQLException {
+        List<Schedule> schedules = new ArrayList<>();
+        String sql = "SELECT s.*, r.route_name, r.departure_city, r.destination_city, " +
+                "b.bus_number, u.full_name as driver_name " +
+                "FROM Schedules s " +
+                "JOIN Routes r ON s.route_id = r.route_id " +
+                "JOIN Buses b ON s.bus_id = b.bus_id " +
+                "LEFT JOIN ScheduleDrivers sd ON s.schedule_id = sd.schedule_id " +
+                "LEFT JOIN Drivers d ON sd.driver_id = d.driver_id " +
+                "LEFT JOIN Users u ON d.user_id = u.user_id " +
+                "WHERE s.route_id = ? AND s.bus_id = ? AND s.status = 'SCHEDULED' " +
+                "ORDER BY s.departure_date, s.departure_time";
+
+        System.out.println("=== DEBUG: getSchedulesByRouteAndBus ===");
+        System.out.println("RouteId: " + routeId);
+        System.out.println("BusId: " + busId);
+        System.out.println("SQL: " + sql);
+
+        try (Connection conn = DBConnection.getInstance().getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setObject(1, routeId);
+            stmt.setObject(2, busId);
+            ResultSet rs = stmt.executeQuery();
+
+            while (rs.next()) {
+                Schedule schedule = mapResultSetToSchedule(rs);
+                schedules.add(schedule);
+            }
+
+            System.out.println("Found " + schedules.size() + " schedules for route " + routeId + " and bus " + busId);
+        }
+        return schedules;
+    }
+
     public boolean deleteSchedule(UUID scheduleId) throws SQLException {
         String sql = "UPDATE Schedules SET status = 'CANCELLED', updated_date = GETDATE() WHERE schedule_id = ?";
 
@@ -258,6 +292,32 @@ public class ScheduleDAO {
             }
         }
         return 0;
+    }
+
+    public void debugAllSchedules() throws SQLException {
+        String sql = "SELECT s.schedule_id, s.route_id, s.bus_id, r.route_name, b.bus_number, s.departure_date, s.status "
+                +
+                "FROM Schedules s " +
+                "JOIN Routes r ON s.route_id = r.route_id " +
+                "JOIN Buses b ON s.bus_id = b.bus_id " +
+                "ORDER BY s.departure_date";
+
+        System.out.println("=== DEBUG: All Schedules in Database ===");
+        try (Connection conn = DBConnection.getInstance().getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql);
+                ResultSet rs = stmt.executeQuery()) {
+
+            while (rs.next()) {
+                System.out.println("ScheduleId: " + rs.getString("schedule_id") +
+                        ", RouteId: " + rs.getString("route_id") +
+                        ", BusId: " + rs.getString("bus_id") +
+                        ", Route: " + rs.getString("route_name") +
+                        ", Bus: " + rs.getString("bus_number") +
+                        ", Date: " + rs.getDate("departure_date") +
+                        ", Status: " + rs.getString("status"));
+            }
+        }
+        System.out.println("=== END DEBUG ===");
     }
 
     private Schedule mapResultSetToSchedule(ResultSet rs) throws SQLException {

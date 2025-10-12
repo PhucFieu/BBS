@@ -15,7 +15,7 @@ import java.util.stream.Collectors;
 import com.google.gson.Gson;
 
 import dao.BusDAO;
-import dao.RouteDAO;
+import dao.RoutesDAO;
 import dao.ScheduleDAO;
 import dao.TicketDAO;
 import dao.UserDAO;
@@ -40,7 +40,7 @@ import model.User;
 public class TicketController extends HttpServlet {
 
     private TicketDAO ticketDAO;
-    private RouteDAO routeDAO;
+    private RoutesDAO routeDAO;
     private ScheduleDAO scheduleDAO;
     private BusDAO busDAO;
     private UserDAO userDAO;
@@ -48,7 +48,7 @@ public class TicketController extends HttpServlet {
     @Override
     public void init() throws ServletException {
         ticketDAO = new TicketDAO();
-        routeDAO = new RouteDAO();
+        routeDAO = new RoutesDAO();
         scheduleDAO = new ScheduleDAO();
         busDAO = new BusDAO();
         userDAO = new UserDAO();

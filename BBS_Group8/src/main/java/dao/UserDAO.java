@@ -110,7 +110,7 @@ public class UserDAO {
             stmt.setString(9, user.getIdCard());
             stmt.setString(10, user.getAddress());
 
-            if (user.getDateOfBirth() != null) {
+            if (user.getdateOfBirth() != null) {
                 stmt.setDate(11, Date.valueOf(user.getDateOfBirth()));
             } else {
                 stmt.setNull(11, Types.DATE);

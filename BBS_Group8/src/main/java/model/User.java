@@ -19,7 +19,7 @@ public class User {
     private String phoneNumber;
     private String role; // ADMIN, STAFF, CUSTOMER
     private String status; // ACTIVE, INACTIVE
-    private String idCard;
+    private String IdCard;
     private String address;
     private LocalDate dateOfBirth;
     private String gender;
