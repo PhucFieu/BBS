@@ -16,11 +16,6 @@ import util.DBConnection;
 import util.PasswordUtils;
 import util.UUIDUtils;
 
-
-/**
- *
- * @author TàiNH CE190387
- */
 public class UserDAO {
 
     public User authenticate(String username, String password) throws SQLException {
@@ -110,7 +105,7 @@ public class UserDAO {
             stmt.setString(9, user.getIdCard());
             stmt.setString(10, user.getAddress());
 
-            if (user.getdateOfBirth() != null) {
+            if (user.getDateOfBirth() != null) {
                 stmt.setDate(11, Date.valueOf(user.getDateOfBirth()));
             } else {
                 stmt.setNull(11, Types.DATE);
