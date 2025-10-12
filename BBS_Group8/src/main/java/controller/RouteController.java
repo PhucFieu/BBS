@@ -1,6 +1,6 @@
 package controller;
 
-import DAO.RoutesDAO;
+import dao.RoutesDAO;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.SQLException;
