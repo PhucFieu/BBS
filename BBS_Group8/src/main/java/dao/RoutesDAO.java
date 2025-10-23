@@ -1,236 +1,262 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
-package DAO;
+package dao;
 
 import java.math.BigDecimal;
-import java.sql.*;
-import java.util.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
 import model.Routes;
 import util.DBConnection;
+import util.UUIDUtils;
 
+
+/**
+ *
+ * @author Nguyen Phat Tai
+ */
 public class RoutesDAO {
+    public List<Routes> getAllRoutes() throws SQLException {
+        List<Routes> routes = new ArrayList<>();
+        String sql = "SELECT * FROM Routes WHERE status = 'ACTIVE' ORDER BY route_name";
 
-    // ✅ Thêm mới tuyến đường
-    public boolean insertRoute(Routes route) {
-        String sql = "INSERT INTO Routes (route_id, route_name, departure_city, destination_city, "
-                + "distance, duration_hours, base_price, status, created_date, updated_date) "
-                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-
-        try (Connection conn = DBConnection.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setObject(1, route.getRouteId());
-            ps.setString(2, route.getRouteName());
-            ps.setString(3, route.getDepartureCity());
-            ps.setString(4, route.getDestinationCity());
-            ps.setBigDecimal(5, route.getDistance());
-            ps.setInt(6, route.getDurationHours());
-            ps.setBigDecimal(7, route.getBasePrice());
-            ps.setString(8, route.getStatus());
-            ps.setTimestamp(9, new Timestamp(route.getCreatedDate().getTime()));
-            ps.setTimestamp(10, new Timestamp(route.getUpdatedDate().getTime()));
-
-            return ps.executeUpdate() > 0;
-        } catch (SQLException e) {
-            System.err.println("❌ insertRoute() error: " + e.getMessage());
-        }
-        return false;
-    }
-
-    // ✅ Cập nhật tuyến đường
-    public boolean updateRoute(Routes route) {
-        String sql = "UPDATE Routes SET route_name=?, departure_city=?, destination_city=?, "
-                + "distance=?, duration_hours=?, base_price=?, status=?, updated_date=? "
-                + "WHERE route_id=?";
-
-        try (Connection conn = DBConnection.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setString(1, route.getRouteName());
-            ps.setString(2, route.getDepartureCity());
-            ps.setString(3, route.getDestinationCity());
-            ps.setBigDecimal(4, route.getDistance());
-            ps.setInt(5, route.getDurationHours());
-            ps.setBigDecimal(6, route.getBasePrice());
-            ps.setString(7, route.getStatus());
-            ps.setTimestamp(8, new Timestamp(System.currentTimeMillis()));
-            ps.setObject(9, route.getRouteId());
-
-            return ps.executeUpdate() > 0;
-        } catch (SQLException e) {
-            System.err.println("❌ updateRoute() error: " + e.getMessage());
-        }
-        return false;
-    }
-
-    // ✅ Xóa tuyến đường
-    public boolean deleteRoute(UUID routeId) {
-        String sql = "DELETE FROM Routes WHERE route_id=?";
-        try (Connection conn = DBConnection.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setObject(1, routeId);
-            return ps.executeUpdate() > 0;
-        } catch (SQLException e) {
-            System.err.println("❌ deleteRoute() error: " + e.getMessage());
-        }
-        return false;
-    }
-
-    // ✅ Lấy danh sách tất cả tuyến đường
-    public List<Routes> getAllRoutes() {
-        List<Routes> list = new ArrayList<>();
-        String sql = "SELECT * FROM Routes ORDER BY created_date DESC";
-
-        try (Connection conn = DBConnection.getConnection(); PreparedStatement ps = conn.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
-
-            while (rs.next()) {
-                Routes r = mapResultSetToRoute(rs);
-                list.add(r);
+        System.out.println("RouteDAO: Executing query: " + sql);
+        try (Connection conn = DBConnection.getInstance().getConnection()) {
+            System.out.println("RouteDAO: Database connection established");
+            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+                System.out.println("RouteDAO: Statement prepared");
+                try (ResultSet rs = stmt.executeQuery()) {
+                    System.out.println("RouteDAO: Query executed");
+                    while (rs.next()) {
+                        Routes route = mapResultSetToRoute(rs);
+                        routes.add(route);
+                        System.out.println("RouteDAO: Added route: " + route.getRouteName());
+                    }
+                }
             }
         } catch (SQLException e) {
-            System.err.println("❌ getAllRoutes() error: " + e.getMessage());
+            System.err.println("RouteDAO Error: " + e.getMessage());
+            System.err.println("SQL State: " + e.getSQLState());
+            System.err.println("Error Code: " + e.getErrorCode());
+            throw e;
         }
-        return list;
+        System.out.println("RouteDAO: Returning " + routes.size() + " routes");
+        return routes;
     }
 
-    // ✅ Tìm tuyến đường theo ID
-    public Routes getRouteById(UUID routeId) {
-        String sql = "SELECT * FROM Routes WHERE route_id=?";
-        try (Connection conn = DBConnection.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+    public Routes getRouteById(UUID routeId) throws SQLException {
+        String sql = "SELECT * FROM Routes WHERE route_id = ? AND status = 'ACTIVE'";
 
-            ps.setObject(1, routeId);
-            ResultSet rs = ps.executeQuery();
+        try (Connection conn = DBConnection.getInstance().getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setObject(1, routeId);
+            ResultSet rs = stmt.executeQuery();
+
             if (rs.next()) {
                 return mapResultSetToRoute(rs);
             }
-        } catch (SQLException e) {
-            System.err.println("❌ getRouteById() error: " + e.getMessage());
         }
         return null;
     }
 
-    // ✅ Tìm tuyến theo thành phố đi & đến
-    public List<Routes> searchRoutesByCities(String departure, String destination) {
-        List<Routes> list = new ArrayList<>();
-        String sql = "SELECT * FROM Routes WHERE departure_city LIKE ? AND destination_city LIKE ?";
+    public List<Routes> searchRoutes(String departureCity, String destinationCity) throws SQLException {
+        List<Routes> routes = new ArrayList<>();
+        String sql = "SELECT * FROM Routes WHERE status = 'ACTIVE'";
 
-        try (Connection conn = DBConnection.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setString(1, "%" + departure + "%");
-            ps.setString(2, "%" + destination + "%");
-            ResultSet rs = ps.executeQuery();
-
-            while (rs.next()) {
-                list.add(mapResultSetToRoute(rs));
-            }
-        } catch (SQLException e) {
-            System.err.println("❌ searchRoutesByCities() error: " + e.getMessage());
+        if (departureCity != null && !departureCity.trim().isEmpty()) {
+            sql += " AND departure_city LIKE ?";
         }
-        return list;
+        if (destinationCity != null && !destinationCity.trim().isEmpty()) {
+            sql += " AND destination_city LIKE ?";
+        }
+
+        sql += " ORDER BY route_name";
+
+        try (Connection conn = DBConnection.getInstance().getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            int paramIndex = 1;
+            if (departureCity != null && !departureCity.trim().isEmpty()) {
+                stmt.setString(paramIndex++, "%" + departureCity + "%");
+            }
+            if (destinationCity != null && !destinationCity.trim().isEmpty()) {
+                stmt.setString(paramIndex++, "%" + destinationCity + "%");
+            }
+
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                Routes route = mapResultSetToRoute(rs);
+                routes.add(route);
+            }
+        }
+        return routes;
     }
 
-    // ✅ Đếm tổng số tuyến (phục vụ phân trang)
-    public int countRoutes() {
-        String sql = "SELECT COUNT(*) FROM Routes";
-        try (Connection conn = DBConnection.getConnection(); Statement st = conn.createStatement(); ResultSet rs = st.executeQuery(sql)) {
+    public boolean addRoute(Routes route) throws SQLException {
+        String sql = "INSERT INTO Routes (route_id, route_name, departure_city, destination_city, distance, duration_hours, base_price, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+
+        try (Connection conn = DBConnection.getInstance().getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setObject(1, route.getRouteId());
+            stmt.setString(2, route.getRouteName());
+            stmt.setString(3, route.getDepartureCity());
+            stmt.setString(4, route.getDestinationCity());
+            stmt.setBigDecimal(5, route.getDistance());
+            stmt.setInt(6, route.getDurationHours());
+            stmt.setBigDecimal(7, route.getBasePrice());
+            stmt.setString(8, route.getStatus());
+
+            return stmt.executeUpdate() > 0;
+        }
+    }
+
+    public boolean updateRoute(Routes route) throws SQLException {
+        String sql = "UPDATE Routes SET route_name = ?, departure_city = ?, destination_city = ?, distance = ?, duration_hours = ?, base_price = ?, status = ?, updated_date = GETDATE() WHERE route_id = ?";
+
+        try (Connection conn = DBConnection.getInstance().getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, route.getRouteName());
+            stmt.setString(2, route.getDepartureCity());
+            stmt.setString(3, route.getDestinationCity());
+            stmt.setBigDecimal(4, route.getDistance());
+            stmt.setInt(5, route.getDurationHours());
+            stmt.setBigDecimal(6, route.getBasePrice());
+            stmt.setString(7, route.getStatus());
+            stmt.setObject(8, route.getRouteId());
+
+            return stmt.executeUpdate() > 0;
+        }
+    }
+
+    public boolean deleteRoute(UUID routeId) throws SQLException {
+        String sql = "UPDATE Routes SET status = 'INACTIVE', updated_date = GETDATE() WHERE route_id = ?";
+
+        try (Connection conn = DBConnection.getInstance().getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setObject(1, routeId);
+            return stmt.executeUpdate() > 0;
+        }
+    }
+
+    public int getTotalRoutes() throws SQLException {
+        String sql = "SELECT COUNT(*) FROM Routes WHERE status = 'ACTIVE'";
+
+        try (Connection conn = DBConnection.getInstance().getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql);
+                ResultSet rs = stmt.executeQuery()) {
+
             if (rs.next()) {
                 return rs.getInt(1);
             }
-        } catch (SQLException e) {
-            System.err.println("❌ countRoutes() error: " + e.getMessage());
         }
         return 0;
     }
 
-    // ✅ Helper: Chuyển ResultSet -> Routes object
-    private Routes mapResultSetToRoute(ResultSet rs) throws SQLException {
-        Routes r = new Routes();
+    public List<Routes> getPopularRoutes() throws SQLException {
+        List<Routes> routes = new ArrayList<>();
+        String sql = "SELECT TOP 5 * FROM Routes WHERE status = 'ACTIVE' ORDER BY route_name";
 
-        String routeIdStr = rs.getString("route_id");
-        if (routeIdStr != null && !routeIdStr.isEmpty()) {
-            try {
-                r.setRouteId(UUID.fromString(routeIdStr));
-            } catch (IllegalArgumentException e) {
-                System.err.println("⚠️ route_id không đúng định dạng UUID: " + routeIdStr);
-                r.setRouteId(null);
+        try (Connection conn = DBConnection.getInstance().getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql);
+                ResultSet rs = stmt.executeQuery()) {
+
+            while (rs.next()) {
+                Routes route = mapResultSetToRoute(rs);
+                routes.add(route);
             }
-        } else {
-            r.setRouteId(null);
         }
-
-        r.setRouteName(rs.getString("route_name"));
-        r.setDepartureCity(rs.getString("departure_city"));
-        r.setDestinationCity(rs.getString("destination_city"));
-        r.setDistance(rs.getBigDecimal("distance"));
-        r.setDurationHours(rs.getInt("duration_hours"));
-        r.setBasePrice(rs.getBigDecimal("base_price"));
-        r.setStatus(rs.getString("status"));
-        r.setCreatedDate(rs.getTimestamp("created_date"));
-        r.setUpdatedDate(rs.getTimestamp("updated_date"));
-        return r;
+        return routes;
     }
 
-    
-//    //chạy thử
-//    public static void main(String[] args) {
-//        RoutesDAO dao = new RoutesDAO();
-//
-//        System.out.println("=== TEST ROUTES DAO ===");
-//
-//        // ✅ 1. Them moi tuyen duong
-//        Routes newRoute = new Routes();
-//        newRoute.setRouteName("TP.HCM - Da Lat");
-//        newRoute.setDepartureCity("TP.HCM");
-//        newRoute.setDestinationCity("Da Lat");
-//        newRoute.setDistance(new BigDecimal("300.5"));
-//        newRoute.setDurationHours(6);
-//        newRoute.setBasePrice(new BigDecimal("250000"));
-//        newRoute.setStatus("ACTIVE");
-//
-//        boolean inserted = dao.insertRoute(newRoute);
-//        System.out.println("Them moi tuyen: " + (inserted ? "Thanh cong" : "That bai"));
-//
-//        // ✅ 2. Lay tat ca tuyen
-//        System.out.println("\n--- Danh sach tat ca tuyen ---");
-//        List<Routes> routesList = dao.getAllRoutes();
-//        for (Routes r : routesList) {
-//            System.out.println(r);
-//        }
-//
-//        // ✅ 3. Tim tuyen theo ID (lay ID cua tuyen vua chen)
-//        if (!routesList.isEmpty()) {
-//            UUID id = routesList.get(0).getRouteId();
-//            Routes route = dao.getRouteById(id);
-//            System.out.println("\n--- Tim theo ID ---");
-//            System.out.println(route);
-//        }
-//
-//        // ✅ 4. Cap nhat tuyen (vi du chinh gia & thoi gian)
-//        if (!routesList.isEmpty()) {
-//            Routes route = routesList.get(0);
-//            route.setBasePrice(new BigDecimal("300000"));
-//            route.setDurationHours(7);
-//            boolean updated = dao.updateRoute(route);
-//            System.out.println("\nCap nhat tuyen: " + (updated ? "Thanh cong" : "That bai"));
-//        }
-//
-//        // ✅ 5. Tim tuyen theo thanh pho
-//        System.out.println("\n--- Tim tuyen co diem di 'TP.HCM' ---");
-//        List<Routes> search = dao.searchRoutesByCities("TP.HCM", "");
-//        for (Routes r : search) {
-//            System.out.println(r);
-//        }
-//
-//        // ✅ 6. Dem tong so tuyen
-//        int count = dao.countRoutes();
-//        System.out.println("\nTong so tuyen hien co: " + count);
-//
-//        // ✅ 7. Xoa tuyen cuoi cung (neu muon test xoa)
-//        if (!routesList.isEmpty()) {
-//            UUID idToDelete = routesList.get(routesList.size() - 1).getRouteId();
-//            boolean deleted = dao.deleteRoute(idToDelete);
-//            System.out.println("\nXoa tuyen: " + (deleted ? "Thanh cong" : "That bai"));
-//        }
-//
-//        System.out.println("\n=== KET THUC TEST ===");
-//    }
+    public BigDecimal getPriceByRouteId(UUID routeId) throws SQLException {
+        String sql = "SELECT base_price FROM Routes WHERE route_id = ? AND status = 'ACTIVE'";
+
+        try (Connection conn = DBConnection.getInstance().getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setObject(1, routeId);
+            ResultSet rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                return rs.getBigDecimal("base_price");
+            }
+        }
+        return null;
+    }
+
+    private Routes mapResultSetToRoute(ResultSet rs) throws SQLException {
+        Routes route = new Routes();
+        route.setRouteId(UUIDUtils.getUUIDFromResultSet(rs, "route_id"));
+        route.setRouteName(rs.getString("route_name"));
+        route.setDepartureCity(rs.getString("departure_city"));
+        route.setDestinationCity(rs.getString("destination_city"));
+        route.setDistance(rs.getBigDecimal("distance"));
+        route.setDurationHours(rs.getInt("duration_hours"));
+        route.setBasePrice(rs.getBigDecimal("base_price"));
+        route.setStatus(rs.getString("status"));
+
+        java.sql.Timestamp createdDate = rs.getTimestamp("created_date");
+        if (createdDate != null) {
+            route.setCreatedDate(createdDate.toLocalDateTime());
+        }
+
+        java.sql.Timestamp updatedDate = rs.getTimestamp("updated_date");
+        if (updatedDate != null) {
+            route.setUpdatedDate(updatedDate.toLocalDateTime());
+        }
+
+        return route;
+    }
+
+    /**
+     * Find schedule ID based on route, bus, and departure date/time
+     */
+    public UUID findScheduleId(UUID routeId, UUID busId, java.time.LocalDate departureDate,
+            java.time.LocalTime departureTime) throws SQLException {
+        // Fixed SQL query - use CAST to ensure proper type matching
+        String sql = "SELECT schedule_id FROM Schedules WHERE route_id = ? AND bus_id = ? AND departure_date = ? AND departure_time = CAST(? AS TIME) AND status = 'SCHEDULED'";
+
+        System.out.println("=== ROUTE DAO DEBUG ===");
+        System.out.println("SQL: " + sql);
+        System.out.println("RouteId: " + routeId);
+        System.out.println("BusId: " + busId);
+        System.out.println(
+                "DepartureDate: " + departureDate + " (SQL Date: " + java.sql.Date.valueOf(departureDate) + ")");
+        System.out.println(
+                "DepartureTime: " + departureTime + " (SQL Time: " + java.sql.Time.valueOf(departureTime) + ")");
+
+        try (Connection conn = DBConnection.getInstance().getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setObject(1, routeId);
+            stmt.setObject(2, busId);
+            stmt.setDate(3, java.sql.Date.valueOf(departureDate));
+            // Use setTime with CAST in SQL to ensure type compatibility
+            stmt.setTime(4, java.sql.Time.valueOf(departureTime));
+
+            System.out.println("Executing query...");
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    UUID result = UUIDUtils.getUUIDFromResultSet(rs, "schedule_id");
+                    System.out.println("Found ScheduleId: " + result);
+                    return result;
+                } else {
+                    System.out.println("No schedule found matching criteria");
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("ERROR in findScheduleId: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
+        }
+        System.out.println("=== END ROUTE DAO DEBUG ===");
+        return null;
+    }
 }

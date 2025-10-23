@@ -1,79 +1,307 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package model;
 
-import java.util.Date;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.UUID;
-
 /**
  *
- * @author Admin
+ * @author LamDNB-CE192005
  */
+
 public class Tickets {
+
     private UUID ticketId;
     private String ticketNumber;
     private UUID scheduleId;
     private UUID userId;
     private int seatNumber;
-    private double ticketPrice;
-    private Date bookingDate;
-    private TicketStatus status;
-    private PaymentStatus paymentStatus;
-    private Date createdDate;
-    private Date updatedDate;
+    private BigDecimal ticketPrice;
+    private LocalDateTime bookingDate;
+    private String status;
+    private String paymentStatus;
+    private LocalDateTime createdDate;
+    private LocalDateTime updatedDate;
 
-    private Schedule schedule;
+    // Additional fields for display purposes (for backward compatibility)
+    private Routes route;
+    private Bus bus;
     private User user;
+
+    // Display fields (populated from joins)
+    private String routeName;
+    private String departureCity;
+    private String destinationCity;
+    private String busNumber;
+    private String driverName;
+    private String userName;
+    private String username;
+    private String userEmail;
+    private LocalDate departureDate;
+    private LocalTime departureTime;
 
     // Constructors
     public Tickets() {
         this.ticketId = UUID.randomUUID();
-        this.status = TicketStatus.CONFIRMED;
-        this.paymentStatus = PaymentStatus.PENDING;
-        this.bookingDate = new Date();
-        this.createdDate = new Date();
-        this.updatedDate = new Date();
+        this.status = "CONFIRMED";
+        this.paymentStatus = "PENDING";
+        this.bookingDate = LocalDateTime.now();
+        this.createdDate = LocalDateTime.now();
+        this.updatedDate = LocalDateTime.now();
+    }
+
+    public Tickets(
+            String ticketNumber,
+            UUID scheduleId,
+            UUID userId,
+            int seatNumber,
+            BigDecimal ticketPrice) {
+        this();
+        this.ticketNumber = ticketNumber;
+        this.scheduleId = scheduleId;
+        this.userId = userId;
+        this.seatNumber = seatNumber;
+        this.ticketPrice = ticketPrice;
+    }
+
+    public java.sql.Date getDepartureDateSql() {
+        return departureDate != null
+                ? java.sql.Date.valueOf(departureDate)
+                : null;
+    }
+
+    public java.sql.Time getDepartureTimeSql() {
+        return departureTime != null
+                ? java.sql.Time.valueOf(departureTime)
+                : null;
+    }
+
+    public String getBookingDateStr() {
+        if (bookingDate == null)
+            return "";
+        return bookingDate.format(DateTimeFormatter.ofPattern("MMM dd, yyyy"));
     }
 
     // Getters and Setters
-    public UUID getTicketId() { return ticketId; }
-    public void setTicketId(UUID ticketId) { this.ticketId = ticketId; }
+    public UUID getTicketId() {
+        return ticketId;
+    }
 
-    public String getTicketNumber() { return ticketNumber; }
-    public void setTicketNumber(String ticketNumber) { this.ticketNumber = ticketNumber; }
+    public void setTicketId(UUID ticketId) {
+        this.ticketId = ticketId;
+    }
 
-    public UUID getScheduleId() { return scheduleId; }
-    public void setScheduleId(UUID scheduleId) { this.scheduleId = scheduleId; }
+    public String getTicketNumber() {
+        return ticketNumber;
+    }
 
-    public UUID getUserId() { return userId; }
-    public void setUserId(UUID userId) { this.userId = userId; }
+    public void setTicketNumber(String ticketNumber) {
+        this.ticketNumber = ticketNumber;
+    }
 
-    public int getSeatNumber() { return seatNumber; }
-    public void setSeatNumber(int seatNumber) { this.seatNumber = seatNumber; }
+    public UUID getScheduleId() {
+        return scheduleId;
+    }
 
-    public double getTicketPrice() { return ticketPrice; }
-    public void setTicketPrice(double ticketPrice) { this.ticketPrice = ticketPrice; }
+    public void setScheduleId(UUID scheduleId) {
+        this.scheduleId = scheduleId;
+    }
 
-    public Date getBookingDate() { return bookingDate; }
-    public void setBookingDate(Date bookingDate) { this.bookingDate = bookingDate; }
+    public UUID getUserId() {
+        return userId;
+    }
 
-    public TicketStatus getStatus() { return status; }
-    public void setStatus(TicketStatus status) { this.status = status; }
+    public void setUserId(UUID userId) {
+        this.userId = userId;
+    }
 
-    public PaymentStatus getPaymentStatus() { return paymentStatus; }
-    public void setPaymentStatus(PaymentStatus paymentStatus) { this.paymentStatus = paymentStatus; }
+    public String getRouteName() {
+        return routeName;
+    }
 
-    public Date getCreatedDate() { return createdDate; }
-    public void setCreatedDate(Date createdDate) { this.createdDate = createdDate; }
+    public void setRouteName(String routeName) {
+        this.routeName = routeName;
+    }
 
-    public Date getUpdatedDate() { return updatedDate; }
-    public void setUpdatedDate(Date updatedDate) { this.updatedDate = updatedDate; }
+    public String getDepartureCity() {
+        return departureCity;
+    }
 
-    public Schedule getSchedule() { return schedule; }
-    public void setSchedule(Schedule schedule) { this.schedule = schedule; }
+    public void setDepartureCity(String departureCity) {
+        this.departureCity = departureCity;
+    }
 
-    public User getUser() { return user; }
-    public void setUser(User user) { this.user = user; }
+    public String getDestinationCity() {
+        return destinationCity;
+    }
+
+    public void setDestinationCity(String destinationCity) {
+        this.destinationCity = destinationCity;
+    }
+
+    public String getBusNumber() {
+        return busNumber;
+    }
+
+    public void setBusNumber(String busNumber) {
+        this.busNumber = busNumber;
+    }
+
+    public String getDriverName() {
+        return driverName;
+    }
+
+    public void setDriverName(String driverName) {
+        this.driverName = driverName;
+    }
+
+    public int getSeatNumber() {
+        return seatNumber;
+    }
+
+    public void setSeatNumber(int seatNumber) {
+        this.seatNumber = seatNumber;
+    }
+
+    public LocalDate getDepartureDate() {
+        return departureDate;
+    }
+
+    public void setDepartureDate(LocalDate departureDate) {
+        this.departureDate = departureDate;
+    }
+
+    public LocalTime getDepartureTime() {
+        return departureTime;
+    }
+
+    public void setDepartureTime(LocalTime departureTime) {
+        this.departureTime = departureTime;
+    }
+
+    public BigDecimal getTicketPrice() {
+        return ticketPrice;
+    }
+
+    public void setTicketPrice(BigDecimal ticketPrice) {
+        this.ticketPrice = ticketPrice;
+    }
+
+    public LocalDateTime getBookingDate() {
+        return bookingDate;
+    }
+
+    public void setBookingDate(LocalDateTime bookingDate) {
+        this.bookingDate = bookingDate;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public String getPaymentStatus() {
+        return paymentStatus;
+    }
+
+    public void setPaymentStatus(String paymentStatus) {
+        this.paymentStatus = paymentStatus;
+    }
+
+    public LocalDateTime getCreatedDate() {
+        return createdDate;
+    }
+
+    public void setCreatedDate(LocalDateTime createdDate) {
+        this.createdDate = createdDate;
+    }
+
+    public LocalDateTime getUpdatedDate() {
+        return updatedDate;
+    }
+
+    public void setUpdatedDate(LocalDateTime updatedDate) {
+        this.updatedDate = updatedDate;
+    }
+
+    // Additional getters and setters for related objects
+    public Routes getRoute() {
+        return route;
+    }
+
+    public void setRoute(Routes route) {
+        this.route = route;
+    }
+
+    public Bus getBus() {
+        return bus;
+    }
+
+    public void setBus(Bus bus) {
+        this.bus = bus;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
+
+    // User information getters and setters
+    public String getUserName() {
+        return userName;
+    }
+
+    public void setUserName(String userName) {
+        this.userName = userName;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public String getUserEmail() {
+        return userEmail;
+    }
+
+    public void setUserEmail(String userEmail) {
+        this.userEmail = userEmail;
+    }
+
+    @Override
+    public String toString() {
+        return ("Ticket{" +
+                "ticketId=" +
+                ticketId +
+                ", ticketNumber='" +
+                ticketNumber +
+                '\'' +
+                ", scheduleId=" +
+                scheduleId +
+                ", userId=" +
+                userId +
+                ", seatNumber=" +
+                seatNumber +
+                ", ticketPrice=" +
+                ticketPrice +
+                ", status='" +
+                status +
+                '\'' +
+                ", paymentStatus='" +
+                paymentStatus +
+                '\'' +
+                '}');
+    }
 }
+
