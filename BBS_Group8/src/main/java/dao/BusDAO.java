@@ -11,11 +11,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-/**
- *
- * @author NghiaTHCE191122
- */
-
 import model.Bus;
 import util.DBConnection;
 import util.UUIDUtils;
@@ -111,13 +106,28 @@ public class BusDAO {
     }
 
     public boolean deleteBus(UUID busId) throws SQLException {
-        String sql = "UPDATE Buses SET status = 'INACTIVE', updated_date = GETDATE() WHERE bus_id = ?";
+        String sql = "UPDATE Buses SET status = 'INACTIVE', updated_date = GETDATE() WHERE bus_id = ? AND status = 'ACTIVE'";
         try (
                 Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql);) {
             stmt.setObject(1, busId);
             return stmt.executeUpdate() > 0;
         }
+    }
+
+    public boolean isBusInUse(UUID busId) throws SQLException {
+        String sql = "SELECT COUNT(*) FROM Schedules WHERE bus_id = ? AND departure_date >= CAST(GETDATE() AS DATE)";
+        try (
+                Connection conn = DBConnection.getInstance().getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql);) {
+            stmt.setObject(1, busId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1) > 0;
+                }
+            }
+        }
+        return false;
     }
 
     // Note: available_seats is now managed in Schedules table, not Buses table
@@ -203,6 +213,27 @@ public class BusDAO {
             }
         }
         return null;
+    }
+
+    public List<Bus> searchBuses(String searchTerm) throws SQLException {
+        List<Bus> buses = new ArrayList<>();
+        String sql = "SELECT * FROM Buses WHERE (bus_number LIKE ? OR bus_type LIKE ? OR license_plate LIKE ?) AND status = 'ACTIVE' ORDER BY bus_number";
+
+        try (Connection conn = DBConnection.getInstance().getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            String searchPattern = "%" + searchTerm + "%";
+            stmt.setString(1, searchPattern);
+            stmt.setString(2, searchPattern);
+            stmt.setString(3, searchPattern);
+
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                Bus bus = mapResultSetToBus(rs);
+                buses.add(bus);
+            }
+        }
+        return buses;
     }
 
     private Bus mapResultSetToBus(ResultSet rs) throws SQLException {

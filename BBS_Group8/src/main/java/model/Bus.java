@@ -3,11 +3,6 @@ package model;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-/**
- *
- * @author NghiaTHCE191122
- */
-
 public class Bus {
     private UUID busId;
     private String busNumber;

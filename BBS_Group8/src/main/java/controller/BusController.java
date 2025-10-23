@@ -11,13 +11,9 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import model.Bus;
 import util.AuthUtils;
-
-/**
- *
- * @author NghiaTHCE191122
- */
 
 @WebServlet("/buses/*")
 public class BusController extends HttpServlet {
@@ -34,9 +30,16 @@ public class BusController extends HttpServlet {
             throws ServletException, IOException {
         // Check if user has permission to manage buses
         if (!AuthUtils.canManageBuses(request.getSession(false))) {
-            request.setAttribute("error", "You do not have permission to access this page");
-            request.getRequestDispatcher("/views/403.jsp").forward(request, response);
-            return;
+            // Redirect to admin login if not logged in, or redirect to admin buses if
+            // logged in but not admin
+            HttpSession session = request.getSession(false);
+            if (session == null || session.getAttribute("user") == null) {
+                response.sendRedirect(request.getContextPath() + "/auth/login");
+                return;
+            } else {
+                response.sendRedirect(request.getContextPath() + "/admin/buses");
+                return;
+            }
         }
 
         String pathInfo = request.getPathInfo();
@@ -45,6 +48,9 @@ public class BusController extends HttpServlet {
             if (pathInfo == null || pathInfo.equals("/") || pathInfo.equals("")) {
                 // List all buses
                 listBuses(request, response);
+            } else if (pathInfo.equals("/public")) {
+                // Public bus listing (no admin permissions required)
+                showPublicBuses(request, response);
             } else if (pathInfo.equals("/add")) {
                 // Show add form
                 showAddForm(request, response);
@@ -71,9 +77,16 @@ public class BusController extends HttpServlet {
             throws ServletException, IOException {
         // Check if user has permission to manage buses
         if (!AuthUtils.canManageBuses(request.getSession(false))) {
-            request.setAttribute("error", "You do not have permission to access this page");
-            request.getRequestDispatcher("/views/403.jsp").forward(request, response);
-            return;
+            // Redirect to admin login if not logged in, or redirect to admin buses if
+            // logged in but not admin
+            HttpSession session = request.getSession(false);
+            if (session == null || session.getAttribute("user") == null) {
+                response.sendRedirect(request.getContextPath() + "/auth/login");
+                return;
+            } else {
+                response.sendRedirect(request.getContextPath() + "/admin/buses");
+                return;
+            }
         }
 
         String pathInfo = request.getPathInfo();
@@ -96,6 +109,13 @@ public class BusController extends HttpServlet {
         List<Bus> buses = busDAO.getAllBuses();
         request.setAttribute("buses", buses);
         request.getRequestDispatcher("/views/buses.jsp").forward(request, response);
+    }
+
+    private void showPublicBuses(HttpServletRequest request, HttpServletResponse response)
+            throws SQLException, ServletException, IOException {
+        List<Bus> buses = busDAO.getAvailableBuses();
+        request.setAttribute("buses", buses);
+        request.getRequestDispatcher("/views/bus-listing.jsp").forward(request, response);
     }
 
     private void showAddForm(HttpServletRequest request, HttpServletResponse response)
@@ -176,13 +196,38 @@ public class BusController extends HttpServlet {
 
     private void deleteBus(HttpServletRequest request, HttpServletResponse response)
             throws SQLException, IOException {
-        UUID busId = UUID.fromString(request.getParameter("id"));
-        boolean success = busDAO.deleteBus(busId);
+        try {
+            UUID busId = UUID.fromString(request.getParameter("id"));
 
-        if (success) {
-            response.sendRedirect(request.getContextPath() + "/buses?message=Bus deleted successfully");
-        } else {
-            response.sendRedirect(request.getContextPath() + "/buses?error=Failed to delete bus");
+            // Check if bus exists
+            Bus bus = busDAO.getBusById(busId);
+            if (bus == null) {
+                response.sendRedirect(request.getContextPath() + "/admin/buses?error=Bus not found");
+                return;
+            }
+
+            // Check if bus is currently in use (has active schedules)
+            boolean isInUse = busDAO.isBusInUse(busId);
+            if (isInUse) {
+                response.sendRedirect(request.getContextPath()
+                        + "/admin/buses?error=Cannot delete bus. It is currently assigned to active schedules.");
+                return;
+            }
+
+            // Perform soft delete
+            boolean success = busDAO.deleteBus(busId);
+
+            if (success) {
+                response.sendRedirect(request.getContextPath() + "/admin/buses?message=Bus " + bus.getBusNumber()
+                        + " deleted successfully");
+            } else {
+                response.sendRedirect(request.getContextPath() + "/admin/buses?error=Failed to delete bus");
+            }
+        } catch (IllegalArgumentException e) {
+            response.sendRedirect(request.getContextPath() + "/admin/buses?error=Invalid bus ID");
+        } catch (Exception e) {
+            response.sendRedirect(
+                    request.getContextPath() + "/admin/buses?error=An error occurred while deleting the bus");
         }
     }
 
