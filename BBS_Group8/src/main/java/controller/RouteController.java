@@ -27,33 +27,64 @@ public class RouteController extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        // Check if user has permission to manage routes
-        if (!AuthUtils.canManageRoutes(request.getSession(false))) {
-            request.setAttribute("error", "You do not have permission to access this page");
-            request.getRequestDispatcher("/views/403.jsp").forward(request, response);
+        String pathInfo = request.getPathInfo();
+
+        // Allow public access to /routes/search for user role
+        if ("/search".equals(pathInfo)) {
+            try {
+                searchRoutes(request, response);
+            } catch (SQLException e) {
+                handleError(request, response, "Database error: " + e.getMessage());
+            }
             return;
         }
 
-        String pathInfo = request.getPathInfo();
+        boolean isAdmin = AuthUtils.isAdmin(request.getSession(false));
+        boolean isDriver = AuthUtils.isDriver(request.getSession(false));
 
         try {
             if (pathInfo == null || pathInfo.equals("/") || pathInfo.equals("")) {
-                // List all routes
+                // List all routes - allow ADMIN and DRIVER
+                if (!isAdmin && !isDriver) {
+                    request.setAttribute("error", "You do not have permission to access this page");
+                    request.getRequestDispatcher("/views/403.jsp").forward(request, response);
+                    return;
+                }
                 listRoutes(request, response);
             } else if (pathInfo.equals("/add")) {
                 // Show add form
+                if (!isAdmin) {
+                    request.setAttribute("error", "You do not have permission to access this page");
+                    request.getRequestDispatcher("/views/403.jsp").forward(request, response);
+                    return;
+                }
                 showAddForm(request, response);
             } else if (pathInfo.equals("/edit")) {
                 // Show edit form
+                if (!isAdmin) {
+                    request.setAttribute("error", "You do not have permission to access this page");
+                    request.getRequestDispatcher("/views/403.jsp").forward(request, response);
+                    return;
+                }
                 showEditForm(request, response);
             } else if (pathInfo.equals("/delete")) {
                 // Delete route
+                if (!isAdmin) {
+                    request.setAttribute("error", "You do not have permission to access this page");
+                    request.getRequestDispatcher("/views/403.jsp").forward(request, response);
+                    return;
+                }
                 deleteRoute(request, response);
             } else if (pathInfo.equals("/search")) {
                 // Search routes
                 searchRoutes(request, response);
             } else {
                 // Get route by ID
+                if (!isAdmin && !isDriver) {
+                    request.setAttribute("error", "You do not have permission to access this page");
+                    request.getRequestDispatcher("/views/403.jsp").forward(request, response);
+                    return;
+                }
                 getRouteById(request, response);
             }
         } catch (SQLException e) {
@@ -64,14 +95,24 @@ public class RouteController extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        // Check if user has permission to manage routes
-        if (!AuthUtils.canManageRoutes(request.getSession(false))) {
+        String pathInfo = request.getPathInfo();
+
+        // Allow public access to /routes/search via POST as well
+        if ("/search".equals(pathInfo)) {
+            try {
+                searchRoutes(request, response);
+            } catch (SQLException e) {
+                handleError(request, response, "Database error: " + e.getMessage());
+            }
+            return;
+        }
+
+        // For other endpoints, enforce admin-only for modifications
+        if (!AuthUtils.isAdmin(request.getSession(false))) {
             request.setAttribute("error", "You do not have permission to access this page");
             request.getRequestDispatcher("/views/403.jsp").forward(request, response);
             return;
         }
-
-        String pathInfo = request.getPathInfo();
 
         try {
             if (pathInfo.equals("/add")) {
@@ -90,7 +131,12 @@ public class RouteController extends HttpServlet {
             throws SQLException, ServletException, IOException {
         List<Routes> routes = routeDAO.getAllRoutes();
         request.setAttribute("routes", routes);
-        request.getRequestDispatcher("/views/routes.jsp").forward(request, response);
+        if (AuthUtils.isAdmin(request.getSession(false))) {
+            request.getRequestDispatcher("/views/routes.jsp").forward(request, response);
+        } else {
+            // For DRIVER/USER, show the public/search-oriented page instead of admin UI
+            request.getRequestDispatcher("/views/route-search.jsp").forward(request, response);
+        }
     }
 
     private void showAddForm(HttpServletRequest request, HttpServletResponse response)
