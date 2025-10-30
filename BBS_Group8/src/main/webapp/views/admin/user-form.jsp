@@ -5,7 +5,7 @@
 
         <head>
             <jsp:include page="/views/partials/head.jsp">
-                <jsp:param name="title" value="Form hanh khach - Admin Panel" />
+                <jsp:param name="title" value="Passenger Form - Admin Panel" />
             </jsp:include>
         </head>
 
