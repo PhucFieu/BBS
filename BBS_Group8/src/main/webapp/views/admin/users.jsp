@@ -6,7 +6,7 @@
 
             <head>
                 <jsp:include page="/views/partials/head.jsp">
-                    <jsp:param name="title" value="User Management - Admin Panel" />
+                    <jsp:param name="title" value="Passenger Management - Admin Panel" />
                 </jsp:include>
                 <style>
                     .user-card {
@@ -61,9 +61,9 @@
                     <div class="container mt-4">
                         <!-- Header -->
                         <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h2><i class="fas fa-users me-2"></i>User Management</h2>
+                            <h2><i class="fas fa-users me-2"></i>Passenger Management</h2>
                             <a href="${pageContext.request.contextPath}/admin/user/add" class="btn btn-primary">
-                                <i class="fas fa-plus me-1"></i>Add User
+                                <i class="fas fa-plus me-1"></i>Add Passenger
                             </a>
                         </div>
 
@@ -94,7 +94,7 @@
                                     <select class="form-select" id="role" name="role">
                                         <option value="">All</option>
                                         <option value="ADMIN" ${roleFilter=='ADMIN' ? 'selected' : '' }>Admin</option>
-                                        <option value="USER" ${roleFilter=='USER' ? 'selected' : '' }>User</option>
+                                        <option value="USER" ${roleFilter=='USER' ? 'selected' : '' }>Passenger</option>
                                         <option value="DRIVER" ${roleFilter=='DRIVER' ? 'selected' : '' }>Driver
                                         </option>
                                     </select>
@@ -111,13 +111,13 @@
                             </form>
                         </div>
 
-                        <!-- Users Display -->
+                        <!-- Passengers Display -->
                         <c:choose>
                             <c:when test="${empty users}">
                                 <div class="text-center py-5">
                                     <i class="fas fa-users fa-3x text-muted mb-3"></i>
-                                    <h5 class="text-muted">No users found</h5>
-                                    <p class="text-muted">Add the first user to get started</p>
+                                    <h5 class="text-muted">No passengers found</h5>
+                                    <p class="text-muted">Add the first passenger to get started</p>
                                 </div>
                             </c:when>
                             <c:otherwise>
@@ -131,8 +131,12 @@
                                                         <h6 class="mb-0">
                                                             <i class="fas fa-user me-2"></i>${user.fullName}
                                                         </h6>
-                                                        <span
-                                                            class="role-badge role-${user.role.toLowerCase()}">${user.role}</span>
+                                                        <span class="role-badge role-${user.role.toLowerCase()}">
+                                                            <c:choose>
+                                                                <c:when test="${user.role eq 'USER'}">PASSENGER</c:when>
+                                                                <c:otherwise>${user.role}</c:otherwise>
+                                                            </c:choose>
+                                                        </span>
                                                     </div>
                                                 </div>
                                                 <div class="card-body">
@@ -192,8 +196,12 @@
                                                     <td>${user.email}</td>
                                                     <td>${user.phoneNumber}</td>
                                                     <td>
-                                                        <span
-                                                            class="role-badge role-${user.role.toLowerCase()}">${user.role}</span>
+                                                        <span class="role-badge role-${user.role.toLowerCase()}">
+                                                            <c:choose>
+                                                                <c:when test="${user.role eq 'USER'}">PASSENGER</c:when>
+                                                                <c:otherwise>${user.role}</c:otherwise>
+                                                            </c:choose>
+                                                        </span>
                                                     </td>
                                                     <td>
                                                         <span
@@ -247,7 +255,8 @@
                                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                 </div>
                                 <div class="modal-body">
-                                    <p>Are you sure you want to delete user <strong id="userNameToDelete"></strong>?</p>
+                                    <p>Are you sure you want to delete passenger <strong
+                                            id="userNameToDelete"></strong>?</p>
                                     <p class="text-danger"><small>This action cannot be undone.</small></p>
                                 </div>
                                 <div class="modal-footer">
