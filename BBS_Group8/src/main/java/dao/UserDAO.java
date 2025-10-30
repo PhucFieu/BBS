@@ -16,6 +16,11 @@ import util.DBConnection;
 import util.PasswordUtils;
 import util.UUIDUtils;
 
+/**
+ *
+ * @author TaiNHCE190387
+ */
+
 public class UserDAO {
 
     public User authenticate(String username, String password) throws SQLException {
@@ -102,8 +107,20 @@ public class UserDAO {
             stmt.setString(6, user.getPhoneNumber());
             stmt.setString(7, user.getRole());
             stmt.setString(8, user.getStatus());
-            stmt.setString(9, user.getIdCard());
-            stmt.setString(10, user.getAddress());
+
+            // Handle id_card - set to null if empty or null
+            if (user.getIdCard() != null && !user.getIdCard().trim().isEmpty()) {
+                stmt.setString(9, user.getIdCard());
+            } else {
+                stmt.setNull(9, Types.VARCHAR);
+            }
+
+            // Handle address - set to null if empty or null
+            if (user.getAddress() != null && !user.getAddress().trim().isEmpty()) {
+                stmt.setString(10, user.getAddress());
+            } else {
+                stmt.setNull(10, Types.VARCHAR);
+            }
 
             if (user.getDateOfBirth() != null) {
                 stmt.setDate(11, Date.valueOf(user.getDateOfBirth()));
@@ -111,7 +128,12 @@ public class UserDAO {
                 stmt.setNull(11, Types.DATE);
             }
 
-            stmt.setString(12, user.getGender());
+            // Handle gender - set to null if empty or null
+            if (user.getGender() != null && !user.getGender().trim().isEmpty()) {
+                stmt.setString(12, user.getGender());
+            } else {
+                stmt.setNull(12, Types.VARCHAR);
+            }
 
             return stmt.executeUpdate() > 0;
         }
@@ -128,8 +150,20 @@ public class UserDAO {
             stmt.setString(3, user.getPhoneNumber());
             stmt.setString(4, user.getRole());
             stmt.setString(5, user.getStatus());
-            stmt.setString(6, user.getIdCard());
-            stmt.setString(7, user.getAddress());
+
+            // Handle id_card - set to null if empty or null
+            if (user.getIdCard() != null && !user.getIdCard().trim().isEmpty()) {
+                stmt.setString(6, user.getIdCard());
+            } else {
+                stmt.setNull(6, Types.VARCHAR);
+            }
+
+            // Handle address - set to null if empty or null
+            if (user.getAddress() != null && !user.getAddress().trim().isEmpty()) {
+                stmt.setString(7, user.getAddress());
+            } else {
+                stmt.setNull(7, Types.VARCHAR);
+            }
 
             if (user.getDateOfBirth() != null) {
                 stmt.setDate(8, Date.valueOf(user.getDateOfBirth()));
@@ -137,7 +171,13 @@ public class UserDAO {
                 stmt.setNull(8, Types.DATE);
             }
 
-            stmt.setString(9, user.getGender());
+            // Handle gender - set to null if empty or null
+            if (user.getGender() != null && !user.getGender().trim().isEmpty()) {
+                stmt.setString(9, user.getGender());
+            } else {
+                stmt.setNull(9, Types.VARCHAR);
+            }
+
             stmt.setObject(10, user.getUserId());
 
             return stmt.executeUpdate() > 0;
@@ -203,17 +243,30 @@ public class UserDAO {
 
     public List<User> searchUsers(String searchTerm, String role) throws SQLException {
         List<User> users = new ArrayList<>();
-        String sql = "SELECT * FROM Users WHERE (username LIKE ? OR full_name LIKE ? OR email LIKE ? OR phone_number LIKE ?) AND role = ? AND status = 'ACTIVE' ORDER BY username";
+        String sql;
+
+        // If search term is empty, return all users with the specified role
+        if (searchTerm == null || searchTerm.trim().isEmpty()) {
+            sql = "SELECT * FROM Users WHERE role = ? AND status = 'ACTIVE' ORDER BY full_name";
+        } else {
+            sql = "SELECT * FROM Users WHERE (username LIKE ? OR full_name LIKE ? OR email LIKE ? OR phone_number LIKE ?) AND role = ? AND status = 'ACTIVE' ORDER BY full_name";
+        }
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            String searchPattern = "%" + searchTerm + "%";
-            stmt.setString(1, searchPattern);
-            stmt.setString(2, searchPattern);
-            stmt.setString(3, searchPattern);
-            stmt.setString(4, searchPattern);
-            stmt.setString(5, role);
+            if (searchTerm == null || searchTerm.trim().isEmpty()) {
+                // No search term - return all users with specified role
+                stmt.setString(1, role);
+            } else {
+                // With search term - search in multiple fields
+                String searchPattern = "%" + searchTerm + "%";
+                stmt.setString(1, searchPattern);
+                stmt.setString(2, searchPattern);
+                stmt.setString(3, searchPattern);
+                stmt.setString(4, searchPattern);
+                stmt.setString(5, role);
+            }
 
             ResultSet rs = stmt.executeQuery();
             while (rs.next()) {
@@ -280,6 +333,36 @@ public class UserDAO {
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setString(1, role);
+            ResultSet rs = stmt.executeQuery();
+
+            while (rs.next()) {
+                User user = mapResultSetToUser(rs);
+                users.add(user);
+            }
+        }
+        return users;
+    }
+
+    /**
+     * Get distinct passengers (Users with role USER) who have confirmed tickets
+     * on schedules assigned to the given driver (identified by driver's user_id).
+     */
+    public List<User> getPassengersByDriverUserId(UUID driverUserId) throws SQLException {
+        List<User> users = new ArrayList<>();
+        String sql = "SELECT DISTINCT u.* " +
+                "FROM Tickets t " +
+                "JOIN Schedules s ON t.schedule_id = s.schedule_id " +
+                "JOIN ScheduleDrivers sd ON s.schedule_id = sd.schedule_id " +
+                "JOIN Drivers d ON sd.driver_id = d.driver_id " +
+                "JOIN Users du ON d.user_id = du.user_id " +
+                "JOIN Users u ON t.user_id = u.user_id " +
+                "WHERE du.user_id = ? AND t.status = 'CONFIRMED' AND u.status = 'ACTIVE' AND u.role = 'USER' " +
+                "ORDER BY u.full_name";
+
+        try (Connection conn = DBConnection.getInstance().getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setObject(1, driverUserId);
             ResultSet rs = stmt.executeQuery();
 
             while (rs.next()) {
@@ -358,6 +441,21 @@ public class UserDAO {
         }
 
         return user;
+    }
+
+    /**
+     * Deactivate user account (soft delete)
+     */
+    public boolean deactivateUser(UUID userId) throws SQLException {
+        String sql = "UPDATE Users SET status = 'INACTIVE', updated_date = GETDATE() WHERE user_id = ?";
+
+        try (Connection conn = DBConnection.getInstance().getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setObject(1, userId);
+            int rowsAffected = stmt.executeUpdate();
+            return rowsAffected > 0;
+        }
     }
 
 }
