@@ -5,7 +5,7 @@
 
         <head>
             <jsp:include page="/views/partials/head.jsp">
-                <jsp:param name="title" value="Form nguoi dung - Admin Panel" />
+                <jsp:param name="title" value="Form hanh khach - Admin Panel" />
             </jsp:include>
         </head>
 
@@ -20,9 +20,9 @@
                                     <h5 class="mb-0">
                                         <i class="fas fa-user-edit me-2"></i>
                                         <c:choose>
-                                            <c:when test="${isAddMode}">Thêm người dùng mới</c:when>
-                                            <c:when test="${not empty user}">Chỉnh sửa người dùng</c:when>
-                                            <c:otherwise>Thêm người dùng mới</c:otherwise>
+                                            <c:when test="${isAddMode}">Thêm hành khách mới</c:when>
+                                            <c:when test="${not empty user}">Chỉnh sửa hành khách</c:when>
+                                            <c:otherwise>Thêm hành khách mới</c:otherwise>
                                         </c:choose>
                                     </h5>
                                 </div>
@@ -80,8 +80,14 @@
                                         <c:if test="${isAddMode or empty user}">
                                             <div class="mb-3">
                                                 <label for="password" class="form-label">Mật khẩu *</label>
-                                                <input type="password" class="form-control" id="password"
-                                                    name="password" required>
+                                                <div class="input-group">
+                                                    <input type="password" class="form-control" id="password"
+                                                        name="password" required>
+                                                    <button class="btn btn-outline-secondary" type="button"
+                                                        onclick="togglePasswordVisibility('password')">
+                                                        <i class="fas fa-eye" id="passwordToggleIcon"></i>
+                                                    </button>
+                                                </div>
                                                 <div class="form-text">Mật khẩu phải có ít nhất 8 ký tự</div>
                                             </div>
                                         </c:if>
@@ -95,7 +101,7 @@
                                                         <option value="ADMIN" ${user.role=='ADMIN' ? 'selected' : '' }>
                                                             Admin</option>
                                                         <option value="USER" ${user.role=='USER' ? 'selected' : '' }>
-                                                            User</option>
+                                                            Passenger</option>
                                                         <option value="DRIVER" ${user.role=='DRIVER' ? 'selected' : ''
                                                             }>Driver</option>
                                                     </select>
@@ -212,6 +218,22 @@
                                 return false;
                             }
                         });
+
+                        // Password visibility toggle
+                        function togglePasswordVisibility(fieldId) {
+                            const passwordField = document.getElementById(fieldId);
+                            const toggleIcon = document.getElementById(fieldId + 'ToggleIcon');
+
+                            if (passwordField.type === 'password') {
+                                passwordField.type = 'text';
+                                toggleIcon.classList.remove('fa-eye');
+                                toggleIcon.classList.add('fa-eye-slash');
+                            } else {
+                                passwordField.type = 'password';
+                                toggleIcon.classList.remove('fa-eye-slash');
+                                toggleIcon.classList.add('fa-eye');
+                            }
+                        }
                     </script>
         </body>
 
