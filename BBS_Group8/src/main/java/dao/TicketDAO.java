@@ -13,6 +13,11 @@ import model.Tickets;
 import util.DBConnection;
 import util.UUIDUtils;
 
+/**
+ *
+ * @author LamDNB-CE192005
+ */
+
 public class TicketDAO {
 
     public List<Tickets> getAllTickets() throws SQLException {
@@ -731,3 +736,4 @@ public class TicketDAO {
         return getAvailableSeats(scheduleId); // Same logic - booked seats are confirmed tickets
     }
 }
+
