@@ -15,7 +15,7 @@ import java.util.stream.Collectors;
 import com.google.gson.Gson;
 
 import dao.BusDAO;
-import dao.RoutesDAO;
+import dao.RouteDAO;
 import dao.ScheduleDAO;
 import dao.TicketDAO;
 import dao.UserDAO;
@@ -40,7 +40,7 @@ import model.User;
 public class TicketController extends HttpServlet {
 
     private TicketDAO ticketDAO;
-    private RoutesDAO routeDAO;
+    private RouteDAO routeDAO;
     private ScheduleDAO scheduleDAO;
     private BusDAO busDAO;
     private UserDAO userDAO;
@@ -48,7 +48,7 @@ public class TicketController extends HttpServlet {
     @Override
     public void init() throws ServletException {
         ticketDAO = new TicketDAO();
-        routeDAO = new RoutesDAO();
+        routeDAO = new RouteDAO();
         scheduleDAO = new ScheduleDAO();
         busDAO = new BusDAO();
         userDAO = new UserDAO();
@@ -83,15 +83,18 @@ public class TicketController extends HttpServlet {
                 // Check seat availability
                 checkSeatAvailability(request, response);
             } else if (pathInfo.equals("/available-dates")) {
-                getAvailableDates(request, response);
+                getAvailableDates(response);
             } else if (pathInfo.equals("/available-times")) {
                 getAvailableTimes(request, response);
             } else if (pathInfo.equals("/available-seats")) {
                 getAvailableSeats(request, response);
             } else if (pathInfo.equals("/available-schedules")) {
                 getAvailableSchedules(request, response);
+            } else if (pathInfo.equals("/search-passengers")) {
+                // Search passengers for ticket creation
+                searchPassengers(request, response);
             } else if (pathInfo.equals("/book")) {
-                // Show booking form for customers
+                // Show new booking form (user-facing)
                 showBookingForm(request, response);
             } else {
                 // Get ticket by ID
@@ -114,16 +117,20 @@ public class TicketController extends HttpServlet {
             } else if (pathInfo.equals("/edit")) {
                 updateTicket(request, response);
             } else if (pathInfo.equals("/book")) {
-                // Check authentication
+                // New booking POST flow: schedule-based
                 HttpSession session = request.getSession(false);
                 if (session == null || session.getAttribute("user") == null) {
-                    // Not logged in, redirect to login page with message
                     response.sendRedirect(
                             request.getContextPath()
                                     + "/auth/login?error=You need to login to book tickets");
                     return;
                 }
-                // Proceed to book ticket
+                String action = request.getParameter("action");
+                if ("book".equals(action)) {
+                    bookTicketBySchedule(request, response);
+                    return;
+                }
+                // Fallback to legacy booking if needed
                 bookTicket(request, response);
             } else {
                 response.sendError(HttpServletResponse.SC_NOT_FOUND);
@@ -134,7 +141,6 @@ public class TicketController extends HttpServlet {
     }
 
     private void getAvailableDates(
-            HttpServletRequest request,
             HttpServletResponse response) throws IOException {
         // Always allow today + next 6 days
         LocalDate today = LocalDate.now();
@@ -171,6 +177,44 @@ public class TicketController extends HttpServlet {
         }
         response.setContentType("application/json");
         response.getWriter().write(new com.google.gson.Gson().toJson(times));
+    }
+
+    private void searchPassengers(
+            HttpServletRequest request,
+            HttpServletResponse response) throws SQLException, IOException {
+        String keyword = request.getParameter("keyword");
+        
+        // If no keyword provided, return all passengers
+        if (keyword == null || keyword.trim().isEmpty()) {
+            keyword = "";
+        }
+
+        try {
+            List<User> passengers = userDAO.searchUsers(keyword.trim(), "USER");
+
+            // Convert to JSON format
+            List<java.util.Map<String, Object>> passengerData = new ArrayList<>();
+            for (User passenger : passengers) {
+                java.util.Map<String, Object> passengerMap = new java.util.HashMap<>();
+                passengerMap.put("userId", passenger.getUserId().toString());
+                passengerMap.put("fullName", passenger.getFullName());
+                passengerMap.put("phoneNumber", passenger.getPhoneNumber());
+                passengerMap.put("email", passenger.getEmail());
+                passengerData.add(passengerMap);
+            }
+
+            java.util.Map<String, Object> result = new java.util.HashMap<>();
+            result.put("passengers", passengerData);
+
+            response.setContentType("application/json");
+            response.getWriter().write(new com.google.gson.Gson().toJson(result));
+
+        } catch (Exception e) {
+            System.out.println("ERROR searching passengers: " + e.getMessage());
+            e.printStackTrace();
+            response.setContentType("application/json");
+            response.getWriter().write("{\"error\":\"Error searching passengers: " + e.getMessage() + "\"}");
+        }
     }
 
     private void getAvailableSchedules(
@@ -238,40 +282,111 @@ public class TicketController extends HttpServlet {
 
     private void getAvailableSeats(
             HttpServletRequest request,
-            HttpServletResponse response) throws SQLException, IOException {
-        UUID routeId = UUID.fromString(request.getParameter("routeId"));
-        String dateStr = request.getParameter("date");
-        String timeStr = request.getParameter("time");
-        LocalDate date = LocalDate.parse(dateStr);
-        LocalTime time = LocalTime.parse(timeStr);
+            HttpServletResponse response) throws IOException {
+        response.setContentType("application/json");
+
+        UUID routeId;
+        UUID busIdForSchedule = null;
+        LocalDate date;
+        LocalTime time;
+        try {
+            String routeIdParam = request.getParameter("routeId");
+            String dateStr = request.getParameter("date");
+            String timeStr = request.getParameter("time");
+
+            if (routeIdParam == null || dateStr == null || timeStr == null) {
+                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                response.getWriter().write("{\"error\":\"Missing routeId, date, or time\"}");
+                return;
+            }
+
+            routeId = UUID.fromString(routeIdParam);
+            date = LocalDate.parse(dateStr);
+            time = LocalTime.parse(timeStr);
+        } catch (Exception e) {
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            response.getWriter().write("{\"error\":\"Invalid routeId/date/time\"}");
+            return;
+        }
 
         System.out.println("Getting available seats for route: " + routeId + ", date: " + date + ", time: " + time);
 
         // Find a bus for this route
         BusDAO busDAO = new BusDAO();
-        List<Bus> buses = busDAO.getAvailableBusesForRoute(routeId, date, time);
+        List<Bus> buses;
+        try {
+            buses = busDAO.getAvailableBusesForRoute(routeId, date, time);
+        } catch (SQLException e) {
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            response.getWriter()
+                    .write("{\"error\":\"Error fetching buses: " + e.getMessage().replace("\"", "'") + "\"}");
+            return;
+        }
 
         System.out.println("Found " + buses.size() + " available buses");
 
         if (buses.isEmpty()) {
-            response.setContentType("application/json");
-            response.getWriter().write("{\"error\":\"Không có xe khả dụng cho tuyến này\"}");
-            return;
+            // Fall back to any available bus; we'll create/ensure schedule below
+            try {
+                List<Bus> allBuses = busDAO.getAvailableBuses();
+                if (!allBuses.isEmpty()) {
+                    buses = java.util.List.of(allBuses.get(0));
+                } else {
+                    response.setStatus(HttpServletResponse.SC_OK);
+                    response.getWriter().write("{\"error\":\"Không có xe khả dụng cho tuyến này\"}");
+                    return;
+                }
+            } catch (SQLException e) {
+                response.setStatus(HttpServletResponse.SC_OK);
+                response.getWriter().write(
+                        "{\"error\":\"Không thể tạo lịch cho chuyến này: " + e.getMessage().replace("\"", "'") + "\"}");
+                return;
+            }
         }
 
         // Use the first available bus
         Bus bus = buses.get(0);
+        if (busIdForSchedule == null) {
+            busIdForSchedule = bus.getBusId();
+        }
         System.out.println("Selected bus: " + bus.getBusNumber() + " with " + bus.getTotalSeats() + " total seats");
+
+        // Ensure a schedule exists and get its ID
+        int durationHours = 1;
+        try {
+            model.Routes route = routeDAO.getRouteById(routeId);
+            if (route != null && route.getDurationHours() > 0) {
+                durationHours = route.getDurationHours();
+            }
+        } catch (SQLException e) {
+            // keep default durationHours when route lookup fails
+            System.out.println("Failed to load route for duration, using default: " + e.getMessage());
+        }
+        java.util.UUID scheduleId;
+        try {
+            scheduleId = scheduleDAO.findOrCreateSchedule(routeId, bus.getBusId(), date, time,
+                    durationHours, bus.getTotalSeats());
+        } catch (SQLException e) {
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            response.getWriter()
+                    .write("{\"error\":\"Error ensuring schedule: " + e.getMessage().replace("\"", "'") + "\"}");
+            return;
+        }
 
         // Get all seats for this bus
         int totalSeats = bus.getTotalSeats();
 
         // Get booked seats for this trip
         TicketDAO ticketDAO = new TicketDAO();
-        List<Integer> bookedSeats = ticketDAO.getBookedSeats(
-                bus.getBusId(),
-                date,
-                time);
+        List<Integer> bookedSeats;
+        try {
+            bookedSeats = ticketDAO.getBookedSeats(scheduleId);
+        } catch (SQLException e) {
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            response.getWriter()
+                    .write("{\"error\":\"Error fetching booked seats: " + e.getMessage().replace("\"", "'") + "\"}");
+            return;
+        }
 
         System.out.println("Booked seats: " + bookedSeats);
 
@@ -285,20 +400,16 @@ public class TicketController extends HttpServlet {
 
         System.out.println("Available seats: " + availableSeats.size() + " seats");
 
-        // Return busId, availableSeats, bookedSeats, and totalSeats
+        // Return busId, availableSeats, bookedSeats, and totalSeats as valid JSON
+        java.util.Map<String, Object> result = new java.util.HashMap<>();
+        result.put("busId", bus.getBusId().toString());
+        result.put("totalSeats", totalSeats);
+        result.put("availableSeats", availableSeats);
+        result.put("bookedSeats", bookedSeats);
+        result.put("scheduleId", scheduleId.toString());
+
         response.setContentType("application/json");
-        response
-                .getWriter()
-                .write(
-                        "{\"busId\":"
-                                + bus.getBusId()
-                                + ",\"totalSeats\":"
-                                + totalSeats
-                                + ",\"availableSeats\":"
-                                + new Gson().toJson(availableSeats)
-                                + ",\"bookedSeats\":"
-                                + new Gson().toJson(bookedSeats)
-                                + "}");
+        response.getWriter().write(new Gson().toJson(result));
     }
 
     private void listTickets(
@@ -319,9 +430,13 @@ public class TicketController extends HttpServlet {
         }
 
         request.setAttribute("tickets", tickets);
-        request
-                .getRequestDispatcher("/views/tickets.jsp")
-                .forward(request, response);
+
+        // Use different views based on user role
+        if (user != null && "USER".equals(user.getRole())) {
+            request.getRequestDispatcher("/views/passenger-tickets.jsp").forward(request, response);
+        } else {
+            request.getRequestDispatcher("/views/tickets.jsp").forward(request, response);
+        }
     }
 
     private void showAddForm(
@@ -353,80 +468,187 @@ public class TicketController extends HttpServlet {
     private void showBookingForm(
             HttpServletRequest request,
             HttpServletResponse response) throws SQLException, ServletException, IOException {
-        // Check if user is logged in
         HttpSession session = request.getSession(false);
         if (session == null || session.getAttribute("user") == null) {
-            response.sendRedirect(
-                    request.getContextPath()
-                            + "/auth/login?error=You need to login to book tickets");
+            response.sendRedirect(request.getContextPath() + "/auth/login?error=You need to login to book tickets");
             return;
         }
 
         User user = (User) session.getAttribute("user");
-
-        // Check if user is a regular user
         if (!"USER".equals(user.getRole())) {
             handleError(request, response, "Access denied. Only users can book tickets.");
             return;
         }
 
-        // Get route ID from request parameter
         String routeIdStr = request.getParameter("routeId");
-        if (routeIdStr == null || routeIdStr.trim().isEmpty()) {
-            handleError(request, response, "Route ID is required for booking.");
+
+        if (routeIdStr != null && !routeIdStr.trim().isEmpty()) {
+            try {
+                UUID routeId = UUID.fromString(routeIdStr);
+                Routes route = routeDAO.getRouteById(routeId);
+                if (route != null) {
+                    request.setAttribute("route", route);
+                } else {
+                    request.setAttribute("error", "Route not found");
+                }
+            } catch (Exception e) {
+                request.setAttribute("error", "Invalid route ID");
+            }
+        }
+
+        // Always render the new minimal booking page. Client JS will load
+        // dates/times/seats.
+        request.getRequestDispatcher("/views/booking-form.jsp").forward(request, response);
+    }
+
+    private void bookTicketBySchedule(
+            HttpServletRequest request,
+            HttpServletResponse response) throws SQLException, IOException {
+        HttpSession session = request.getSession(false);
+        User user = (User) session.getAttribute("user");
+
+        String scheduleIdStr = request.getParameter("scheduleId");
+        String seatNumberStr = request.getParameter("seatNumber");
+        String tripType = request.getParameter("tripType");
+        String returnScheduleIdStr = request.getParameter("returnScheduleId");
+        String returnSeatNumberStr = request.getParameter("returnSeatNumber");
+
+        if (scheduleIdStr == null || seatNumberStr == null) {
+            response.sendRedirect(
+                    request.getContextPath() + "/tickets/book?error=Missing required booking information");
             return;
         }
 
-        UUID routeId = UUID.fromString(routeIdStr);
-        Routes route = routeDAO.getRouteById(routeId);
+        try {
+            UUID scheduleId = UUID.fromString(scheduleIdStr);
+            int seatNumber = Integer.parseInt(seatNumberStr);
 
-        if (route == null) {
-            handleError(request, response, "Route not found.");
-            return;
+            if (!ticketDAO.isSeatAvailable(scheduleId, seatNumber)) {
+                response.sendRedirect(request.getContextPath() + "/tickets/book?error=Selected seat is not available");
+                return;
+            }
+
+            Schedule schedule = scheduleDAO.getScheduleById(scheduleId);
+            Routes route = routeDAO.getRouteById(schedule.getRouteId());
+            if (schedule == null || route == null) {
+                response.sendRedirect(request.getContextPath() + "/tickets/book?error=Schedule or route not found");
+                return;
+            }
+
+            Tickets ticket = new Tickets();
+            ticket.setTicketNumber(ticketDAO.generateTicketNumber());
+            ticket.setScheduleId(scheduleId);
+            ticket.setUserId(user.getUserId());
+            ticket.setSeatNumber(seatNumber);
+            ticket.setTicketPrice(route.getBasePrice());
+            ticket.setStatus("CONFIRMED");
+            ticket.setPaymentStatus("PENDING");
+
+            boolean success = ticketDAO.addTicket(ticket);
+            if (!success) {
+                response.sendRedirect(request.getContextPath() + "/tickets/book?error=Failed to book ticket");
+                return;
+            }
+
+            if ("roundtrip".equals(tripType) && returnScheduleIdStr != null && returnSeatNumberStr != null) {
+                try {
+                    UUID returnScheduleId = UUID.fromString(returnScheduleIdStr);
+                    int returnSeatNumber = Integer.parseInt(returnSeatNumberStr);
+
+                    if (!ticketDAO.isSeatAvailable(returnScheduleId, returnSeatNumber)) {
+                        response.sendRedirect(request.getContextPath()
+                                + "/tickets?error=Outbound booked but return seat not available");
+                        return;
+                    }
+
+                    Schedule returnSchedule = scheduleDAO.getScheduleById(returnScheduleId);
+                    Routes returnRoute = routeDAO.getRouteById(returnSchedule.getRouteId());
+                    if (returnSchedule == null || returnRoute == null) {
+                        response.sendRedirect(request.getContextPath()
+                                + "/tickets/book?error=Return schedule or route not found");
+                        return;
+                    }
+
+                    Tickets returnTicket = new Tickets();
+                    returnTicket.setTicketNumber(ticketDAO.generateTicketNumber());
+                    returnTicket.setScheduleId(returnScheduleId);
+                    returnTicket.setUserId(user.getUserId());
+                    returnTicket.setSeatNumber(returnSeatNumber);
+                    returnTicket.setTicketPrice(returnRoute.getBasePrice());
+                    returnTicket.setStatus("CONFIRMED");
+                    returnTicket.setPaymentStatus("PENDING");
+
+                    boolean returnSuccess = ticketDAO.addTicket(returnTicket);
+                    if (!returnSuccess) {
+                        response.sendRedirect(request.getContextPath()
+                                + "/tickets?error=Outbound booked but failed to book return ticket");
+                        return;
+                    }
+
+                    response.sendRedirect(request.getContextPath()
+                            + "/tickets?message=Round trip booked! Ticket numbers: " + ticket.getTicketNumber()
+                            + " and " + returnTicket.getTicketNumber());
+                    return;
+                } catch (Exception e) {
+                    response.sendRedirect(request.getContextPath()
+                            + "/tickets/book?error=Error booking return ticket: " + e.getMessage());
+                    return;
+                }
+            }
+
+            response.sendRedirect(request.getContextPath()
+                    + "/tickets?message=Ticket booked successfully! Ticket number: " + ticket.getTicketNumber());
+        } catch (NumberFormatException e) {
+            response.sendRedirect(request.getContextPath() + "/tickets/book?error=Invalid seat number");
+        } catch (Exception e) {
+            response.sendRedirect(request.getContextPath() + "/tickets/book?error=Error booking ticket: "
+                    + e.getMessage());
         }
-
-        // Load data for the booking form
-        List<Routes> routes = routeDAO.getAllRoutes();
-
-        request.setAttribute("route", route);
-        request.setAttribute("routes", routes);
-        request.setAttribute("isBooking", true); // Flag to indicate this is a booking form
-        request
-                .getRequestDispatcher("/views/ticket-form.jsp")
-                .forward(request, response);
     }
 
     private void showEditForm(
             HttpServletRequest request,
             HttpServletResponse response) throws SQLException, ServletException, IOException {
-        UUID ticketId = UUID.fromString(request.getParameter("id"));
-        Tickets ticket = ticketDAO.getTicketById(ticketId);
-
-        if (ticket != null) {
-            // Check if user has permission to edit this ticket
-            HttpSession session = request.getSession(false);
-            User user = (session != null) ? (User) session.getAttribute("user") : null;
-
-            if (user != null && "USER".equals(user.getRole())) {
-                // User cannot edit tickets
-                handleError(request, response, "Access denied. Users cannot edit tickets.");
+        try {
+            String ticketIdStr = request.getParameter("id");
+            if (ticketIdStr == null || ticketIdStr.trim().isEmpty()) {
+                handleError(request, response, "Ticket ID is required");
                 return;
             }
 
-            // Load data for dropdowns
-            List<Routes> routes = routeDAO.getAllRoutes();
-            List<Bus> buses = busDAO.getAllBuses();
-            List<User> users = userDAO.getUsersByRole("USER"); // Get users with USER role
+            UUID ticketId = UUID.fromString(ticketIdStr);
+            Tickets ticket = ticketDAO.getTicketById(ticketId);
 
-            request.setAttribute("ticket", ticket);
-            request.setAttribute("routes", routes);
-            request.setAttribute("buses", buses);
-            request.setAttribute("users", users);
-            request
-                    .getRequestDispatcher("/views/ticket-form.jsp")
-                    .forward(request, response);
-        } else {
-            handleError(request, response, "Ticket not found");
+            if (ticket != null) {
+                // Check if user has permission to edit this ticket
+                HttpSession session = request.getSession(false);
+                User user = (session != null) ? (User) session.getAttribute("user") : null;
+
+                if (user != null && "USER".equals(user.getRole())) {
+                    // User cannot edit tickets
+                    handleError(request, response, "Access denied. Users cannot edit tickets.");
+                    return;
+                }
+
+                // Load data for dropdowns
+                List<Routes> routes = routeDAO.getAllRoutes();
+                List<Bus> buses = busDAO.getAllBuses();
+                List<User> users = userDAO.getUsersByRole("USER"); // Get users with USER role
+
+                request.setAttribute("ticket", ticket);
+                request.setAttribute("routes", routes);
+                request.setAttribute("buses", buses);
+                request.setAttribute("users", users);
+                request
+                        .getRequestDispatcher("/views/admin/ticket-edit.jsp")
+                        .forward(request, response);
+            } else {
+                handleError(request, response, "Ticket not found");
+            }
+        } catch (IllegalArgumentException e) {
+            handleError(request, response, "Invalid ticket ID format");
+        } catch (Exception e) {
+            handleError(request, response, "Error loading ticket: " + e.getMessage());
         }
     }
 
@@ -880,13 +1102,32 @@ public class TicketController extends HttpServlet {
             return;
         }
 
-        // Find schedule ID based on route, bus, and departure date/time
+        // Find schedule ID based on route, bus, and departure date/time (create if
+        // missing)
         UUID scheduleId = routeDAO.findScheduleId(routeId, busId, departureDate, departureTime);
         if (scheduleId == null) {
-            response.sendRedirect(
-                    request.getContextPath()
-                            + "/tickets/book?error=Schedule not found for the specified date and time");
-            return;
+            // Attempt to create a schedule on-the-fly for this bus/route/time
+            int durationHours = 1;
+            Routes route = routeDAO.getRouteById(routeId);
+            if (route != null && route.getDurationHours() > 0) {
+                durationHours = route.getDurationHours();
+            }
+            Bus bus = busDAO.getBusById(busId);
+            if (bus == null) {
+                response.sendRedirect(
+                        request.getContextPath()
+                                + "/tickets/book?error=Invalid bus selected");
+                return;
+            }
+            try {
+                scheduleId = scheduleDAO.findOrCreateSchedule(routeId, busId, departureDate, departureTime,
+                        durationHours, bus.getTotalSeats());
+            } catch (SQLException e) {
+                response.sendRedirect(
+                        request.getContextPath()
+                                + "/tickets/book?error=Unable to create schedule: " + e.getMessage());
+                return;
+            }
         }
 
         // Check seat availability
