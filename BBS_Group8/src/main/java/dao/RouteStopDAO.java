@@ -15,10 +15,6 @@ import model.RouteStop;
 import util.DBConnection;
 import util.UUIDUtils;
 
-/**
- *
- * @author Nguyen Phat Tai
- */
 public class RouteStopDAO {
 
     public List<RouteStop> getAllRouteStops() throws SQLException {
