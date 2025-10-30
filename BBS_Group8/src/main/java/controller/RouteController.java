@@ -1,12 +1,12 @@
 package controller;
 
-import dao.RoutesDAO;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.UUID;
 
+import dao.RouteDAO;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -17,11 +17,11 @@ import util.AuthUtils;
 
 @WebServlet("/routes/*")
 public class RouteController extends HttpServlet {
-    private RoutesDAO routeDAO;
+    private RouteDAO routeDAO;
 
     @Override
     public void init() throws ServletException {
-        routeDAO = new RoutesDAO();
+        routeDAO = new RouteDAO();
     }
 
     @Override

@@ -11,6 +11,7 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import model.Station;
 import util.AuthUtils;
 
@@ -29,9 +30,16 @@ public class StationController extends HttpServlet {
             throws ServletException, IOException {
         // Check if user has permission to manage stations
         if (!AuthUtils.canManageStations(request.getSession(false))) {
-            request.setAttribute("error", "You do not have permission to access this page");
-            request.getRequestDispatcher("/views/403.jsp").forward(request, response);
-            return;
+            // Redirect to admin login if not logged in, or redirect to admin stations if
+            // logged in but not admin
+            HttpSession session = request.getSession(false);
+            if (session == null || session.getAttribute("user") == null) {
+                response.sendRedirect(request.getContextPath() + "/auth/login");
+                return;
+            } else {
+                response.sendRedirect(request.getContextPath() + "/admin/stations");
+                return;
+            }
         }
 
         String pathInfo = request.getPathInfo();
@@ -69,9 +77,16 @@ public class StationController extends HttpServlet {
             throws ServletException, IOException {
         // Check if user has permission to manage stations
         if (!AuthUtils.canManageStations(request.getSession(false))) {
-            request.setAttribute("error", "You do not have permission to access this page");
-            request.getRequestDispatcher("/views/403.jsp").forward(request, response);
-            return;
+            // Redirect to admin login if not logged in, or redirect to admin stations if
+            // logged in but not admin
+            HttpSession session = request.getSession(false);
+            if (session == null || session.getAttribute("user") == null) {
+                response.sendRedirect(request.getContextPath() + "/auth/login");
+                return;
+            } else {
+                response.sendRedirect(request.getContextPath() + "/admin/stations");
+                return;
+            }
         }
 
         String pathInfo = request.getPathInfo();
