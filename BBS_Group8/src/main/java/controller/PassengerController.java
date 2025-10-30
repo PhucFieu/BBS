@@ -18,7 +18,7 @@ import util.AuthUtils;
 
 /**
  *
- * @author TàiNH CE190387
+ * @author TaiNHCE190387
  */
 @WebServlet("/passengers/*")
 public class PassengerController extends HttpServlet {
@@ -32,36 +32,69 @@ public class PassengerController extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        // Check if user has permission to manage passengers
-        if (!AuthUtils.canManagePassengers(request.getSession(false))) {
-            request.setAttribute("error", "You do not have permission to access this page");
-            request.getRequestDispatcher("/views/403.jsp").forward(request, response);
-            return;
-        }
+        // Permission: ADMIN can access everything. DRIVER can access list/search/view
+        // only.
+        boolean isAdmin = AuthUtils.isAdmin(request.getSession(false));
+        boolean isDriver = AuthUtils.isDriver(request.getSession(false));
 
         String pathInfo = request.getPathInfo();
 
         try {
             if (pathInfo == null || pathInfo.equals("/") || pathInfo.equals("")) {
-                // List all passengers (users with role USER)
+                // List passengers
+                if (!isAdmin && !isDriver) {
+                    request.setAttribute("error", "You do not have permission to access this page");
+                    request.getRequestDispatcher("/views/403.jsp").forward(request, response);
+                    return;
+                }
                 listPassengers(request, response);
             } else if (pathInfo.equals("/add")) {
                 // Show add form
+                if (!isAdmin) {
+                    request.setAttribute("error", "You do not have permission to access this page");
+                    request.getRequestDispatcher("/views/403.jsp").forward(request, response);
+                    return;
+                }
                 showAddForm(request, response);
             } else if (pathInfo.equals("/edit")) {
                 // Show edit form
+                if (!isAdmin) {
+                    request.setAttribute("error", "You do not have permission to access this page");
+                    request.getRequestDispatcher("/views/403.jsp").forward(request, response);
+                    return;
+                }
                 showEditForm(request, response);
             } else if (pathInfo.equals("/delete")) {
                 // Delete passenger
+                if (!isAdmin) {
+                    request.setAttribute("error", "You do not have permission to access this page");
+                    request.getRequestDispatcher("/views/403.jsp").forward(request, response);
+                    return;
+                }
                 deletePassenger(request, response);
             } else if (pathInfo.equals("/search")) {
                 // Search passengers
+                if (!isAdmin && !isDriver) {
+                    request.setAttribute("error", "You do not have permission to access this page");
+                    request.getRequestDispatcher("/views/403.jsp").forward(request, response);
+                    return;
+                }
                 searchPassengers(request, response);
             } else if (pathInfo.equals("/profile")) {
                 // Show passenger profile
+                if (!isAdmin && !isDriver) {
+                    request.setAttribute("error", "You do not have permission to access this page");
+                    request.getRequestDispatcher("/views/403.jsp").forward(request, response);
+                    return;
+                }
                 showProfile(request, response);
             } else {
                 // Get passenger by ID
+                if (!isAdmin && !isDriver) {
+                    request.setAttribute("error", "You do not have permission to access this page");
+                    request.getRequestDispatcher("/views/403.jsp").forward(request, response);
+                    return;
+                }
                 getPassengerById(request, response);
             }
         } catch (SQLException e) {
@@ -96,7 +129,14 @@ public class PassengerController extends HttpServlet {
 
     private void listPassengers(HttpServletRequest request, HttpServletResponse response)
             throws SQLException, ServletException, IOException {
-        List<User> passengers = userDAO.getUsersByRole("USER");
+        List<User> passengers;
+        if (AuthUtils.isDriver(request.getSession(false))) {
+            // Limit to passengers who have tickets on schedules assigned to this driver
+            User current = AuthUtils.getCurrentUser(request.getSession(false));
+            passengers = userDAO.getPassengersByDriverUserId(current.getUserId());
+        } else {
+            passengers = userDAO.getUsersByRole("USER");
+        }
         request.setAttribute("passengers", passengers);
         request.getRequestDispatcher("/views/passengers.jsp").forward(request, response);
     }
@@ -147,15 +187,38 @@ public class PassengerController extends HttpServlet {
     private void searchPassengers(HttpServletRequest request, HttpServletResponse response)
             throws SQLException, ServletException, IOException {
         String keyword = request.getParameter("keyword");
-
-        if (keyword != null && !keyword.trim().isEmpty()) {
-            List<User> passengers = userDAO.searchUsers(keyword, "USER");
-            request.setAttribute("passengers", passengers);
-            request.setAttribute("searchKeyword", keyword);
+        List<User> passengers;
+        if (AuthUtils.isDriver(request.getSession(false))) {
+            // For drivers, ignore global search and keep scope to their passengers;
+            // optionally filter in-memory
+            User current = AuthUtils.getCurrentUser(request.getSession(false));
+            List<User> scoped = userDAO.getPassengersByDriverUserId(current.getUserId());
+            if (keyword != null && !keyword.trim().isEmpty()) {
+                String lower = keyword.toLowerCase();
+                java.util.List<User> filtered = new java.util.ArrayList<>();
+                for (User u : scoped) {
+                    if ((u.getFullName() != null && u.getFullName().toLowerCase().contains(lower)) ||
+                            (u.getUsername() != null && u.getUsername().toLowerCase().contains(lower)) ||
+                            (u.getEmail() != null && u.getEmail().toLowerCase().contains(lower)) ||
+                            (u.getPhoneNumber() != null && u.getPhoneNumber().toLowerCase().contains(lower))) {
+                        filtered.add(u);
+                    }
+                }
+                passengers = filtered;
+                request.setAttribute("searchKeyword", keyword);
+            } else {
+                passengers = scoped;
+            }
         } else {
-            List<User> passengers = userDAO.getUsersByRole("USER");
-            request.setAttribute("passengers", passengers);
+            if (keyword != null && !keyword.trim().isEmpty()) {
+                passengers = userDAO.searchUsers(keyword, "USER");
+                request.setAttribute("searchKeyword", keyword);
+            } else {
+                passengers = userDAO.getUsersByRole("USER");
+            }
         }
+
+        request.setAttribute("passengers", passengers);
 
         request.getRequestDispatcher("/views/passengers.jsp").forward(request, response);
     }
