@@ -2,7 +2,7 @@
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
             <a class="navbar-brand" href="${pageContext.request.contextPath}/">
-                <i class="fas fa-bus me-2"></i>BusTicket System
+                <i class="fas fa-bus me-2"></i>Bus Booking System
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
@@ -20,12 +20,17 @@
                         <li class="nav-item"><a class="nav-link" href="${pageContext.request.contextPath}/tickets"><i
                                     class="fas fa-ticket-alt me-1"></i>Tickets</a></li>
                     </c:if>
-                    <!-- For USER, show home and tickets -->
+                    <!-- For USER, show home, search, tickets, and ratings -->
                     <c:if test="${sessionScope.role == 'USER' || empty sessionScope.role}">
                         <li class="nav-item"><a class="nav-link" href="${pageContext.request.contextPath}/"><i
                                     class="fas fa-home me-1"></i>Home</a></li>
+                        <li class="nav-item"><a class="nav-link" href="${pageContext.request.contextPath}/search"><i
+                                    class="fas fa-search me-1"></i>Search Routes</a></li>
                         <li class="nav-item"><a class="nav-link" href="${pageContext.request.contextPath}/tickets"><i
                                     class="fas fa-ticket-alt me-1"></i>My Tickets</a></li>
+                        <li class="nav-item"><a class="nav-link"
+                                href="${pageContext.request.contextPath}/tickets/rate/list"><i
+                                    class="fas fa-star me-1"></i>My Ratings</a></li>
                     </c:if>
                 </ul>
                 <ul class="navbar-nav ms-auto">
