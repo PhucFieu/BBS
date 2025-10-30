@@ -10,6 +10,7 @@ package model;
  */
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 public class Routes {
@@ -23,6 +24,9 @@ public class Routes {
     private String status; // status
     private LocalDateTime createdDate;
     private LocalDateTime updatedDate;
+
+    // Related schedules for search results
+    private List<Schedule> schedules;
 
     // Constructor mặc định
     public Routes() {
@@ -142,6 +146,14 @@ public class Routes {
 
     public void setUpdatedDate(LocalDateTime updatedDate) {
         this.updatedDate = updatedDate;
+    }
+
+    public List<Schedule> getSchedules() {
+        return schedules;
+    }
+
+    public void setSchedules(List<Schedule> schedules) {
+        this.schedules = schedules;
     }
 
     // Optional: toString
