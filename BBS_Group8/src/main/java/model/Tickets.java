@@ -6,6 +6,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.UUID;
+
 /**
  *
  * @author LamDNB-CE192005
@@ -304,4 +305,3 @@ public class Tickets {
                 '}');
     }
 }
-
