@@ -1,8 +1,7 @@
 package model;
 
-import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.UUID;
-
 /**
  *
  * @author PhúcNH CE190359
@@ -12,7 +11,7 @@ public class ScheduleStop {
     private UUID scheduleId;
     private UUID stationId;
     private int stopOrder;
-    private LocalDateTime arrivalTime;
+    private LocalTime arrivalTime;
     private int stopDurationMinutes;
 
     // Related objects
@@ -32,7 +31,7 @@ public class ScheduleStop {
         this.stopDurationMinutes = 0;
     }
 
-    public ScheduleStop(UUID scheduleId, UUID stationId, int stopOrder, LocalDateTime arrivalTime) {
+    public ScheduleStop(UUID scheduleId, UUID stationId, int stopOrder, LocalTime arrivalTime) {
         this();
         this.scheduleId = scheduleId;
         this.stationId = stationId;
@@ -73,11 +72,11 @@ public class ScheduleStop {
         this.stopOrder = stopOrder;
     }
 
-    public LocalDateTime getArrivalTime() {
+    public LocalTime getArrivalTime() {
         return arrivalTime;
     }
 
-    public void setArrivalTime(LocalDateTime arrivalTime) {
+    public void setArrivalTime(LocalTime arrivalTime) {
         this.arrivalTime = arrivalTime;
     }
 
