@@ -6,7 +6,7 @@
 
             <head>
                 <jsp:include page="/views/partials/head.jsp">
-                    <jsp:param name="title" value="Home - Bus Ticket Booking" />
+                    <jsp:param name="title" value="Home - Bus Booking System" />
                 </jsp:include>
             </head>
 
