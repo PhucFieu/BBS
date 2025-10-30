@@ -1,5 +1,6 @@
 package dao;
 
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -11,11 +12,6 @@ import java.util.UUID;
 import model.Tickets;
 import util.DBConnection;
 import util.UUIDUtils;
-
-/**
- *
- * @author LamDNB-CE192005
- */
 
 public class TicketDAO {
 
@@ -286,7 +282,7 @@ public class TicketDAO {
         List<Integer> bookedSeats = new ArrayList<>();
         String sql = "SELECT t.seat_number FROM Tickets t " +
                 "JOIN Schedules s ON t.schedule_id = s.schedule_id " +
-                "WHERE s.bus_id = ? AND s.departure_date = ? AND s.departure_time = ? AND t.status = 'CONFIRMED'";
+                "WHERE s.bus_id = ? AND s.departure_date = ? AND s.departure_time = CAST(? AS TIME) AND t.status = 'CONFIRMED'";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -412,5 +408,326 @@ public class TicketDAO {
 
         return ticket;
     }
-}
 
+    /**
+     * Get tickets by schedule ID
+     */
+    public List<Tickets> getTicketsByScheduleId(UUID scheduleId) throws SQLException {
+        List<Tickets> tickets = new ArrayList<>();
+        String sql = "SELECT t.*, s.departure_date, s.departure_time " +
+                "FROM Tickets t " +
+                "JOIN Schedules s ON t.schedule_id = s.schedule_id " +
+                "WHERE t.schedule_id = ? AND t.status = 'CONFIRMED' " +
+                "ORDER BY t.seat_number";
+
+        try (Connection conn = DBConnection.getInstance().getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setObject(1, scheduleId);
+            ResultSet rs = stmt.executeQuery();
+
+            while (rs.next()) {
+                Tickets ticket = mapResultSetToTicket(rs);
+                tickets.add(ticket);
+            }
+        }
+        return tickets;
+    }
+
+    /**
+     * Check if driver has any pending tickets
+     */
+    public boolean hasDriverPendingTickets(UUID driverId) throws SQLException {
+        String sql = "SELECT COUNT(*) FROM Tickets t " +
+                "JOIN Schedules s ON t.schedule_id = s.schedule_id " +
+                "JOIN ScheduleDrivers sd ON s.schedule_id = sd.schedule_id " +
+                "WHERE sd.driver_id = ? AND t.status IN ('PENDING', 'CONFIRMED')";
+
+        try (Connection conn = DBConnection.getInstance().getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setObject(1, driverId);
+            ResultSet rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                return rs.getInt(1) > 0;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Check if seat is available for update (excluding current ticket)
+     */
+    public boolean isSeatAvailableForUpdate(UUID scheduleId, int seatNumber, UUID excludeTicketId) throws SQLException {
+        String sql = "SELECT COUNT(*) FROM Tickets WHERE schedule_id = ? AND seat_number = ? AND status = 'CONFIRMED' AND ticket_id != ?";
+
+        try (Connection conn = DBConnection.getInstance().getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setObject(1, scheduleId);
+            stmt.setInt(2, seatNumber);
+            stmt.setObject(3, excludeTicketId);
+            ResultSet rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                return rs.getInt(1) == 0;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Search tickets with advanced filters
+     */
+    public List<Tickets> searchTickets(String searchTerm, String status, String paymentStatus,
+            java.sql.Date dateFrom, java.sql.Date dateTo,
+            BigDecimal priceFrom, BigDecimal priceTo) throws SQLException {
+        List<Tickets> tickets = new ArrayList<>();
+        StringBuilder sql = new StringBuilder();
+        sql.append("SELECT t.*, u.full_name as user_name, u.username, u.email as user_email, ");
+        sql.append("r.route_name, r.departure_city, r.destination_city, ");
+        sql.append("b.bus_number, ");
+        sql.append("s.departure_date, s.departure_time ");
+        sql.append("FROM Tickets t ");
+        sql.append("JOIN Users u ON t.user_id = u.user_id ");
+        sql.append("JOIN Schedules s ON t.schedule_id = s.schedule_id ");
+        sql.append("JOIN Routes r ON s.route_id = r.route_id ");
+        sql.append("JOIN Buses b ON s.bus_id = b.bus_id ");
+        sql.append("WHERE 1=1 ");
+
+        List<Object> parameters = new ArrayList<>();
+
+        if (searchTerm != null && !searchTerm.trim().isEmpty()) {
+            sql.append(
+                    "AND (t.ticket_number LIKE ? OR u.full_name LIKE ? OR u.email LIKE ? OR u.phone_number LIKE ?) ");
+            String searchPattern = "%" + searchTerm + "%";
+            parameters.add(searchPattern);
+            parameters.add(searchPattern);
+            parameters.add(searchPattern);
+            parameters.add(searchPattern);
+        }
+
+        if (status != null && !status.trim().isEmpty()) {
+            sql.append("AND t.status = ? ");
+            parameters.add(status);
+        }
+
+        if (paymentStatus != null && !paymentStatus.trim().isEmpty()) {
+            sql.append("AND t.payment_status = ? ");
+            parameters.add(paymentStatus);
+        }
+
+        if (dateFrom != null) {
+            sql.append("AND s.departure_date >= ? ");
+            parameters.add(dateFrom);
+        }
+
+        if (dateTo != null) {
+            sql.append("AND s.departure_date <= ? ");
+            parameters.add(dateTo);
+        }
+
+        if (priceFrom != null) {
+            sql.append("AND t.ticket_price >= ? ");
+            parameters.add(priceFrom);
+        }
+
+        if (priceTo != null) {
+            sql.append("AND t.ticket_price <= ? ");
+            parameters.add(priceTo);
+        }
+
+        sql.append("ORDER BY t.booking_date DESC");
+
+        try (Connection conn = DBConnection.getInstance().getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql.toString())) {
+
+            for (int i = 0; i < parameters.size(); i++) {
+                stmt.setObject(i + 1, parameters.get(i));
+            }
+
+            ResultSet rs = stmt.executeQuery();
+
+            while (rs.next()) {
+                Tickets ticket = mapResultSetToTicket(rs);
+                tickets.add(ticket);
+            }
+        }
+        return tickets;
+    }
+
+    /**
+     * Get ticket statistics for admin dashboard
+     */
+    public java.util.Map<String, Object> getTicketStatistics() throws SQLException {
+        java.util.Map<String, Object> stats = new java.util.HashMap<>();
+
+        // Total tickets
+        String totalSql = "SELECT COUNT(*) FROM Tickets";
+        try (Connection conn = DBConnection.getInstance().getConnection();
+                PreparedStatement stmt = conn.prepareStatement(totalSql);
+                ResultSet rs = stmt.executeQuery()) {
+            if (rs.next()) {
+                stats.put("totalTickets", rs.getInt(1));
+            }
+        }
+
+        // Confirmed tickets
+        String confirmedSql = "SELECT COUNT(*) FROM Tickets WHERE status = 'CONFIRMED'";
+        try (Connection conn = DBConnection.getInstance().getConnection();
+                PreparedStatement stmt = conn.prepareStatement(confirmedSql);
+                ResultSet rs = stmt.executeQuery()) {
+            if (rs.next()) {
+                stats.put("confirmedTickets", rs.getInt(1));
+            }
+        }
+
+        // Pending tickets
+        String pendingSql = "SELECT COUNT(*) FROM Tickets WHERE status = 'PENDING'";
+        try (Connection conn = DBConnection.getInstance().getConnection();
+                PreparedStatement stmt = conn.prepareStatement(pendingSql);
+                ResultSet rs = stmt.executeQuery()) {
+            if (rs.next()) {
+                stats.put("pendingTickets", rs.getInt(1));
+            }
+        }
+
+        // Cancelled tickets
+        String cancelledSql = "SELECT COUNT(*) FROM Tickets WHERE status = 'CANCELLED'";
+        try (Connection conn = DBConnection.getInstance().getConnection();
+                PreparedStatement stmt = conn.prepareStatement(cancelledSql);
+                ResultSet rs = stmt.executeQuery()) {
+            if (rs.next()) {
+                stats.put("cancelledTickets", rs.getInt(1));
+            }
+        }
+
+        // Total revenue
+        String revenueSql = "SELECT SUM(ticket_price) FROM Tickets WHERE status = 'CONFIRMED' AND payment_status = 'PAID'";
+        try (Connection conn = DBConnection.getInstance().getConnection();
+                PreparedStatement stmt = conn.prepareStatement(revenueSql);
+                ResultSet rs = stmt.executeQuery()) {
+            if (rs.next()) {
+                stats.put("totalRevenue", rs.getBigDecimal(1));
+            }
+        }
+
+        return stats;
+    }
+
+    /**
+     * Get tickets by date range
+     */
+    public List<Tickets> getTicketsByDateRange(java.sql.Date startDate, java.sql.Date endDate) throws SQLException {
+        List<Tickets> tickets = new ArrayList<>();
+        String sql = "SELECT t.*, u.full_name as user_name, u.username, u.email as user_email, " +
+                "r.route_name, r.departure_city, r.destination_city, " +
+                "b.bus_number, " +
+                "s.departure_date, s.departure_time " +
+                "FROM Tickets t " +
+                "JOIN Users u ON t.user_id = u.user_id " +
+                "JOIN Schedules s ON t.schedule_id = s.schedule_id " +
+                "JOIN Routes r ON s.route_id = r.route_id " +
+                "JOIN Buses b ON s.bus_id = b.bus_id " +
+                "WHERE s.departure_date BETWEEN ? AND ? " +
+                "ORDER BY s.departure_date DESC, s.departure_time DESC";
+
+        try (Connection conn = DBConnection.getInstance().getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setDate(1, startDate);
+            stmt.setDate(2, endDate);
+            ResultSet rs = stmt.executeQuery();
+
+            while (rs.next()) {
+                Tickets ticket = mapResultSetToTicket(rs);
+                tickets.add(ticket);
+            }
+        }
+        return tickets;
+    }
+
+    /**
+     * Get tickets by status
+     */
+    public List<Tickets> getTicketsByStatus(String status) throws SQLException {
+        List<Tickets> tickets = new ArrayList<>();
+        String sql = "SELECT t.*, u.full_name as user_name, u.username, u.email as user_email, " +
+                "r.route_name, r.departure_city, r.destination_city, " +
+                "b.bus_number, " +
+                "s.departure_date, s.departure_time " +
+                "FROM Tickets t " +
+                "JOIN Users u ON t.user_id = u.user_id " +
+                "JOIN Schedules s ON t.schedule_id = s.schedule_id " +
+                "JOIN Routes r ON s.route_id = r.route_id " +
+                "JOIN Buses b ON s.bus_id = b.bus_id " +
+                "WHERE t.status = ? " +
+                "ORDER BY t.booking_date DESC";
+
+        try (Connection conn = DBConnection.getInstance().getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, status);
+            ResultSet rs = stmt.executeQuery();
+
+            while (rs.next()) {
+                Tickets ticket = mapResultSetToTicket(rs);
+                tickets.add(ticket);
+            }
+        }
+        return tickets;
+    }
+
+    /**
+     * Get tickets by payment status
+     */
+    public List<Tickets> getTicketsByPaymentStatus(String paymentStatus) throws SQLException {
+        List<Tickets> tickets = new ArrayList<>();
+        String sql = "SELECT t.*, u.full_name as user_name, u.username, u.email as user_email, " +
+                "r.route_name, r.departure_city, r.destination_city, " +
+                "b.bus_number, " +
+                "s.departure_date, s.departure_time " +
+                "FROM Tickets t " +
+                "JOIN Users u ON t.user_id = u.user_id " +
+                "JOIN Schedules s ON t.schedule_id = s.schedule_id " +
+                "JOIN Routes r ON s.route_id = r.route_id " +
+                "JOIN Buses b ON s.bus_id = b.bus_id " +
+                "WHERE t.payment_status = ? " +
+                "ORDER BY t.booking_date DESC";
+
+        try (Connection conn = DBConnection.getInstance().getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, paymentStatus);
+            ResultSet rs = stmt.executeQuery();
+
+            while (rs.next()) {
+                Tickets ticket = mapResultSetToTicket(rs);
+                tickets.add(ticket);
+            }
+        }
+        return tickets;
+    }
+
+    public List<Integer> getAvailableSeats(UUID scheduleId) throws SQLException {
+        List<Integer> bookedSeats = new ArrayList<>();
+        String sql = "SELECT seat_number FROM Tickets WHERE schedule_id = ? AND status = 'CONFIRMED'";
+
+        try (Connection conn = DBConnection.getInstance().getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setObject(1, scheduleId);
+            ResultSet rs = stmt.executeQuery();
+
+            while (rs.next()) {
+                bookedSeats.add(rs.getInt("seat_number"));
+            }
+        }
+        return bookedSeats;
+    }
+
+    public List<Integer> getBookedSeats(UUID scheduleId) throws SQLException {
+        return getAvailableSeats(scheduleId); // Same logic - booked seats are confirmed tickets
+    }
+}
