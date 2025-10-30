@@ -4,15 +4,14 @@
  */
 package model;
 
-
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.util.UUID;
-
 /**
  *
  * @author Nguyen Phat Tai
  */
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.UUID;
+
 public class Routes {
     private UUID routeId; // route_id
     private String routeName; // route_name
