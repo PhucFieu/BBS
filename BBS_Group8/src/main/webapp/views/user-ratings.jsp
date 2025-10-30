@@ -14,7 +14,7 @@
 
             <head>
                 <jsp:include page="/views/partials/head.jsp">
-                    <jsp:param name="title" value="My Ratings - BusTicket System" />
+                    <jsp:param name="title" value="My Ratings - Bus Booking System" />
                 </jsp:include>
                 <style>
                     .rating-card {
