@@ -2,7 +2,10 @@ package model;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
-
+/**
+ *
+ * @author PhúcNH CE190359
+ */
 public class Station {
     private UUID stationId;
     private String stationName;
