@@ -84,22 +84,15 @@
                         <!-- Search Form -->
                         <div class="search-form">
                             <form action="${pageContext.request.contextPath}/admin/users" method="get" class="row g-3">
-                                <div class="col-md-4">
+                                <div class="col-md-6">
                                     <label for="search" class="form-label">Search</label>
                                     <input type="text" class="form-control" id="search" name="search"
                                         value="${searchTerm}" placeholder="Name, email, username...">
                                 </div>
-                                <div class="col-md-3">
-                                    <label for="role" class="form-label">Role</label>
-                                    <select class="form-select" id="role" name="role">
-                                        <option value="">All</option>
-                                        <option value="ADMIN" ${roleFilter=='ADMIN' ? 'selected' : '' }>Admin</option>
-                                        <option value="USER" ${roleFilter=='USER' ? 'selected' : '' }>Passenger</option>
-                                        <option value="DRIVER" ${roleFilter=='DRIVER' ? 'selected' : '' }>Driver
-                                        </option>
-                                    </select>
-                                </div>
-                                <div class="col-md-5 d-flex align-items-end">
+                                <div class="col-md-6 d-flex align-items-end">
+                                    <div class="me-auto text-muted">
+                                        <i class="fas fa-info-circle me-1"></i> Showing passengers only
+                                    </div>
                                     <button type="submit" class="btn btn-outline-primary me-2">
                                         <i class="fas fa-search me-1"></i>Search
                                     </button>
@@ -121,8 +114,8 @@
                                 </div>
                             </c:when>
                             <c:otherwise>
-                                <!-- Grid View -->
-                                <div class="row g-4" id="usersGrid">
+                                <!-- Grid View (Hidden by default) -->
+                                <div class="row g-4 d-none" id="usersGrid">
                                     <c:forEach var="user" items="${users}">
                                         <div class="col-md-6 col-lg-4">
                                             <div class="card user-card h-100">
@@ -155,7 +148,7 @@
                                                 </div>
                                                 <div class="card-footer bg-transparent">
                                                     <div class="d-flex justify-content-between">
-                                                        <a href="${pageContext.request.contextPath}/admin/user/edit?id=${user.userId}"
+                                                        <a href="${pageContext.request.contextPath}/admin/users/edit?id=${user.userId}"
                                                             class="btn btn-sm btn-warning btn-action" title="Edit">
                                                             <i class="fas fa-edit"></i>
                                                         </a>
@@ -171,8 +164,8 @@
                                     </c:forEach>
                                 </div>
 
-                                <!-- Table View (Hidden by default) -->
-                                <div class="table-responsive d-none" id="usersTable">
+                                <!-- Table View (Default) -->
+                                <div class="table-responsive" id="usersTable">
                                     <table class="table table-hover">
                                         <thead class="table-dark">
                                             <tr>
@@ -213,7 +206,7 @@
                                                         ${user.formattedCreatedDate}
                                                     </td>
                                                     <td>
-                                                        <a href="${pageContext.request.contextPath}/admin/user/edit?id=${user.userId}"
+                                                        <a href="${pageContext.request.contextPath}/admin/users/edit?id=${user.userId}"
                                                             class="btn btn-sm btn-warning btn-action" title="Edit">
                                                             <i class="fas fa-edit"></i>
                                                         </a>
@@ -232,11 +225,11 @@
                                 <!-- View Toggle -->
                                 <div class="text-center mt-4">
                                     <div class="btn-group" role="group">
-                                        <button type="button" class="btn btn-outline-primary active"
+                                        <button type="button" class="btn btn-outline-primary"
                                             onclick="switchView('grid')">
                                             <i class="fas fa-th-large me-1"></i>Grid
                                         </button>
-                                        <button type="button" class="btn btn-outline-primary"
+                                        <button type="button" class="btn btn-outline-primary active"
                                             onclick="switchView('table')">
                                             <i class="fas fa-table me-1"></i>Table
                                         </button>
