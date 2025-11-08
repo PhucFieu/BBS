@@ -13,7 +13,7 @@
 
             <head>
                 <jsp:include page="/views/partials/head.jsp">
-                    <jsp:param name="title" value="Ticket Management - BusTicket System" />
+                    <jsp:param name="title" value="Ticket Management - Bus Booking System" />
                 </jsp:include>
                 <style>
                     .ticket-card {
@@ -441,8 +441,7 @@
                                 <p class="text-danger"><small>This action cannot be undone.</small></p>
                             </div>
                             <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel
-                                </button>
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                                 <a href="#" id="confirmDeleteBtn" class="btn btn-danger">Cancel Ticket</a>
                             </div>
                         </div>
@@ -492,22 +491,17 @@
                                 // Status
                                 var status = button.getAttribute('data-status');
                                 document.getElementById('detailStatus').innerHTML =
-                                    status === 'CONFIRMED'
-                                        ? '<span class="badge bg-success">Confirmed</span>'
-                                        : status === 'PENDING'
-                                            ? '<span class="badge bg-warning">Pending</span>'
-                                            : status === 'CANCELLED'
-                                                ? '<span class="badge bg-danger">Cancelled</span>'
-                                                : '<span class="badge bg-secondary">' + status + '</span>';
+                                    status === 'CONFIRMED' ? '<span class="badge bg-success">Confirmed</span>' :
+                                        status === 'PENDING' ? '<span class="badge bg-warning">Pending</span>' :
+                                            status === 'CANCELLED' ? '<span class="badge bg-danger">Cancelled</span>' :
+                                                '<span class="badge bg-secondary">' + status + '</span>';
 
                                 // Payment status
                                 var paymentStatus = button.getAttribute('data-paymentstatus');
                                 document.getElementById('detailPaymentStatus').innerHTML =
-                                    paymentStatus === 'PAID'
-                                        ? '<span class="badge bg-success">Paid</span>'
-                                        : paymentStatus === 'PENDING'
-                                            ? '<span class="badge bg-warning">Pending Payment</span>'
-                                            : '<span class="badge bg-secondary">' + paymentStatus + '</span>';
+                                    paymentStatus === 'PAID' ? '<span class="badge bg-success">Paid</span>' :
+                                        paymentStatus === 'PENDING' ? '<span class="badge bg-warning">Pending Payment</span>' :
+                                            '<span class="badge bg-secondary">' + paymentStatus + '</span>';
                             });
                         });
                     </script>
