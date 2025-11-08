@@ -105,8 +105,8 @@
                             </div>
                         </c:when>
                         <c:otherwise>
-                            <!-- Grid View -->
-                            <div class="row g-4" id="busesGrid">
+                            <!-- Grid View (Hidden by default) -->
+                            <div class="row g-4 d-none" id="busesGrid">
                                 <c:forEach var="bus" items="${buses}">
                                     <div class="col-md-6 col-lg-4 bus-item" data-type="${bus.busType}"
                                         data-status="${bus.status}">
@@ -165,8 +165,8 @@
                                 </c:forEach>
                             </div>
 
-                            <!-- Table View (Hidden by default) -->
-                            <div class="table-responsive d-none" id="busesTable">
+                            <!-- Table View (Default) -->
+                            <div class="table-responsive" id="busesTable">
                                 <table class="table table-hover">
                                     <thead class="table-dark">
                                         <tr>
@@ -227,11 +227,11 @@
                             <!-- View Toggle -->
                             <div class="text-center mt-4">
                                 <div class="btn-group" role="group">
-                                    <button type="button" class="btn btn-outline-primary active"
+                                    <button type="button" class="btn btn-outline-primary"
                                         onclick="switchView('grid')">
                                         <i class="fas fa-th-large me-1"></i>Grid
                                     </button>
-                                    <button type="button" class="btn btn-outline-primary" onclick="switchView('table')">
+                                    <button type="button" class="btn btn-outline-primary active" onclick="switchView('table')">
                                         <i class="fas fa-table me-1"></i>Table
                                     </button>
                                 </div>
