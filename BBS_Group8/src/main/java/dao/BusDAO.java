@@ -163,7 +163,7 @@ public class BusDAO {
                 + "JOIN Buses b ON s.bus_id = b.bus_id "
                 + "WHERE s.route_id = ? "
                 + "AND s.departure_date = ? "
-                + "AND CAST(s.departure_time AS TIME) = ? "
+                + "AND s.departure_time = CAST(? AS TIME) "
                 + "AND b.status = 'ACTIVE' "
                 + "AND s.available_seats > 0";
 

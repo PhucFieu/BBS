@@ -15,7 +15,7 @@ import jakarta.servlet.http.HttpSession;
 import model.Bus;
 import util.AuthUtils;
 
-@WebServlet("/buses/*")
+@WebServlet(urlPatterns = {"/buses/*", "/admin/buses/*"})
 public class BusController extends HttpServlet {
 
     private BusDAO busDAO;
@@ -28,44 +28,73 @@ public class BusController extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        // Check if user has permission to manage buses
-        if (!AuthUtils.canManageBuses(request.getSession(false))) {
-            // Redirect to admin login if not logged in, or redirect to admin buses if
-            // logged in but not admin
-            HttpSession session = request.getSession(false);
-            if (session == null || session.getAttribute("user") == null) {
-                response.sendRedirect(request.getContextPath() + "/auth/login");
-                return;
-            } else {
-                response.sendRedirect(request.getContextPath() + "/admin/buses");
-                return;
-            }
-        }
-
+        String servletPath = request.getServletPath();
         String pathInfo = request.getPathInfo();
+        if (pathInfo == null)
+            pathInfo = "/";
 
         try {
-            if (pathInfo == null || pathInfo.equals("/") || pathInfo.equals("")) {
-                // List all buses
-                listBuses(request, response);
-            } else if (pathInfo.equals("/public")) {
-                // Public bus listing (no admin permissions required)
-                showPublicBuses(request, response);
-            } else if (pathInfo.equals("/add")) {
-                // Show add form
-                showAddForm(request, response);
-            } else if (pathInfo.equals("/edit")) {
-                // Show edit form
-                showEditForm(request, response);
-            } else if (pathInfo.equals("/delete")) {
-                // Delete bus
-                deleteBus(request, response);
-            } else if (pathInfo.equals("/available")) {
-                // Show available buses
-                showAvailableBuses(request, response);
+            if (servletPath.startsWith("/admin")) {
+                // Admin endpoints
+                if (!AuthUtils.canManageBuses(request.getSession(false))) {
+                    response.sendRedirect(request.getContextPath() + "/auth/login");
+                    return;
+                }
+
+                if ("/".equals(pathInfo)) {
+                    adminListBuses(request, response);
+                } else if ("/delete".equals(pathInfo)) {
+                    deleteBus(request, response);
+                } else if ("/search".equals(pathInfo)) {
+                    adminSearchBuses(request, response);
+                } else {
+                    response.sendError(HttpServletResponse.SC_NOT_FOUND);
+                }
             } else {
-                // Get bus by ID
-                getBusById(request, response);
+                // Public/business endpoints
+                if ("/".equals(pathInfo) || pathInfo.isEmpty()) {
+                    listBuses(request, response);
+                } else if ("/public".equals(pathInfo)) {
+                    showPublicBuses(request, response);
+                } else if ("/add".equals(pathInfo)) {
+                    // Require manage permission for modifications
+                    if (!AuthUtils.canManageBuses(request.getSession(false))) {
+                        HttpSession session = request.getSession(false);
+                        if (session == null || session.getAttribute("user") == null) {
+                            response.sendRedirect(request.getContextPath() + "/auth/login");
+                        } else {
+                            response.sendRedirect(request.getContextPath() + "/admin/buses");
+                        }
+                        return;
+                    }
+                    showAddForm(request, response);
+                } else if ("/edit".equals(pathInfo)) {
+                    if (!AuthUtils.canManageBuses(request.getSession(false))) {
+                        HttpSession session = request.getSession(false);
+                        if (session == null || session.getAttribute("user") == null) {
+                            response.sendRedirect(request.getContextPath() + "/auth/login");
+                        } else {
+                            response.sendRedirect(request.getContextPath() + "/admin/buses");
+                        }
+                        return;
+                    }
+                    showEditForm(request, response);
+                } else if ("/delete".equals(pathInfo)) {
+                    if (!AuthUtils.canManageBuses(request.getSession(false))) {
+                        HttpSession session = request.getSession(false);
+                        if (session == null || session.getAttribute("user") == null) {
+                            response.sendRedirect(request.getContextPath() + "/auth/login");
+                        } else {
+                            response.sendRedirect(request.getContextPath() + "/admin/buses");
+                        }
+                        return;
+                    }
+                    deleteBus(request, response);
+                } else if ("/available".equals(pathInfo)) {
+                    showAvailableBuses(request, response);
+                } else {
+                    getBusById(request, response);
+                }
             }
         } catch (SQLException e) {
             handleError(request, response, "Database error: " + e.getMessage());
@@ -75,29 +104,42 @@ public class BusController extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        // Check if user has permission to manage buses
-        if (!AuthUtils.canManageBuses(request.getSession(false))) {
-            // Redirect to admin login if not logged in, or redirect to admin buses if
-            // logged in but not admin
-            HttpSession session = request.getSession(false);
-            if (session == null || session.getAttribute("user") == null) {
-                response.sendRedirect(request.getContextPath() + "/auth/login");
-                return;
-            } else {
-                response.sendRedirect(request.getContextPath() + "/admin/buses");
-                return;
-            }
-        }
-
+        String servletPath = request.getServletPath();
         String pathInfo = request.getPathInfo();
+        if (pathInfo == null)
+            pathInfo = "/";
 
         try {
-            if (pathInfo.equals("/add")) {
-                addBus(request, response);
-            } else if (pathInfo.equals("/edit")) {
-                updateBus(request, response);
+            if (servletPath.startsWith("/admin")) {
+                if (!AuthUtils.canManageBuses(request.getSession(false))) {
+                    response.sendRedirect(request.getContextPath() + "/auth/login");
+                    return;
+                }
+                if ("/add".equals(pathInfo)) {
+                    addBus(request, response);
+                } else if ("/edit".equals(pathInfo)) {
+                    updateBus(request, response);
+                } else {
+                    response.sendError(HttpServletResponse.SC_NOT_FOUND);
+                }
             } else {
-                response.sendError(HttpServletResponse.SC_NOT_FOUND);
+                // Public endpoints do not support POST except for manage actions
+                if (!AuthUtils.canManageBuses(request.getSession(false))) {
+                    HttpSession session = request.getSession(false);
+                    if (session == null || session.getAttribute("user") == null) {
+                        response.sendRedirect(request.getContextPath() + "/auth/login");
+                    } else {
+                        response.sendRedirect(request.getContextPath() + "/admin/buses");
+                    }
+                    return;
+                }
+                if ("/add".equals(pathInfo)) {
+                    addBus(request, response);
+                } else if ("/edit".equals(pathInfo)) {
+                    updateBus(request, response);
+                } else {
+                    response.sendError(HttpServletResponse.SC_NOT_FOUND);
+                }
             }
         } catch (SQLException e) {
             handleError(request, response, "Database error: " + e.getMessage());
@@ -108,19 +150,19 @@ public class BusController extends HttpServlet {
             throws SQLException, ServletException, IOException {
         List<Bus> buses = busDAO.getAllBuses();
         request.setAttribute("buses", buses);
-        request.getRequestDispatcher("/views/buses.jsp").forward(request, response);
+        request.getRequestDispatcher("/views/buses/buses.jsp").forward(request, response);
     }
 
     private void showPublicBuses(HttpServletRequest request, HttpServletResponse response)
             throws SQLException, ServletException, IOException {
         List<Bus> buses = busDAO.getAvailableBuses();
         request.setAttribute("buses", buses);
-        request.getRequestDispatcher("/views/bus-listing.jsp").forward(request, response);
+        request.getRequestDispatcher("/views/buses/bus-listing.jsp").forward(request, response);
     }
 
     private void showAddForm(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        request.getRequestDispatcher("/views/bus-form.jsp").forward(request, response);
+        request.getRequestDispatcher("/views/buses/bus-form.jsp").forward(request, response);
     }
 
     private void showEditForm(HttpServletRequest request, HttpServletResponse response)
@@ -130,7 +172,7 @@ public class BusController extends HttpServlet {
 
         if (bus != null) {
             request.setAttribute("bus", bus);
-            request.getRequestDispatcher("/views/bus-form.jsp").forward(request, response);
+            request.getRequestDispatcher("/views/buses/bus-form.jsp").forward(request, response);
         } else {
             handleError(request, response, "Bus not found");
         }
@@ -141,7 +183,7 @@ public class BusController extends HttpServlet {
         List<Bus> buses = busDAO.getAvailableBuses();
         request.setAttribute("buses", buses);
         request.setAttribute("availableOnly", true);
-        request.getRequestDispatcher("/views/buses.jsp").forward(request, response);
+        request.getRequestDispatcher("/views/buses/buses.jsp").forward(request, response);
     }
 
     private void addBus(HttpServletRequest request, HttpServletResponse response)
@@ -154,7 +196,8 @@ public class BusController extends HttpServlet {
 
         // Validate input
         if (busNumber == null || busNumber.trim().isEmpty()) {
-            response.sendRedirect(request.getContextPath() + "/buses/add?error=Bus number is required");
+            response.sendRedirect(
+                    request.getContextPath() + "/buses/add?error=Bus number is required");
             return;
         }
 
@@ -165,7 +208,8 @@ public class BusController extends HttpServlet {
         boolean success = busDAO.addBus(bus);
 
         if (success) {
-            response.sendRedirect(request.getContextPath() + "/buses?message=Bus added successfully");
+            response.sendRedirect(
+                    request.getContextPath() + "/buses?message=Bus added successfully");
         } else {
             response.sendRedirect(request.getContextPath() + "/buses/add?error=Failed to add bus");
         }
@@ -188,9 +232,11 @@ public class BusController extends HttpServlet {
         boolean success = busDAO.updateBus(bus);
 
         if (success) {
-            response.sendRedirect(request.getContextPath() + "/buses?message=Bus updated successfully");
+            response.sendRedirect(
+                    request.getContextPath() + "/buses?message=Bus updated successfully");
         } else {
-            response.sendRedirect(request.getContextPath() + "/buses/edit?id=" + busId + "&error=Failed to update bus");
+            response.sendRedirect(request.getContextPath() + "/buses/edit?id=" + busId
+                    + "&error=Failed to update bus");
         }
     }
 
@@ -202,7 +248,8 @@ public class BusController extends HttpServlet {
             // Check if bus exists
             Bus bus = busDAO.getBusById(busId);
             if (bus == null) {
-                response.sendRedirect(request.getContextPath() + "/admin/buses?error=Bus not found");
+                response.sendRedirect(
+                        request.getContextPath() + "/admin/buses?error=Bus not found");
                 return;
             }
 
@@ -218,16 +265,19 @@ public class BusController extends HttpServlet {
             boolean success = busDAO.deleteBus(busId);
 
             if (success) {
-                response.sendRedirect(request.getContextPath() + "/admin/buses?message=Bus " + bus.getBusNumber()
-                        + " deleted successfully");
+                response.sendRedirect(
+                        request.getContextPath() + "/admin/buses?message=Bus " + bus.getBusNumber()
+                                + " deleted successfully");
             } else {
-                response.sendRedirect(request.getContextPath() + "/admin/buses?error=Failed to delete bus");
+                response.sendRedirect(
+                        request.getContextPath() + "/admin/buses?error=Failed to delete bus");
             }
         } catch (IllegalArgumentException e) {
             response.sendRedirect(request.getContextPath() + "/admin/buses?error=Invalid bus ID");
         } catch (Exception e) {
             response.sendRedirect(
-                    request.getContextPath() + "/admin/buses?error=An error occurred while deleting the bus");
+                    request.getContextPath()
+                            + "/admin/buses?error=An error occurred while deleting the bus");
         }
     }
 
@@ -246,9 +296,48 @@ public class BusController extends HttpServlet {
         }
     }
 
-    private void handleError(HttpServletRequest request, HttpServletResponse response, String message)
+    private void handleError(HttpServletRequest request, HttpServletResponse response,
+            String message)
             throws ServletException, IOException {
         request.setAttribute("error", message);
-        request.getRequestDispatcher("/views/error.jsp").forward(request, response);
+        request.getRequestDispatcher("/views/errors/error.jsp").forward(request, response);
+    }
+
+    // Admin-specific helpers
+    private void adminListBuses(HttpServletRequest request, HttpServletResponse response)
+            throws SQLException, ServletException, IOException {
+        List<Bus> buses = busDAO.getAllBuses();
+        request.setAttribute("buses", buses);
+        request.getRequestDispatcher("/views/admin/buses.jsp").forward(request, response);
+    }
+
+    private void adminSearchBuses(HttpServletRequest request, HttpServletResponse response)
+            throws SQLException, IOException {
+        String searchTerm = request.getParameter("search");
+        List<Bus> buses = (searchTerm != null && !searchTerm.trim().isEmpty())
+                ? busDAO.searchBuses(searchTerm)
+                : busDAO.getAllBuses();
+
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+
+        StringBuilder jsonResponse = new StringBuilder();
+        jsonResponse.append("[");
+        for (int i = 0; i < buses.size(); i++) {
+            Bus bus = buses.get(i);
+            jsonResponse.append("{");
+            jsonResponse.append("\"busId\":\"").append(bus.getBusId()).append("\",");
+            jsonResponse.append("\"busNumber\":\"").append(bus.getBusNumber()).append("\",");
+            jsonResponse.append("\"busType\":\"").append(bus.getBusType()).append("\",");
+            jsonResponse.append("\"licensePlate\":\"").append(bus.getLicensePlate()).append("\",");
+            jsonResponse.append("\"totalSeats\":").append(bus.getTotalSeats()).append(",");
+            jsonResponse.append("\"status\":\"").append(bus.getStatus()).append("\"");
+            jsonResponse.append("}");
+            if (i < buses.size() - 1) {
+                jsonResponse.append(",");
+            }
+        }
+        jsonResponse.append("]");
+        response.getWriter().write(jsonResponse.toString());
     }
 }
