@@ -7,6 +7,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
 
+import dao.TicketDAO;
 import dao.UserDAO;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -16,17 +17,15 @@ import jakarta.servlet.http.HttpServletResponse;
 import model.User;
 import util.AuthUtils;
 
-/**
- *
- * @author TaiNHCE190387
- */
 @WebServlet("/passengers/*")
 public class PassengerController extends HttpServlet {
     private UserDAO userDAO;
+    private TicketDAO ticketDAO;
 
     @Override
     public void init() throws ServletException {
         userDAO = new UserDAO();
+        ticketDAO = new TicketDAO();
     }
 
     @Override
@@ -44,7 +43,7 @@ public class PassengerController extends HttpServlet {
                 // List passengers
                 if (!isAdmin && !isDriver) {
                     request.setAttribute("error", "You do not have permission to access this page");
-                    request.getRequestDispatcher("/views/403.jsp").forward(request, response);
+                    request.getRequestDispatcher("/views/errors/403.jsp").forward(request, response);
                     return;
                 }
                 listPassengers(request, response);
@@ -52,7 +51,7 @@ public class PassengerController extends HttpServlet {
                 // Show add form
                 if (!isAdmin) {
                     request.setAttribute("error", "You do not have permission to access this page");
-                    request.getRequestDispatcher("/views/403.jsp").forward(request, response);
+                    request.getRequestDispatcher("/views/errors/403.jsp").forward(request, response);
                     return;
                 }
                 showAddForm(request, response);
@@ -60,7 +59,7 @@ public class PassengerController extends HttpServlet {
                 // Show edit form
                 if (!isAdmin) {
                     request.setAttribute("error", "You do not have permission to access this page");
-                    request.getRequestDispatcher("/views/403.jsp").forward(request, response);
+                    request.getRequestDispatcher("/views/errors/403.jsp").forward(request, response);
                     return;
                 }
                 showEditForm(request, response);
@@ -68,7 +67,7 @@ public class PassengerController extends HttpServlet {
                 // Delete passenger
                 if (!isAdmin) {
                     request.setAttribute("error", "You do not have permission to access this page");
-                    request.getRequestDispatcher("/views/403.jsp").forward(request, response);
+                    request.getRequestDispatcher("/views/errors/403.jsp").forward(request, response);
                     return;
                 }
                 deletePassenger(request, response);
@@ -76,7 +75,7 @@ public class PassengerController extends HttpServlet {
                 // Search passengers
                 if (!isAdmin && !isDriver) {
                     request.setAttribute("error", "You do not have permission to access this page");
-                    request.getRequestDispatcher("/views/403.jsp").forward(request, response);
+                    request.getRequestDispatcher("/views/errors/403.jsp").forward(request, response);
                     return;
                 }
                 searchPassengers(request, response);
@@ -84,7 +83,7 @@ public class PassengerController extends HttpServlet {
                 // Show passenger profile
                 if (!isAdmin && !isDriver) {
                     request.setAttribute("error", "You do not have permission to access this page");
-                    request.getRequestDispatcher("/views/403.jsp").forward(request, response);
+                    request.getRequestDispatcher("/views/errors/403.jsp").forward(request, response);
                     return;
                 }
                 showProfile(request, response);
@@ -92,7 +91,7 @@ public class PassengerController extends HttpServlet {
                 // Get passenger by ID
                 if (!isAdmin && !isDriver) {
                     request.setAttribute("error", "You do not have permission to access this page");
-                    request.getRequestDispatcher("/views/403.jsp").forward(request, response);
+                    request.getRequestDispatcher("/views/errors/403.jsp").forward(request, response);
                     return;
                 }
                 getPassengerById(request, response);
@@ -108,7 +107,7 @@ public class PassengerController extends HttpServlet {
         // Check if user has permission to manage passengers
         if (!AuthUtils.canManagePassengers(request.getSession(false))) {
             request.setAttribute("error", "You do not have permission to access this page");
-            request.getRequestDispatcher("/views/403.jsp").forward(request, response);
+            request.getRequestDispatcher("/views/errors/403.jsp").forward(request, response);
             return;
         }
 
@@ -130,20 +129,35 @@ public class PassengerController extends HttpServlet {
     private void listPassengers(HttpServletRequest request, HttpServletResponse response)
             throws SQLException, ServletException, IOException {
         List<User> passengers;
+        java.util.Map<UUID, List<model.Tickets>> passengerTickets = new java.util.HashMap<>();
+        
         if (AuthUtils.isDriver(request.getSession(false))) {
             // Limit to passengers who have tickets on schedules assigned to this driver
             User current = AuthUtils.getCurrentUser(request.getSession(false));
             passengers = userDAO.getPassengersByDriverUserId(current.getUserId());
+            
+            // Load tickets with station information for each passenger
+            for (User passenger : passengers) {
+                try {
+                    List<model.Tickets> tickets = ticketDAO.getTicketsByUserId(passenger.getUserId());
+                    if (!tickets.isEmpty()) {
+                        passengerTickets.put(passenger.getUserId(), tickets);
+                    }
+                } catch (SQLException e) {
+                }
+            }
         } else {
             passengers = userDAO.getUsersByRole("USER");
         }
+        
         request.setAttribute("passengers", passengers);
-        request.getRequestDispatcher("/views/passengers.jsp").forward(request, response);
+        request.setAttribute("passengerTickets", passengerTickets);
+        request.getRequestDispatcher("/views/passengers/passengers.jsp").forward(request, response);
     }
 
     private void showAddForm(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        request.getRequestDispatcher("/views/passenger-form.jsp").forward(request, response);
+        request.getRequestDispatcher("/views/passengers/passenger-form.jsp").forward(request, response);
     }
 
     private void showEditForm(HttpServletRequest request, HttpServletResponse response)
@@ -159,7 +173,7 @@ public class PassengerController extends HttpServlet {
 
         if (user != null && "USER".equals(user.getRole())) {
             request.setAttribute("passenger", user);
-            request.getRequestDispatcher("/views/passenger-form.jsp").forward(request, response);
+            request.getRequestDispatcher("/views/passengers/passenger-form.jsp").forward(request, response);
         } else {
             handleError(request, response, "Passenger not found");
         }
@@ -220,7 +234,7 @@ public class PassengerController extends HttpServlet {
 
         request.setAttribute("passengers", passengers);
 
-        request.getRequestDispatcher("/views/passengers.jsp").forward(request, response);
+        request.getRequestDispatcher("/views/passengers/passengers.jsp").forward(request, response);
     }
 
     private void addPassenger(HttpServletRequest request, HttpServletResponse response)
@@ -431,6 +445,6 @@ public class PassengerController extends HttpServlet {
     private void handleError(HttpServletRequest request, HttpServletResponse response, String message)
             throws ServletException, IOException {
         request.setAttribute("error", message);
-        request.getRequestDispatcher("/views/error.jsp").forward(request, response);
+        request.getRequestDispatcher("/views/errors/error.jsp").forward(request, response);
     }
 }
