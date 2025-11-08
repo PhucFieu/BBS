@@ -16,6 +16,10 @@ import util.DBConnection;
 import util.PasswordUtils;
 import util.UUIDUtils;
 
+/**
+ *
+ * @author TaiNHCE190387
+ */
 public class UserDAO {
 
     public User authenticate(String username, String password) throws SQLException {
@@ -452,5 +456,6 @@ public class UserDAO {
             return rowsAffected > 0;
         }
     }
+
 
 }
