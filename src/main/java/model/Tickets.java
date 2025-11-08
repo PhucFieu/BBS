@@ -43,6 +43,18 @@ public class Tickets {
     private LocalDate departureDate;
     private LocalTime departureTime;
 
+    // Station information
+    private UUID boardingStationId;
+    private UUID alightingStationId;
+    private String boardingStationName;
+    private String alightingStationName;
+    private String boardingCity;
+    private String alightingCity;
+
+    // Station times (from ScheduleStops.arrival_time)
+    private LocalTime boardingArrivalTime;
+    private LocalTime alightingArrivalTime;
+
     // Constructors
     public Tickets() {
         this.ticketId = UUID.randomUUID();
@@ -76,6 +88,18 @@ public class Tickets {
     public java.sql.Time getDepartureTimeSql() {
         return departureTime != null
                 ? java.sql.Time.valueOf(departureTime)
+                : null;
+    }
+
+    public java.sql.Time getBoardingArrivalTimeSql() {
+        return boardingArrivalTime != null
+                ? java.sql.Time.valueOf(boardingArrivalTime)
+                : null;
+    }
+
+    public java.sql.Time getAlightingArrivalTimeSql() {
+        return alightingArrivalTime != null
+                ? java.sql.Time.valueOf(alightingArrivalTime)
                 : null;
     }
 
@@ -278,6 +302,79 @@ public class Tickets {
 
     public void setUserEmail(String userEmail) {
         this.userEmail = userEmail;
+    }
+
+    // Station getters and setters
+    public UUID getBoardingStationId() {
+        return boardingStationId;
+    }
+
+    public void setBoardingStationId(UUID boardingStationId) {
+        this.boardingStationId = boardingStationId;
+    }
+
+    public UUID getAlightingStationId() {
+        return alightingStationId;
+    }
+
+    public void setAlightingStationId(UUID alightingStationId) {
+        this.alightingStationId = alightingStationId;
+    }
+
+    public String getBoardingStationName() {
+        return boardingStationName;
+    }
+
+    public void setBoardingStationName(String boardingStationName) {
+        this.boardingStationName = boardingStationName;
+    }
+
+    public String getAlightingStationName() {
+        return alightingStationName;
+    }
+
+    public void setAlightingStationName(String alightingStationName) {
+        this.alightingStationName = alightingStationName;
+    }
+
+    public String getBoardingCity() {
+        return boardingCity;
+    }
+
+    public void setBoardingCity(String boardingCity) {
+        this.boardingCity = boardingCity;
+    }
+
+    public String getAlightingCity() {
+        return alightingCity;
+    }
+
+    public void setAlightingCity(String alightingCity) {
+        this.alightingCity = alightingCity;
+    }
+
+    public LocalTime getBoardingArrivalTime() {
+        return boardingArrivalTime;
+    }
+
+    public void setBoardingArrivalTime(LocalTime boardingArrivalTime) {
+        this.boardingArrivalTime = boardingArrivalTime;
+    }
+
+    public LocalTime getAlightingArrivalTime() {
+        return alightingArrivalTime;
+    }
+
+    public void setAlightingArrivalTime(LocalTime alightingArrivalTime) {
+        this.alightingArrivalTime = alightingArrivalTime;
+    }
+
+    /**
+     * Check if this ticket can be rated
+     * Can rate if: COMPLETED and PAID
+     */
+    public boolean getCanRate() {
+        return "COMPLETED".equals(status) && "PAID".equals(paymentStatus);
     }
 
     @Override
