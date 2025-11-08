@@ -5,7 +5,7 @@
 
         <head>
             <meta charset="UTF-8">
-            <title>${route == null ? 'Add Route' : 'Edit Route'} - BusTicket System</title>
+            <title>${route == null ? 'Add Route' : 'Edit Route'} - Bus Booking System</title>
             <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
             <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
             <link href="${pageContext.request.contextPath}/assets/css/route-form.css" rel="stylesheet">
@@ -32,7 +32,7 @@
                                 </div>
                                 <div class="row g-3">
                                     <div class="col-md-6">
-                                        <label for="routeName" class="form-label">Route Name *</label>
+                                        <label for="routeName" class="form-label">Route Name *</nlabel>
                                         <input type="text" class="form-control" id="routeName" name="routeName"
                                             value="${route.routeName}" required maxlength="100"
                                             placeholder="E.g: Hanoi - Hai Phong">
@@ -91,3 +91,4 @@
         </body>
 
         </html>
+

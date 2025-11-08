@@ -6,7 +6,7 @@
 
             <head>
                 <jsp:include page="/views/partials/head.jsp">
-                    <jsp:param name="title" value="Route Management - BusTicket System" />
+                    <jsp:param name="title" value="Route Management - Bus Booking System" />
                 </jsp:include>
                 <style>
                     .route-card {
@@ -94,8 +94,8 @@
                                 </div>
                             </c:when>
                             <c:otherwise>
-                                <!-- Grid View -->
-                                <div class="row g-4" id="routesGrid">
+                                <!-- Grid View (Hidden by default) -->
+                                <div class="row g-4 d-none" id="routesGrid">
                                     <c:forEach var="route" items="${routes}">
                                         <div class="col-md-6 col-lg-4">
                                             <div class="card route-card h-100">
@@ -157,8 +157,8 @@
                                     </c:forEach>
                                 </div>
 
-                                <!-- Table View (Hidden by default) -->
-                                <div class="table-responsive d-none" id="routesTable">
+                                <!-- Table View (Default) -->
+                                <div class="table-responsive" id="routesTable">
                                     <table class="table table-hover">
                                         <thead class="table-dark">
                                             <tr>
@@ -227,11 +227,11 @@
                                 <!-- View Toggle -->
                                 <div class="text-center mt-4">
                                     <div class="btn-group" role="group">
-                                        <button type="button" class="btn btn-outline-primary active"
+                                        <button type="button" class="btn btn-outline-primary"
                                             onclick="switchView('grid')">
                                             <i class="fas fa-th-large me-1"></i>Grid
                                         </button>
-                                        <button type="button" class="btn btn-outline-primary"
+                                        <button type="button" class="btn btn-outline-primary active"
                                             onclick="switchView('table')">
                                             <i class="fas fa-table me-1"></i>Table
                                         </button>
@@ -301,6 +301,7 @@
                         </div>
                     </div>
 
+                    <%@ include file="/views/partials/footer.jsp" %>
                     <script>
                         function confirmDelete(routeId, routeName) {
                             document.getElementById('routeNameToDelete').textContent = routeName;
@@ -348,3 +349,4 @@
             </body>
 
             </html>
+

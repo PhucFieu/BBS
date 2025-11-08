@@ -7,7 +7,7 @@
 
             <head>
                 <jsp:include page="/views/partials/head.jsp">
-                    <jsp:param name="title" value="Search Routes - BusTicket System" />
+                    <jsp:param name="title" value="Search Routes - Bus Booking System" />
                 </jsp:include>
                 <style>
                     .search-container {
@@ -16,86 +16,22 @@
                         padding: 40px 0;
                         margin-bottom: 30px;
                     }
-
-                    .search-form {
-                        background: white;
-                        color: #333;
-                        padding: 30px;
-                        border-radius: 10px;
-                        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-                    }
-
-                    .form-control:focus {
-                        border-color: #667eea;
-                        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
-                    }
-
-                    .btn-search {
-                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                        border: none;
-                        padding: 12px 30px;
-                        font-weight: 600;
-                    }
-
-                    .btn-search:hover {
-                        transform: translateY(-2px);
-                        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-                    }
-
-                    .popular-route-card {
-                        transition: transform 0.2s;
-                        border: none;
-                        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
-                    }
-
-                    .popular-route-card:hover {
-                        transform: translateY(-2px);
-                        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.13);
-                    }
-
-                    .trip-type-buttons .btn {
-                        margin: 5px;
-                    }
-
-                    .trip-type-buttons .btn.active {
-                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                        border-color: #667eea;
-                    }
-
-                    .feature-icon {
-                        font-size: 2rem;
-                        color: #667eea;
-                        margin-bottom: 15px;
-                    }
-
-                    .search-suggestions {
-                        position: absolute;
-                        top: 100%;
-                        left: 0;
-                        right: 0;
-                        background: white;
-                        border: 1px solid #ddd;
-                        border-top: none;
-                        border-radius: 0 0 5px 5px;
-                        max-height: 200px;
-                        overflow-y: auto;
-                        z-index: 1000;
-                        display: none;
-                    }
-
-                    .search-suggestions .suggestion-item {
-                        padding: 10px 15px;
-                        cursor: pointer;
-                        border-bottom: 1px solid #eee;
-                    }
-
-                    .search-suggestions .suggestion-item:hover {
-                        background-color: #f8f9fa;
-                    }
-
-                    .search-suggestions .suggestion-item:last-child {
-                        border-bottom: none;
-                    }
+                    .search-form { background: white; color: #333; padding: 30px; border-radius: 10px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1); }
+                    .form-control:focus { border-color: #667eea; box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25); }
+                    .btn-search { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; padding: 12px 30px; font-weight: 600; }
+                    .btn-search:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4); }
+                    .popular-route-card { transition: transform 0.2s; border: none; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08); }
+                    .popular-route-card:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0, 0, 0, 0.13); }
+                    .trip-type-buttons .btn { margin: 5px; }
+                    .trip-type-buttons .btn.active { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-color: #667eea; }
+                    .feature-icon { font-size: 2rem; color: #667eea; margin-bottom: 15px; }
+                    .search-suggestions { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #ddd; border-top: none; border-radius: 0 0 5px 5px; max-height: 200px; overflow-y: auto; z-index: 1000; display: none; }
+                    .search-suggestions .suggestion-item { padding: 10px 15px; cursor: pointer; border-bottom: 1px solid #eee; }
+                    .search-suggestions .suggestion-item:hover { background-color: #f8f9fa; }
+                    .search-suggestions .suggestion-item:last-child { border-bottom: none; }
+                    .route-selection-card { border: 1px solid #dee2e6; transition: all 0.2s; }
+                    .route-selection-card:hover { border-color: #667eea; box-shadow: 0 4px 8px rgba(102, 126, 234, 0.15); }
+                    .route-selection-card.border-primary { border-color: #667eea !important; border-width: 2px; }
                 </style>
             </head>
 
@@ -117,7 +53,7 @@
                                     <!-- Search Form -->
                                     <div class="search-form">
                                         <form action="${pageContext.request.contextPath}/search/search" method="post"
-                                            id="searchForm">
+                                            id="searchForm" onsubmit="return validateRouteSelection()">
                                             <!-- Trip Type Selection -->
                                             <div class="row mb-4">
                                                 <div class="col-12">
@@ -166,19 +102,23 @@
                                                     </div>
                                                 </div>
 
-                                                <!-- Departure Date -->
-                                                <div class="col-md-6">
-                                                    <label for="departureDate" class="form-label fw-bold">
-                                                        <i class="fas fa-calendar text-success me-1"></i>Departure Date
+                                                <!-- Available Routes List -->
+                                                <div class="col-12" id="routesListContainer" style="display: none;">
+                                                    <label class="form-label fw-bold">
+                                                        <i class="fas fa-route text-primary me-1"></i>Các tuyến đường
+                                                        khả dụng
                                                     </label>
-                                                    <input type="date" class="form-control form-control-lg"
-                                                        id="departureDate" name="departureDate" required>
+                                                    <div id="routesList" class="mt-2"></div>
                                                 </div>
+
+                                                <!-- Selected Route Info (hidden, for form submission) -->
+                                                <input type="hidden" id="selectedDepartureDate" name="departureDate">
 
                                                 <!-- Return Date (hidden by default) -->
                                                 <div class="col-md-6" id="returnDateGroup" style="display: none;">
                                                     <label for="returnDate" class="form-label fw-bold">
-                                                        <i class="fas fa-calendar text-warning me-1"></i>Return Date
+                                                        <i class="fas fa-calendar text-warning me-1"></i>Ngày về <small
+                                                            class="text-muted">(tùy chọn)</small>
                                                     </label>
                                                     <input type="date" class="form-control form-control-lg"
                                                         id="returnDate" name="returnDate">
@@ -334,7 +274,8 @@
 
                                         if (tripType === 'roundtrip') {
                                             returnDateGroup.style.display = 'block';
-                                            document.getElementById('returnDate').required = true;
+                                            // Return date is optional
+                                            document.getElementById('returnDate').required = false;
                                         } else {
                                             returnDateGroup.style.display = 'none';
                                             document.getElementById('returnDate').required = false;
@@ -346,11 +287,36 @@
                                 setupAutocomplete('departureCity', 'departureSuggestions');
                                 setupAutocomplete('destinationCity', 'destinationSuggestions');
 
-                                // Departure date change handler
-                                document.getElementById('departureDate').addEventListener('change', function () {
-                                    const returnDate = document.getElementById('returnDate');
-                                    if (returnDate.value) {
-                                        returnDate.min = this.value;
+                                // Load routes when both cities are filled
+                                const departureCityInput = document.getElementById('departureCity');
+                                const destinationCityInput = document.getElementById('destinationCity');
+
+                                function loadRoutes() {
+                                    const departureCity = departureCityInput.value.trim();
+                                    const destinationCity = destinationCityInput.value.trim();
+
+                                    if (departureCity.length >= 2 && destinationCity.length >= 2
+                                        && departureCity !== destinationCity) {
+                                        fetchRoutes(departureCity, destinationCity);
+                                    } else {
+                                        document.getElementById('routesListContainer').style.display = 'none';
+                                    }
+                                }
+
+                                departureCityInput.addEventListener('blur', loadRoutes);
+                                destinationCityInput.addEventListener('blur', loadRoutes);
+
+                                // Also trigger on Enter key
+                                departureCityInput.addEventListener('keypress', function (e) {
+                                    if (e.key === 'Enter') {
+                                        e.preventDefault();
+                                        loadRoutes();
+                                    }
+                                });
+                                destinationCityInput.addEventListener('keypress', function (e) {
+                                    if (e.key === 'Enter') {
+                                        e.preventDefault();
+                                        loadRoutes();
                                     }
                                 });
                             });
@@ -419,9 +385,209 @@
                             function quickSearch(departure, destination) {
                                 document.getElementById('departureCity').value = departure;
                                 document.getElementById('destinationCity').value = destination;
-                                document.getElementById('searchForm').submit();
+                                fetchRoutes(departure, destination);
+                            }
+
+                            function fetchRoutes(departureCity, destinationCity) {
+                                const routesListContainer = document.getElementById('routesListContainer');
+                                const routesList = document.getElementById('routesList');
+
+                                routesList.innerHTML = '<div class="text-center py-3"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Đang tải...</span></div></div>';
+                                routesListContainer.style.display = 'block';
+
+                                const ctx = '${pageContext.request.contextPath}';
+                                const url = ctx + '/search/routes-by-cities?departureCity=' +
+                                    encodeURIComponent(departureCity) +
+                                    '&destinationCity=' + encodeURIComponent(destinationCity);
+
+                                fetch(url)
+                                    .then(response => response.json())
+                                    .then(data => {
+                                        if (data.error) {
+                                            routesList.innerHTML = '<div class="alert alert-warning">' + data.error + '</div>';
+                                            return;
+                                        }
+
+                                        if (!data.routes || data.routes.length === 0) {
+                                            routesList.innerHTML = '<div class="alert alert-info">Không tìm thấy tuyến đường nào</div>';
+                                            routesListContainer.style.display = 'none';
+                                            return;
+                                        }
+
+                                        displayRoutes(data.routes);
+                                    })
+                                    .catch(error => {
+                                        console.error('Error fetching routes:', error);
+                                        routesList.innerHTML = '<div class="alert alert-danger">Lỗi khi tải danh sách tuyến đường</div>';
+                                    });
+                            }
+
+                            function displayRoutes(routes) {
+                                const routesList = document.getElementById('routesList');
+                                routesList.innerHTML = '';
+
+                                routes.forEach(route => {
+                                    const routeCard = document.createElement('div');
+                                    routeCard.className = 'card mb-3 route-selection-card';
+                                    routeCard.style.cursor = 'pointer';
+                                    routeCard.style.transition = 'all 0.2s';
+
+                                    const cardBody = document.createElement('div');
+                                    cardBody.className = 'card-body';
+
+                                    const mainRow = document.createElement('div');
+                                    mainRow.className = 'd-flex justify-content-between align-items-start';
+
+                                    const contentDiv = document.createElement('div');
+                                    contentDiv.className = 'flex-grow-1';
+
+                                    // Route name
+                                    const title = document.createElement('h6');
+                                    title.className = 'mb-2';
+                                    title.innerHTML = '<i class="fas fa-route text-primary me-2"></i>' + escapeHtml(route.routeName);
+
+                                    // Route cities
+                                    const cities = document.createElement('p');
+                                    cities.className = 'mb-1 text-muted small';
+                                    cities.innerHTML = '<i class="fas fa-map-marker-alt text-primary"></i> ' +
+                                        escapeHtml(route.departureCity) +
+                                        ' <i class="fas fa-arrow-right mx-2"></i> ' +
+                                        '<i class="fas fa-map-marker-alt text-danger"></i> ' +
+                                        escapeHtml(route.destinationCity);
+
+                                    // Route info
+                                    const infoDiv = document.createElement('div');
+                                    infoDiv.className = 'd-flex gap-3 mt-2';
+                                    const price = new Intl.NumberFormat('vi-VN').format(route.basePrice);
+                                    infoDiv.innerHTML =
+                                        '<small><i class="fas fa-road"></i> ' + route.distance + ' km</small>' +
+                                        '<small><i class="fas fa-clock"></i> ' + route.durationHours + ' giờ</small>' +
+                                        '<small><i class="fas fa-money-bill text-success"></i> ' + price + '₫</small>' +
+                                        '<small><i class="fas fa-calendar"></i> ' + route.scheduleCount + ' lịch trình</small>';
+
+                                    contentDiv.appendChild(title);
+                                    contentDiv.appendChild(cities);
+                                    contentDiv.appendChild(infoDiv);
+                                    mainRow.appendChild(contentDiv);
+                                    cardBody.appendChild(mainRow);
+
+                                    // Dates section
+                                    const datesDiv = document.createElement('div');
+                                    datesDiv.className = 'mt-3';
+                                    datesDiv.id = 'dates-' + route.routeId;
+                                    datesDiv.style.display = 'none';
+
+                                    const datesLabel = document.createElement('label');
+                                    datesLabel.className = 'form-label fw-bold small';
+                                    datesLabel.textContent = 'Chọn ngày khởi hành:';
+                                    datesDiv.appendChild(datesLabel);
+
+                                    if (route.availableDates && route.availableDates.length > 0) {
+                                        const datesContainer = document.createElement('div');
+                                        datesContainer.className = 'd-flex flex-wrap gap-2';
+
+                                        route.availableDates.forEach(date => {
+                                            const dateBtn = document.createElement('button');
+                                            dateBtn.type = 'button';
+                                            dateBtn.className = 'btn btn-sm btn-outline-primary date-btn';
+                                            dateBtn.setAttribute('data-route-id', route.routeId);
+                                            dateBtn.setAttribute('data-date', date);
+                                            dateBtn.textContent = formatDate(date);
+                                            dateBtn.onclick = function (e) {
+                                                selectDate(route.routeId, date, e);
+                                            };
+                                            datesContainer.appendChild(dateBtn);
+                                        });
+
+                                        datesDiv.appendChild(datesContainer);
+                                    } else {
+                                        const noDatesAlert = document.createElement('div');
+                                        noDatesAlert.className = 'alert alert-warning small mb-0';
+                                        noDatesAlert.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i>Chưa có lịch trình khả dụng cho tuyến này';
+                                        datesDiv.appendChild(noDatesAlert);
+                                    }
+
+                                    cardBody.appendChild(datesDiv);
+                                    routeCard.appendChild(cardBody);
+
+                                    routeCard.addEventListener('click', function (e) {
+                                        if (!e.target.classList.contains('date-btn')) {
+                                            datesDiv.style.display = datesDiv.style.display === 'none' ? 'block' : 'none';
+
+                                            // Close other route dates
+                                            document.querySelectorAll('[id^="dates-"]').forEach(div => {
+                                                if (div.id !== 'dates-' + route.routeId) {
+                                                    div.style.display = 'none';
+                                                }
+                                            });
+                                        }
+                                    });
+
+                                    routesList.appendChild(routeCard);
+                                });
+                            }
+
+                            function escapeHtml(text) {
+                                const div = document.createElement('div');
+                                div.textContent = text;
+                                return div.innerHTML;
+                            }
+
+                            function selectDate(routeId, date, event) {
+                                if (event) {
+                                    event.stopPropagation();
+                                }
+
+                                // Store selected date
+                                document.getElementById('selectedDepartureDate').value = date;
+
+                                // Update UI - remove primary from all date buttons
+                                document.querySelectorAll('.date-btn').forEach(btn => {
+                                    btn.classList.remove('btn-primary');
+                                    btn.classList.add('btn-outline-primary');
+                                });
+
+                                // Add primary to clicked button
+                                if (event && event.target) {
+                                    event.target.classList.remove('btn-outline-primary');
+                                    event.target.classList.add('btn-primary');
+                                }
+
+                                // Show selected info
+                                let selectedInfo = document.getElementById('selectedRouteInfo');
+                                if (!selectedInfo) {
+                                    selectedInfo = document.createElement('div');
+                                    selectedInfo.id = 'selectedRouteInfo';
+                                    document.getElementById('routesListContainer').appendChild(selectedInfo);
+                                }
+                                selectedInfo.className = 'alert alert-success mt-2';
+                                selectedInfo.innerHTML =
+                                    '<i class="fas fa-check-circle me-2"></i>' +
+                                    'Đã chọn ngày khởi hành: <strong>' + formatDate(date) + '</strong>';
+                            }
+
+                            function formatDate(dateString) {
+                                const date = new Date(dateString + 'T00:00:00');
+                                const days = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+                                const months = ['Th1', 'Th2', 'Th3', 'Th4', 'Th5', 'Th6', 'Th7', 'Th8', 'Th9', 'Th10', 'Th11', 'Th12'];
+                                return days[date.getDay()] + ', ' + date.getDate() + '/' + months[date.getMonth()] + '/' + date.getFullYear();
+                            }
+
+                            function validateRouteSelection() {
+                                const selectedDate = document.getElementById('selectedDepartureDate').value;
+                                const departureCity = document.getElementById('departureCity').value.trim();
+                                const destinationCity = document.getElementById('destinationCity').value.trim();
+
+                                if (!departureCity || !destinationCity) {
+                                    alert('Vui lòng chọn thành phố đi và đến');
+                                    return false;
+                                }
+
+                                // Date is optional - form can submit without date
+                                return true;
                             }
                         </script>
             </body>
 
             </html>
+
