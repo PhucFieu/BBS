@@ -128,6 +128,26 @@
                                                         </select>
                                                         <div class="invalid-feedback">Vui lòng chọn xe khách</div>
                                                     </div>
+                                                    <div class="col-md-6">
+                                                        <label for="boardingStationId" class="form-label">
+                                                            Trạm lên xe <span class="text-danger">*</span>
+                                                        </label>
+                                                        <select class="form-select" id="boardingStationId"
+                                                            name="boardingStationId" required>
+                                                            <option value="">Chọn trạm lên xe</option>
+                                                        </select>
+                                                        <div class="invalid-feedback">Vui lòng chọn trạm lên xe</div>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <label for="alightingStationId" class="form-label">
+                                                            Trạm xuống xe <span class="text-danger">*</span>
+                                                        </label>
+                                                        <select class="form-select" id="alightingStationId"
+                                                            name="alightingStationId" required>
+                                                            <option value="">Chọn trạm xuống xe</option>
+                                                        </select>
+                                                        <div class="invalid-feedback">Vui lòng chọn trạm xuống xe</div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -178,14 +198,18 @@
                                                         <div class="invalid-feedback">Vui lòng chọn ngày khởi hành</div>
                                                     </div>
                                                     <div class="col-md-6">
-                                                        <label for="departureTime" class="form-label">
-                                                            Giờ khởi hành <span class="text-danger">*</span>
+                                                        <label for="scheduleId" class="form-label">
+                                                            Chọn lịch trình <span class="text-danger">*</span>
                                                         </label>
-                                                        <select class="form-select" id="departureTime"
-                                                            name="departureTime" required>
-                                                            <option value="">--:-- --</option>
+                                                        <select class="form-select" id="scheduleId" name="scheduleId"
+                                                            required>
+                                                            <option value="">-- Chọn lịch trình --</option>
                                                         </select>
-                                                        <div class="invalid-feedback">Vui lòng chọn giờ khởi hành</div>
+                                                        <div class="invalid-feedback">Vui lòng chọn lịch trình</div>
+                                                        <small class="form-text text-muted">Chọn lịch trình sẽ tự động
+                                                            lấy thời gian khởi hành</small>
+                                                        <!-- Hidden field to store departureTime for backward compatibility -->
+                                                        <input type="hidden" id="departureTime" name="departureTime">
                                                     </div>
                                                 </div>
                                             </div>
@@ -329,6 +353,67 @@
                             // ignore
                         }
                     })();
+
+                    // Load stations when route is selected
+                    document.getElementById('routeId').addEventListener('change', function () {
+                        const routeId = this.value;
+                        if (routeId) {
+                            fetch('${pageContext.request.contextPath}/tickets/route-stations?routeId=' + routeId)
+                                .then(response => response.json())
+                                .then(data => {
+                                    const boardingSelect = document.getElementById('boardingStationId');
+                                    const alightingSelect = document.getElementById('alightingStationId');
+
+                                    // Clear existing options
+                                    boardingSelect.innerHTML = '<option value="">Chọn trạm lên xe</option>';
+                                    alightingSelect.innerHTML = '<option value="">Chọn trạm xuống xe</option>';
+
+                                    // Add stations
+                                    if (data.stations) {
+                                        data.stations.forEach(station => {
+                                            const boardingOption = document.createElement('option');
+                                            boardingOption.value = station.stationId;
+                                            boardingOption.textContent = station.stationName + ' (' + station.city + ')';
+                                            boardingOption.setAttribute('data-order', station.stopOrder);
+                                            boardingSelect.appendChild(boardingOption);
+
+                                            const alightingOption = document.createElement('option');
+                                            alightingOption.value = station.stationId;
+                                            alightingOption.textContent = station.stationName + ' (' + station.city + ')';
+                                            alightingOption.setAttribute('data-order', station.stopOrder);
+                                            alightingSelect.appendChild(alightingOption);
+                                        });
+                                    }
+                                })
+                                .catch(error => {
+                                    console.error('Error loading stations:', error);
+                                });
+                        } else {
+                            // Clear stations if no route selected
+                            document.getElementById('boardingStationId').innerHTML = '<option value="">Chọn trạm lên xe</option>';
+                            document.getElementById('alightingStationId').innerHTML = '<option value="">Chọn trạm xuống xe</option>';
+                        }
+                    });
+
+                    // Validate that alighting station comes after boarding station
+                    document.getElementById('boardingStationId').addEventListener('change', function () {
+                        const boardingOrder = this.selectedOptions[0]?.getAttribute('data-order');
+                        const alightingSelect = document.getElementById('alightingStationId');
+
+                        if (boardingOrder) {
+                            Array.from(alightingSelect.options).forEach(option => {
+                                if (option.value && option.getAttribute('data-order')) {
+                                    if (parseInt(option.getAttribute('data-order')) <= parseInt(boardingOrder)) {
+                                        option.disabled = true;
+                                        option.style.display = 'none';
+                                    } else {
+                                        option.disabled = false;
+                                        option.style.display = '';
+                                    }
+                                }
+                            });
+                        }
+                    });
                 </script>
             </body>
 
