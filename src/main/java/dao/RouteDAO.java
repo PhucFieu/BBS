@@ -18,27 +18,18 @@ public class RouteDAO {
         List<Routes> routes = new ArrayList<>();
         String sql = "SELECT * FROM Routes WHERE status = 'ACTIVE' ORDER BY route_name";
 
-        System.out.println("RouteDAO: Executing query: " + sql);
         try (Connection conn = DBConnection.getInstance().getConnection()) {
-            System.out.println("RouteDAO: Database connection established");
             try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-                System.out.println("RouteDAO: Statement prepared");
                 try (ResultSet rs = stmt.executeQuery()) {
-                    System.out.println("RouteDAO: Query executed");
                     while (rs.next()) {
                         Routes route = mapResultSetToRoute(rs);
                         routes.add(route);
-                        System.out.println("RouteDAO: Added route: " + route.getRouteName());
                     }
                 }
             }
         } catch (SQLException e) {
-            System.err.println("RouteDAO Error: " + e.getMessage());
-            System.err.println("SQL State: " + e.getSQLState());
-            System.err.println("Error Code: " + e.getErrorCode());
             throw e;
         }
-        System.out.println("RouteDAO: Returning " + routes.size() + " routes");
         return routes;
     }
 
@@ -218,14 +209,7 @@ public class RouteDAO {
         // Fixed SQL query - use CAST to ensure proper type matching
         String sql = "SELECT schedule_id FROM Schedules WHERE route_id = ? AND bus_id = ? AND departure_date = ? AND departure_time = CAST(? AS TIME) AND status = 'SCHEDULED'";
 
-        System.out.println("=== ROUTE DAO DEBUG ===");
-        System.out.println("SQL: " + sql);
-        System.out.println("RouteId: " + routeId);
-        System.out.println("BusId: " + busId);
-        System.out.println(
-                "DepartureDate: " + departureDate + " (SQL Date: " + java.sql.Date.valueOf(departureDate) + ")");
-        System.out.println(
-                "DepartureTime: " + departureTime + " (SQL Time: " + java.sql.Time.valueOf(departureTime) + ")");
+        
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -236,22 +220,16 @@ public class RouteDAO {
             // Use setTime with CAST in SQL to ensure type compatibility
             stmt.setTime(4, java.sql.Time.valueOf(departureTime));
 
-            System.out.println("Executing query...");
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
                     UUID result = UUIDUtils.getUUIDFromResultSet(rs, "schedule_id");
-                    System.out.println("Found ScheduleId: " + result);
                     return result;
                 } else {
-                    System.out.println("No schedule found matching criteria");
                 }
             }
         } catch (Exception e) {
-            System.out.println("ERROR in findScheduleId: " + e.getMessage());
-            e.printStackTrace();
             throw e;
         }
-        System.out.println("=== END ROUTE DAO DEBUG ===");
         return null;
     }
 }
