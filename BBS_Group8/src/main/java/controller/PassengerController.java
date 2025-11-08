@@ -17,6 +17,10 @@ import jakarta.servlet.http.HttpServletResponse;
 import model.User;
 import util.AuthUtils;
 
+/**
+ *
+ * @author TaiNHCE190387
+ */
 @WebServlet("/passengers/*")
 public class PassengerController extends HttpServlet {
     private UserDAO userDAO;
@@ -447,4 +451,5 @@ public class PassengerController extends HttpServlet {
         request.setAttribute("error", message);
         request.getRequestDispatcher("/views/errors/error.jsp").forward(request, response);
     }
+
 }
