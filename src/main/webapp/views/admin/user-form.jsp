@@ -5,7 +5,7 @@
 
         <head>
             <jsp:include page="/views/partials/head.jsp">
-                <jsp:param name="title" value="Passenger Form - Admin Panel" />
+                <jsp:param name="title" value="Form hanh khach - Admin Panel" />
             </jsp:include>
         </head>
 
@@ -36,7 +36,7 @@
                                     </c:if>
 
                                     <form
-                                        action="${pageContext.request.contextPath}/admin/user/${isAddMode ? 'add' : (not empty user ? 'update' : 'add')}"
+                                        action="${pageContext.request.contextPath}/admin/users/${isAddMode ? 'add' : (not empty user ? 'update' : 'add')}"
                                         method="post" id="userForm">
 
                                         <c:if test="${not empty user}">
@@ -95,20 +95,6 @@
                                         <div class="row">
                                             <div class="col-md-6">
                                                 <div class="mb-3">
-                                                    <label for="role" class="form-label">Vai trò *</label>
-                                                    <select class="form-select" id="role" name="role" required>
-                                                        <option value="">Chọn vai trò</option>
-                                                        <option value="ADMIN" ${user.role=='ADMIN' ? 'selected' : '' }>
-                                                            Admin</option>
-                                                        <option value="USER" ${user.role=='USER' ? 'selected' : '' }>
-                                                            Passenger</option>
-                                                        <option value="DRIVER" ${user.role=='DRIVER' ? 'selected' : ''
-                                                            }>Driver</option>
-                                                    </select>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <div class="mb-3">
                                                     <label for="status" class="form-label">Trạng thái *</label>
                                                     <select class="form-select" id="status" name="status" required>
                                                         <option value="">Chọn trạng thái</option>
@@ -119,6 +105,8 @@
                                                     </select>
                                                 </div>
                                             </div>
+                                            <!-- Role fixed to USER (Passenger) in this management area -->
+                                            <input type="hidden" name="role" value="USER" />
                                         </div>
 
                                         <div class="mb-3">
@@ -186,11 +174,10 @@
                             const fullName = document.getElementById('fullName').value.trim();
                             const email = document.getElementById('email').value.trim();
                             const phoneNumber = document.getElementById('phoneNumber').value.trim();
-                            const role = document.getElementById('role').value;
                             const status = document.getElementById('status').value;
                             const password = document.getElementById('password');
 
-                            if (!username || !fullName || !email || !phoneNumber || !role || !status) {
+                            if (!username || !fullName || !email || !phoneNumber || !status) {
                                 e.preventDefault();
                                 alert('Vui lòng điền đầy đủ thông tin bắt buộc!');
                                 return false;
@@ -236,5 +223,4 @@
                         }
                     </script>
         </body>
-
-        </html>
+ </html>
