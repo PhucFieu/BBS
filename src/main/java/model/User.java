@@ -5,11 +5,6 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.UUID;
 
-/**
- *
- * @author TaiNHCE190387
- */
-
 public class User {
 
     private UUID userId;
