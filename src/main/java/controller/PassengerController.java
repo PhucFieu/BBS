@@ -7,6 +7,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
 
+import dao.TicketDAO;
 import dao.UserDAO;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -16,17 +17,15 @@ import jakarta.servlet.http.HttpServletResponse;
 import model.User;
 import util.AuthUtils;
 
-/**
- *
- * @author TaiNHCE190387
- */
 @WebServlet("/passengers/*")
 public class PassengerController extends HttpServlet {
     private UserDAO userDAO;
+    private TicketDAO ticketDAO;
 
     @Override
     public void init() throws ServletException {
         userDAO = new UserDAO();
+        ticketDAO = new TicketDAO();
     }
 
     @Override
@@ -44,7 +43,7 @@ public class PassengerController extends HttpServlet {
                 // List passengers
                 if (!isAdmin && !isDriver) {
                     request.setAttribute("error", "You do not have permission to access this page");
-                    request.getRequestDispatcher("/views/403.jsp").forward(request, response);
+                    request.getRequestDispatcher("/views/errors/403.jsp").forward(request, response);
                     return;
                 }
                 listPassengers(request, response);
@@ -52,7 +51,7 @@ public class PassengerController extends HttpServlet {
                 // Show add form
                 if (!isAdmin) {
                     request.setAttribute("error", "You do not have permission to access this page");
-                    request.getRequestDispatcher("/views/403.jsp").forward(request, response);
+                    request.getRequestDispatcher("/views/errors/403.jsp").forward(request, response);
                     return;
                 }
                 showAddForm(request, response);
@@ -60,7 +59,7 @@ public class PassengerController extends HttpServlet {
                 // Show edit form
                 if (!isAdmin) {
                     request.setAttribute("error", "You do not have permission to access this page");
-                    request.getRequestDispatcher("/views/403.jsp").forward(request, response);
+                    request.getRequestDispatcher("/views/errors/403.jsp").forward(request, response);
                     return;
                 }
                 showEditForm(request, response);
@@ -68,7 +67,7 @@ public class PassengerController extends HttpServlet {
                 // Delete passenger
                 if (!isAdmin) {
                     request.setAttribute("error", "You do not have permission to access this page");
-                    request.getRequestDispatcher("/views/403.jsp").forward(request, response);
+                    request.getRequestDispatcher("/views/errors/403.jsp").forward(request, response);
                     return;
                 }
                 deletePassenger(request, response);
@@ -76,7 +75,7 @@ public class PassengerController extends HttpServlet {
                 // Search passengers
                 if (!isAdmin && !isDriver) {
                     request.setAttribute("error", "You do not have permission to access this page");
-                    request.getRequestDispatcher("/views/403.jsp").forward(request, response);
+                    request.getRequestDispatcher("/views/errors/403.jsp").forward(request, response);
                     return;
                 }
                 searchPassengers(request, response);
@@ -84,7 +83,7 @@ public class PassengerController extends HttpServlet {
                 // Show passenger profile
                 if (!isAdmin && !isDriver) {
                     request.setAttribute("error", "You do not have permission to access this page");
-                    request.getRequestDispatcher("/views/403.jsp").forward(request, response);
+                    request.getRequestDispatcher("/views/errors/403.jsp").forward(request, response);
                     return;
                 }
                 showProfile(request, response);
@@ -92,7 +91,7 @@ public class PassengerController extends HttpServlet {
                 // Get passenger by ID
                 if (!isAdmin && !isDriver) {
                     request.setAttribute("error", "You do not have permission to access this page");
-                    request.getRequestDispatcher("/views/403.jsp").forward(request, response);
+                    request.getRequestDispatcher("/views/errors/403.jsp").forward(request, response);
                     return;
                 }
                 getPassengerById(request, response);
@@ -108,7 +107,7 @@ public class PassengerController extends HttpServlet {
         // Check if user has permission to manage passengers
         if (!AuthUtils.canManagePassengers(request.getSession(false))) {
             request.setAttribute("error", "You do not have permission to access this page");
-            request.getRequestDispatcher("/views/403.jsp").forward(request, response);
+            request.getRequestDispatcher("/views/errors/403.jsp").forward(request, response);
             return;
         }
 
@@ -130,20 +129,35 @@ public class PassengerController extends HttpServlet {
     private void listPassengers(HttpServletRequest request, HttpServletResponse response)
             throws SQLException, ServletException, IOException {
         List<User> passengers;
+        java.util.Map<UUID, List<model.Tickets>> passengerTickets = new java.util.HashMap<>();
+        
         if (AuthUtils.isDriver(request.getSession(false))) {
             // Limit to passengers who have tickets on schedules assigned to this driver
             User current = AuthUtils.getCurrentUser(request.getSession(false));
             passengers = userDAO.getPassengersByDriverUserId(current.getUserId());
+            
+            // Load tickets with station information for each passenger
+            for (User passenger : passengers) {
+                try {
+                    List<model.Tickets> tickets = ticketDAO.getTicketsByUserId(passenger.getUserId());
+                    if (!tickets.isEmpty()) {
+                        passengerTickets.put(passenger.getUserId(), tickets);
+                    }
+                } catch (SQLException e) {
+                }
+            }
         } else {
             passengers = userDAO.getUsersByRole("USER");
         }
+        
         request.setAttribute("passengers", passengers);
-        request.getRequestDispatcher("/views/passengers.jsp").forward(request, response);
+        request.setAttribute("passengerTickets", passengerTickets);
+        request.getRequestDispatcher("/views/passengers/passengers.jsp").forward(request, response);
     }
 
     private void showAddForm(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        request.getRequestDispatcher("/views/passenger-form.jsp").forward(request, response);
+        request.getRequestDispatcher("/views/passengers/passenger-form.jsp").forward(request, response);
     }
 
     private void showEditForm(HttpServletRequest request, HttpServletResponse response)
@@ -159,7 +173,7 @@ public class PassengerController extends HttpServlet {
 
         if (user != null && "USER".equals(user.getRole())) {
             request.setAttribute("passenger", user);
-            request.getRequestDispatcher("/views/passenger-form.jsp").forward(request, response);
+            request.getRequestDispatcher("/views/passengers/passenger-form.jsp").forward(request, response);
         } else {
             handleError(request, response, "Passenger not found");
         }
@@ -220,7 +234,7 @@ public class PassengerController extends HttpServlet {
 
         request.setAttribute("passengers", passengers);
 
-        request.getRequestDispatcher("/views/passengers.jsp").forward(request, response);
+        request.getRequestDispatcher("/views/passengers/passengers.jsp").forward(request, response);
     }
 
     private void addPassenger(HttpServletRequest request, HttpServletResponse response)
@@ -236,24 +250,24 @@ public class PassengerController extends HttpServlet {
         String dateOfBirthStr = request.getParameter("dateOfBirth");
         String gender = request.getParameter("gender");
 
-        // Validate required fields
+        // Validate required fields with specific error messages
         if (username == null || username.trim().isEmpty()) {
-            response.sendRedirect(request.getContextPath() + "/passengers/add?error=Username is required");
+            response.sendRedirect(request.getContextPath() + "/passengers/add?error=Missing information: Username is required");
             return;
         }
 
         if (password == null || password.trim().isEmpty()) {
-            response.sendRedirect(request.getContextPath() + "/passengers/add?error=Password is required");
+            response.sendRedirect(request.getContextPath() + "/passengers/add?error=Missing information: Password is required");
             return;
         }
 
         if (fullName == null || fullName.trim().isEmpty()) {
-            response.sendRedirect(request.getContextPath() + "/passengers/add?error=Full name is required");
+            response.sendRedirect(request.getContextPath() + "/passengers/add?error=Missing information: Full name is required");
             return;
         }
 
         if (phoneNumber == null || phoneNumber.trim().isEmpty()) {
-            response.sendRedirect(request.getContextPath() + "/passengers/add?error=Phone number is required");
+            response.sendRedirect(request.getContextPath() + "/passengers/add?error=Missing information: Phone number is required");
             return;
         }
 
@@ -263,7 +277,7 @@ public class PassengerController extends HttpServlet {
             try {
                 dateOfBirth = LocalDate.parse(dateOfBirthStr, DateTimeFormatter.ISO_LOCAL_DATE);
             } catch (Exception e) {
-                response.sendRedirect(request.getContextPath() + "/passengers/add?error=Invalid date format");
+                response.sendRedirect(request.getContextPath() + "/passengers/add?error=Error: Invalid date format. Please use YYYY-MM-DD format");
                 return;
             }
         }
@@ -272,7 +286,7 @@ public class PassengerController extends HttpServlet {
         try {
             User existingUser = userDAO.getUserByUsername(username);
             if (existingUser != null) {
-                response.sendRedirect(request.getContextPath() + "/passengers/add?error=Username already exists");
+                response.sendRedirect(request.getContextPath() + "/passengers/add?error=Error: Username already exists. Please choose a different username");
                 return;
             }
         } catch (SQLException e) {
@@ -283,7 +297,7 @@ public class PassengerController extends HttpServlet {
         try {
             User existingUser = userDAO.getUserByPhone(phoneNumber);
             if (existingUser != null) {
-                response.sendRedirect(request.getContextPath() + "/passengers/add?error=Phone number already exists");
+                response.sendRedirect(request.getContextPath() + "/passengers/add?error=Error: Phone number already exists. Please use a different phone number");
                 return;
             }
         } catch (SQLException e) {
@@ -295,7 +309,7 @@ public class PassengerController extends HttpServlet {
             try {
                 User existingUser = userDAO.getUserByIdCard(idCard);
                 if (existingUser != null) {
-                    response.sendRedirect(request.getContextPath() + "/passengers/add?error=ID card already exists");
+                    response.sendRedirect(request.getContextPath() + "/passengers/add?error=Error: ID card already exists. Please use a different ID card");
                     return;
                 }
             } catch (SQLException e) {
@@ -314,9 +328,9 @@ public class PassengerController extends HttpServlet {
         boolean success = userDAO.addUser(user);
 
         if (success) {
-            response.sendRedirect(request.getContextPath() + "/passengers?message=Passenger added successfully");
+            response.sendRedirect(request.getContextPath() + "/passengers?message=Passenger added successfully! Passenger " + fullName + " has been added to the system");
         } else {
-            response.sendRedirect(request.getContextPath() + "/passengers/add?error=Failed to add passenger");
+            response.sendRedirect(request.getContextPath() + "/passengers/add?error=Error: Failed to add passenger. Please try again or contact administrator");
         }
     }
 
@@ -324,8 +338,8 @@ public class PassengerController extends HttpServlet {
             throws SQLException, IOException {
         // Get parameters from request
         String userIdStr = request.getParameter("userId");
-        if (userIdStr == null) {
-            response.sendRedirect(request.getContextPath() + "/passengers?error=User ID is required");
+        if (userIdStr == null || userIdStr.trim().isEmpty()) {
+            response.sendRedirect(request.getContextPath() + "/passengers?error=Missing information: User ID is required");
             return;
         }
 
@@ -338,16 +352,16 @@ public class PassengerController extends HttpServlet {
         String dateOfBirthStr = request.getParameter("dateOfBirth");
         String gender = request.getParameter("gender");
 
-        // Validate required fields
+        // Validate required fields with specific error messages
         if (fullName == null || fullName.trim().isEmpty()) {
             response.sendRedirect(
-                    request.getContextPath() + "/passengers/edit?id=" + userIdStr + "&error=Full name is required");
+                    request.getContextPath() + "/passengers/edit?id=" + userIdStr + "&error=Missing information: Full name is required");
             return;
         }
 
         if (phoneNumber == null || phoneNumber.trim().isEmpty()) {
             response.sendRedirect(
-                    request.getContextPath() + "/passengers/edit?id=" + userIdStr + "&error=Phone number is required");
+                    request.getContextPath() + "/passengers/edit?id=" + userIdStr + "&error=Missing information: Phone number is required");
             return;
         }
 
@@ -358,7 +372,7 @@ public class PassengerController extends HttpServlet {
                 dateOfBirth = LocalDate.parse(dateOfBirthStr, DateTimeFormatter.ISO_LOCAL_DATE);
             } catch (Exception e) {
                 response.sendRedirect(
-                        request.getContextPath() + "/passengers/edit?id=" + userIdStr + "&error=Invalid date format");
+                        request.getContextPath() + "/passengers/edit?id=" + userIdStr + "&error=Error: Invalid date format. Please use YYYY-MM-DD format");
                 return;
             }
         }
@@ -366,7 +380,7 @@ public class PassengerController extends HttpServlet {
         // Get existing user
         User user = userDAO.getUserById(userId);
         if (user == null || !"USER".equals(user.getRole())) {
-            response.sendRedirect(request.getContextPath() + "/passengers?error=Passenger not found");
+            response.sendRedirect(request.getContextPath() + "/passengers?error=Error: Passenger not found with the given ID");
             return;
         }
 
@@ -383,28 +397,36 @@ public class PassengerController extends HttpServlet {
         boolean success = userDAO.updateUser(user);
 
         if (success) {
-            response.sendRedirect(request.getContextPath() + "/passengers?message=Passenger updated successfully");
+            response.sendRedirect(request.getContextPath() + "/passengers?message=Passenger updated successfully! Passenger " + fullName + " information has been saved");
         } else {
             response.sendRedirect(request.getContextPath() + "/passengers/edit?id=" + userIdStr
-                    + "&error=Failed to update passenger");
+                    + "&error=Error: Failed to update passenger. Please try again or contact administrator");
         }
     }
 
     private void deletePassenger(HttpServletRequest request, HttpServletResponse response)
             throws SQLException, IOException {
         String userIdStr = request.getParameter("id");
-        if (userIdStr == null) {
-            response.sendRedirect(request.getContextPath() + "/passengers?error=User ID is required");
+        if (userIdStr == null || userIdStr.trim().isEmpty()) {
+            response.sendRedirect(request.getContextPath() + "/passengers?error=Missing information: User ID is required");
             return;
         }
 
-        UUID userId = UUID.fromString(userIdStr);
-        boolean success = userDAO.deleteUser(userId);
+        try {
+            UUID userId = UUID.fromString(userIdStr);
+            User user = userDAO.getUserById(userId);
+            String fullName = user != null ? user.getFullName() : "Passenger";
+            boolean success = userDAO.deleteUser(userId);
 
-        if (success) {
-            response.sendRedirect(request.getContextPath() + "/passengers?message=Passenger deleted successfully");
-        } else {
-            response.sendRedirect(request.getContextPath() + "/passengers?error=Failed to delete passenger");
+            if (success) {
+                response.sendRedirect(request.getContextPath() + "/passengers?message=Passenger deleted successfully! Passenger " + fullName + " has been removed from the system");
+            } else {
+                response.sendRedirect(request.getContextPath() + "/passengers?error=Error: Failed to delete passenger. The passenger may be in use or does not exist");
+            }
+        } catch (IllegalArgumentException e) {
+            response.sendRedirect(request.getContextPath() + "/passengers?error=Error: Invalid user ID format. Please check again");
+        } catch (Exception e) {
+            response.sendRedirect(request.getContextPath() + "/passengers?error=Error: An unexpected error occurred while deleting the passenger. " + e.getMessage());
         }
     }
 
@@ -431,6 +453,6 @@ public class PassengerController extends HttpServlet {
     private void handleError(HttpServletRequest request, HttpServletResponse response, String message)
             throws ServletException, IOException {
         request.setAttribute("error", message);
-        request.getRequestDispatcher("/views/error.jsp").forward(request, response);
+        request.getRequestDispatcher("/views/errors/error.jsp").forward(request, response);
     }
 }
