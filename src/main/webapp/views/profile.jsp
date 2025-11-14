@@ -1,23 +1,388 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
-    <%@ taglib prefix="c" uri="jakarta.tags.core" %>
+    <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
         <!DOCTYPE html>
         <html lang="en">
 
         <head>
             <jsp:include page="/views/partials/head.jsp">
-                <jsp:param name="title" value="User Profile - BusTicket System" />
+                <jsp:param name="title" value="User Profile - Bus Booking System" />
             </jsp:include>
             <!-- Profile specific CSS -->
-            <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/profile.css">
+            <style>
+                /* ===== PROFILE PAGE STYLES ===== */
+                :root {
+                    --primary-color: #66bb6a;
+                    --secondary-color: #81c784;
+                    --success-color: #4caf50;
+                    --white: #ffffff;
+                    --border-radius-xl: 0.75rem;
+                    --shadow-sm: 0 0.125rem 0.25rem rgba(102, 187, 106, 0.15);
+                    --shadow: 0 0.5rem 1rem rgba(102, 187, 106, 0.2);
+                    --shadow-lg: 0 1rem 3rem rgba(102, 187, 106, 0.25);
+                    --transition: all 0.3s ease;
+                    --gray-100: #e8f5e9;
+                    --gray-200: #c8e6c9;
+                    --gray-600: #4caf50;
+                    --gray-800: #2e7d32;
+                }
+
+                /* Profile Header */
+                .profile-header {
+                    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+                    color: var(--white);
+                    padding: 3rem 0;
+                    margin-bottom: 2rem;
+                    position: relative;
+                    overflow: hidden;
+                }
+
+                .profile-header::before {
+                    content: '';
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="75" cy="75" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="50" cy="10" r="0.5" fill="rgba(255,255,255,0.1)"/><circle cx="10" cy="60" r="0.5" fill="rgba(255,255,255,0.1)"/><circle cx="90" cy="40" r="0.5" fill="rgba(255,255,255,0.1)"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+                    opacity: 0.3;
+                }
+
+                .profile-avatar {
+                    width: 120px;
+                    height: 120px;
+                    background: rgba(255, 255, 255, 0.2);
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    margin: 0 auto 1rem;
+                    border: 4px solid rgba(255, 255, 255, 0.3);
+                    backdrop-filter: blur(10px);
+                    transition: var(--transition);
+                }
+
+                .profile-avatar:hover {
+                    transform: scale(1.05);
+                    border-color: rgba(255, 255, 255, 0.5);
+                }
+
+                .profile-avatar i {
+                    font-size: 3rem;
+                    color: var(--white);
+                }
+
+                /* Profile Card */
+                .profile-card {
+                    border: none;
+                    border-radius: var(--border-radius-xl);
+                    box-shadow: var(--shadow-lg);
+                    overflow: hidden;
+                    transition: var(--transition);
+                    background: var(--white);
+                }
+
+                .profile-card:hover {
+                    transform: translateY(-5px);
+                    box-shadow: 0 1.5rem 4rem rgba(0, 0, 0, 0.2);
+                }
+
+                .profile-card .card-header {
+                    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+                    color: var(--white);
+                    border: none;
+                    padding: 1.5rem;
+                    position: relative;
+                    overflow: hidden;
+                }
+
+                .profile-card .card-header::before {
+                    content: '';
+                    position: absolute;
+                    top: -50%;
+                    right: -50%;
+                    width: 200%;
+                    height: 200%;
+                    background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+                    animation: rotate 20s linear infinite;
+                }
+
+                @keyframes rotate {
+                    from {
+                        transform: rotate(0deg);
+                    }
+
+                    to {
+                        transform: rotate(360deg);
+                    }
+                }
+
+                .profile-card .card-header h5 {
+                    position: relative;
+                    z-index: 1;
+                    margin: 0;
+                    font-weight: 700;
+                    font-size: 1.25rem;
+                }
+
+                .profile-card .card-body {
+                    padding: 2rem;
+                }
+
+                /* Profile Section */
+                .profile-section {
+                    margin-bottom: 1.5rem;
+                    padding: 1rem;
+                    background: var(--gray-100);
+                    border-radius: var(--border-radius-xl);
+                    border-left: 4px solid var(--primary-color);
+                    transition: var(--transition);
+                }
+
+                .profile-section:hover {
+                    background: var(--white);
+                    box-shadow: var(--shadow-sm);
+                    transform: translateX(5px);
+                }
+
+                .profile-section h6 {
+                    font-size: 0.875rem;
+                    font-weight: 600;
+                    margin-bottom: 0.5rem;
+                    color: var(--gray-600);
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                }
+
+                .profile-section p {
+                    font-size: 1.1rem;
+                    margin: 0;
+                    color: var(--gray-800);
+                }
+
+                /* Role Badge */
+                .role-badge {
+                    display: inline-flex;
+                    align-items: center;
+                    padding: 0.5rem 1rem;
+                    border-radius: 2rem;
+                    font-weight: 600;
+                    font-size: 0.875rem;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                    transition: var(--transition);
+                }
+
+                .role-admin {
+                    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+                    color: var(--white);
+                }
+
+                .role-user {
+                    background: linear-gradient(135deg, var(--success-color) 0%, #20c997 100%);
+                    color: var(--white);
+                }
+
+                .role-badge:hover {
+                    transform: scale(1.05);
+                    box-shadow: var(--shadow-sm);
+                }
+
+                /* Edit Button */
+                .btn-edit {
+                    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+                    border: none;
+                    padding: 0.875rem 2rem;
+                    font-weight: 600;
+                    border-radius: 2rem;
+                    transition: var(--transition);
+                    box-shadow: var(--shadow-sm);
+                }
+
+                .btn-edit:hover {
+                    transform: translateY(-2px);
+                    box-shadow: var(--shadow);
+                    background: linear-gradient(135deg, #4caf50 0%, #66bb6a 100%);
+                }
+
+                /* Profile Stats */
+                .profile-stats {
+                    margin-bottom: 2rem;
+                }
+
+                .stat-card {
+                    background: var(--white);
+                    border-radius: var(--border-radius-xl);
+                    padding: 1.5rem;
+                    text-align: center;
+                    box-shadow: var(--shadow-sm);
+                    transition: var(--transition);
+                    border: 1px solid var(--gray-200);
+                }
+
+                .stat-card:hover {
+                    transform: translateY(-3px);
+                    box-shadow: var(--shadow);
+                }
+
+                .stat-number {
+                    font-size: 2rem;
+                    font-weight: 700;
+                    color: var(--primary-color);
+                    margin-bottom: 0.5rem;
+                }
+
+                .stat-label {
+                    color: var(--gray-600);
+                    font-weight: 500;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                    font-size: 0.875rem;
+                }
+
+                /* Profile Actions */
+                .profile-actions {
+                    background: var(--gray-100);
+                    border-radius: var(--border-radius-xl);
+                    padding: 1.5rem;
+                    margin-top: 2rem;
+                }
+
+                .profile-actions .btn {
+                    margin: 0.5rem;
+                    min-width: 150px;
+                }
+
+                /* Activity Items */
+                .activity-item {
+                    display: flex;
+                    align-items: center;
+                    padding: 0.75rem 0;
+                    border-bottom: 1px solid var(--gray-200);
+                    transition: var(--transition);
+                }
+
+                .activity-item:last-child {
+                    border-bottom: none;
+                }
+
+                .activity-item:hover {
+                    background: var(--gray-100);
+                    border-radius: var(--border-radius-xl);
+                    padding-left: 0.5rem;
+                    padding-right: 0.5rem;
+                }
+
+                .activity-icon {
+                    width: 40px;
+                    height: 40px;
+                    background: var(--gray-100);
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    margin-right: 1rem;
+                    flex-shrink: 0;
+                }
+
+                .activity-content {
+                    flex: 1;
+                }
+
+                .activity-title {
+                    font-weight: 600;
+                    color: var(--gray-800);
+                    margin-bottom: 0.25rem;
+                }
+
+                .activity-time {
+                    font-size: 0.875rem;
+                    color: var(--gray-600);
+                }
+
+                /* Profile Modal */
+                #editProfileModal .modal-content {
+                    border-radius: var(--border-radius-xl);
+                    border: none;
+                    box-shadow: var(--shadow-lg);
+                }
+
+                #editProfileModal .modal-header {
+                    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+                    color: var(--white);
+                    border-radius: var(--border-radius-xl) var(--border-radius-xl) 0 0;
+                }
+
+                #editProfileModal .modal-title {
+                    font-weight: 700;
+                }
+
+                #editProfileModal .form-control {
+                    border-radius: var(--border-radius-xl);
+                    border: 2px solid var(--gray-200);
+                    padding: 0.875rem 1rem;
+                    transition: var(--transition);
+                }
+
+                #editProfileModal .form-control:focus {
+                    border-color: var(--primary-color);
+                    box-shadow: 0 0 0 0.2rem rgba(102, 187, 106, 0.25);
+                }
+
+                #editProfileModal .btn {
+                    border-radius: var(--border-radius-xl);
+                    padding: 0.75rem 1.5rem;
+                    font-weight: 600;
+                }
+
+                /* Responsive Profile */
+                @media (max-width: 768px) {
+                    .profile-header {
+                        padding: 2rem 0;
+                    }
+
+                    .profile-avatar {
+                        width: 80px;
+                        height: 80px;
+                    }
+
+                    .profile-avatar i {
+                        font-size: 2rem;
+                    }
+
+                    .profile-card .card-body {
+                        padding: 1.5rem;
+                    }
+
+                    .profile-section {
+                        margin-bottom: 1rem;
+                        padding: 0.75rem;
+                    }
+
+                    .stat-card {
+                        margin-bottom: 1rem;
+                    }
+
+                    .profile-actions .btn {
+                        width: 100%;
+                        margin: 0.5rem 0;
+                    }
+                }
+            </style>
         </head>
 
         <body>
-            <!-- Home Button -->
-            <div class="container mt-3">
-                <a href="${pageContext.request.contextPath}/" class="btn btn-primary">
-                    <i class="fas fa-home me-2"></i>Home
-                </a>
-            </div>
+            <!-- Header based on role -->
+            <c:choose>
+                <c:when test="${sessionScope.role == 'ADMIN'}">
+                    <%@ include file="/views/partials/admin-header.jsp" %>
+                </c:when>
+                <c:when test="${sessionScope.role == 'DRIVER' || sessionScope.role == 'DRIVE'}">
+                    <%@ include file="/views/partials/driver-header.jsp" %>
+                </c:when>
+                <c:otherwise>
+                    <%@ include file="/views/partials/user-header.jsp" %>
+                </c:otherwise>
+            </c:choose>
 
             <!-- Profile Header -->
             <div class="profile-header">
@@ -30,7 +395,6 @@
                         </div>
                         <div class="col-md-9">
                             <h1 class="mb-2">${user.fullName}</h1>
-                            <p class="mb-2"><i class="fas fa-at me-2"></i>${user.username}</p>
                             <p class="mb-3"><i class="fas fa-envelope me-2"></i>${user.email}</p>
                             <span class="role-badge role-${user.role.toLowerCase()}">
                                 <i class="fas fa-user-tag me-1"></i>${user.role}
@@ -146,42 +510,6 @@
                                 </div>
                             </div>
                         </div>
-
-                        <!-- Recent Activity -->
-                        <div class="card profile-card mt-3">
-                            <div class="card-header bg-info text-white">
-                                <h5 class="mb-0"><i class="fas fa-history me-2"></i>Recent Activity</h5>
-                            </div>
-                            <div class="card-body">
-                                <div class="activity-item">
-                                    <div class="activity-icon">
-                                        <i class="fas fa-sign-in-alt text-primary"></i>
-                                    </div>
-                                    <div class="activity-content">
-                                        <div class="activity-title">Login Successful</div>
-                                        <div class="activity-time">Just now</div>
-                                    </div>
-                                </div>
-                                <div class="activity-item">
-                                    <div class="activity-icon">
-                                        <i class="fas fa-user-edit text-success"></i>
-                                    </div>
-                                    <div class="activity-content">
-                                        <div class="activity-title">Updated Information</div>
-                                        <div class="activity-time">2 hours ago</div>
-                                    </div>
-                                </div>
-                                <div class="activity-item">
-                                    <div class="activity-icon">
-                                        <i class="fas fa-ticket-alt text-warning"></i>
-                                    </div>
-                                    <div class="activity-content">
-                                        <div class="activity-title">New Ticket Booking</div>
-                                        <div class="activity-time">1 day ago</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -216,13 +544,10 @@
                 </div>
             </div>
 
-            <!-- Bootstrap JS -->
-            <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
-                integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
-                crossorigin="anonymous"></script>
+            <%@ include file="/views/partials/footer.jsp" %>
 
-            <!-- Profile specific JavaScript -->
-            <script src="${pageContext.request.contextPath}/assets/js/profile.js"></script>
+                <!-- Profile Page JavaScript -->
+                <script src="${pageContext.request.contextPath}/assets/js/profile.js"></script>
         </body>
 
         </html>

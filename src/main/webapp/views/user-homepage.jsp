@@ -1,17 +1,78 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
-    <%@ taglib prefix="c" uri="jakarta.tags.core" %>
-        <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
+    <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+        <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
             <!DOCTYPE html>
             <html lang="en">
 
             <head>
                 <jsp:include page="/views/partials/head.jsp">
-                    <jsp:param name="title" value="Home - Bus Booking System" />
+                    <jsp:param name="title" value="Home - Bus Ticket Booking" />
                 </jsp:include>
+                <style>
+                    .hero-section {
+                        background: linear-gradient(135deg, #66bb6a 0%, #81c784 100%);
+                        color: white;
+                        padding: 80px 0;
+                        text-align: center;
+                    }
+
+                    .feature-card {
+                        transition: transform 0.3s ease;
+                        border: none;
+                        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                    }
+
+                    .feature-card:hover {
+                        transform: translateY(-5px);
+                    }
+
+                    .btn-primary {
+                        background: linear-gradient(135deg, #66bb6a 0%, #81c784 100%);
+                        border: none;
+                        padding: 12px 30px;
+                        border-radius: 25px;
+                    }
+
+                    .btn-primary:hover {
+                        background: linear-gradient(135deg, #4caf50 0%, #66bb6a 100%);
+                    }
+                </style>
             </head>
 
             <body>
                 <%@ include file="/views/partials/user-header.jsp" %>
+
+                    <!-- Hero Section -->
+                    <section class="hero-section">
+                        <div class="container">
+                            <div class="row">
+                                <div class="col-lg-8 mx-auto">
+                                    <h1 class="display-5 fw-bold mb-3">
+                                        <i class="fas fa-bus me-3"></i>Bus Booking System
+                                    </h1>
+                                    <c:choose>
+                                        <c:when test="${empty sessionScope.user}">
+                                            <p class="lead mb-4">Modern, convenient and secure bus ticket booking</p>
+                                            <div class="d-flex justify-content-center gap-3">
+                                                <a href="${pageContext.request.contextPath}/routes"
+                                                    class="btn btn-light btn-lg">
+                                                    <i class="fas fa-search me-2"></i>Find Routes
+                                                </a>
+                                                <a href="${pageContext.request.contextPath}/auth/register"
+                                                    class="btn btn-outline-light btn-lg">
+                                                    <i class="fas fa-user-plus me-2"></i>Register Now
+                                                </a>
+                                            </div>
+                                        </c:when>
+                                        <c:otherwise>
+                                            <p class="lead mb-4">Welcome ${sessionScope.fullName}! Plan your next trip
+                                                easily</p>
+                                        </c:otherwise>
+                                    </c:choose>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
 
                     <!-- Popular Routes -->
                     <section class="py-5 bg-light">
