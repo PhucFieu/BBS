@@ -16,11 +16,6 @@ import util.DBConnection;
 import util.PasswordUtils;
 import util.UUIDUtils;
 
-/**
- *
- * @author TaiNHCE190387
- */
-
 public class UserDAO {
 
     public User authenticate(String username, String password) throws SQLException {
@@ -62,7 +57,7 @@ public class UserDAO {
     }
 
     public User getUserByUsername(String username) throws SQLException {
-        String sql = "SELECT * FROM Users WHERE username = ? AND status = 'ACTIVE'";
+        String sql = "SELECT * FROM Users WHERE username = ?";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -99,12 +94,36 @@ public class UserDAO {
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
 
+            // Log all values before insertion for debugging
+            System.out.println("=== DEBUG: Adding User ===");
+            System.out.println("User ID: " + user.getUserId());
+            System.out.println("Username: '" + user.getUsername() + "'");
+            System.out.println("Email: '" + user.getEmail() + "' (null=" + (user.getEmail() == null) + ")");
+            System.out.println("Phone: '" + user.getPhoneNumber() + "' (null=" + (user.getPhoneNumber() == null) + ")");
+            System.out.println("ID Card: '" + user.getIdCard() + "' (null=" + (user.getIdCard() == null) + ")");
+            System.out.println("Full Name: '" + user.getFullName() + "'");
+            System.out.println("Role: '" + user.getRole() + "'");
+            System.out.println("==========================");
+
             stmt.setObject(1, user.getUserId());
             stmt.setString(2, user.getUsername());
             stmt.setString(3, PasswordUtils.hashPassword(user.getPassword()));
             stmt.setString(4, user.getFullName());
-            stmt.setString(5, user.getEmail());
-            stmt.setString(6, user.getPhoneNumber());
+
+            // Handle email - set to null if empty or null
+            if (user.getEmail() != null && !user.getEmail().trim().isEmpty()) {
+                stmt.setString(5, user.getEmail().trim());
+            } else {
+                stmt.setNull(5, Types.VARCHAR);
+            }
+
+            // Handle phone_number - set to null if empty or null
+            if (user.getPhoneNumber() != null && !user.getPhoneNumber().trim().isEmpty()) {
+                stmt.setString(6, user.getPhoneNumber().trim());
+            } else {
+                stmt.setNull(6, Types.VARCHAR);
+            }
+
             stmt.setString(7, user.getRole());
             stmt.setString(8, user.getStatus());
 
@@ -135,7 +154,25 @@ public class UserDAO {
                 stmt.setNull(12, Types.VARCHAR);
             }
 
-            return stmt.executeUpdate() > 0;
+            try {
+                int rowsAffected = stmt.executeUpdate();
+                System.out.println("=== DEBUG: Insert successful, rows affected: " + rowsAffected + " ===");
+                return rowsAffected > 0;
+            } catch (SQLException e) {
+                System.err.println("=== DEBUG: SQLException occurred ===");
+                System.err.println("Error Code: " + e.getErrorCode());
+                System.err.println("SQL State: " + e.getSQLState());
+                System.err.println("Message: " + e.getMessage());
+                System.err
+                        .println("Constraint Name: "
+                                + (e.getMessage().contains("UQ__Users__")
+                                        ? e.getMessage().substring(e.getMessage().indexOf("UQ__Users__"),
+                                                Math.min(e.getMessage().indexOf("UQ__Users__") + 30,
+                                                        e.getMessage().length()))
+                                        : "N/A"));
+                System.err.println("===================================");
+                throw e;
+            }
         }
     }
 
@@ -278,7 +315,7 @@ public class UserDAO {
     }
 
     public User getUserByPhone(String phoneNumber) throws SQLException {
-        String sql = "SELECT * FROM Users WHERE phone_number = ? AND status = 'ACTIVE'";
+        String sql = "SELECT * FROM Users WHERE phone_number = ?";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -294,7 +331,7 @@ public class UserDAO {
     }
 
     public User getUserByEmail(String email) throws SQLException {
-        String sql = "SELECT * FROM Users WHERE email = ? AND status = 'ACTIVE'";
+        String sql = "SELECT * FROM Users WHERE email = ?";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -310,7 +347,7 @@ public class UserDAO {
     }
 
     public User getUserByIdCard(String idCard) throws SQLException {
-        String sql = "SELECT * FROM Users WHERE id_card = ? AND status = 'ACTIVE'";
+        String sql = "SELECT * FROM Users WHERE id_card = ?";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
