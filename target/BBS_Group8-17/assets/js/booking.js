@@ -101,33 +101,33 @@
               <div class="col-md-3">
                 <strong>${formatVNDate(schedule.departureDate)}</strong>
                 <br>
-                <small class="text-muted">Ngày khởi hành</small>
+                <small class="text-muted">Departure date</small>
               </div>
               <div class="col-md-2">
                 <strong>${formatTime(schedule.departureTime)}</strong>
                 <br>
-                <small class="text-muted">Giờ đi</small>
+                <small class="text-muted">Departure time</small>
               </div>
               <div class="col-md-2">
                 <strong>${formatTime(schedule.estimatedArrivalTime)}</strong>
                 <br>
-                <small class="text-muted">Giờ đến</small>
+                <small class="text-muted">Arrival time</small>
               </div>
               <div class="col-md-2">
                 <strong>${schedule.availableSeats}</strong>
                 <br>
-                <small class="text-muted">Ghế trống</small>
+                <small class="text-muted">Seats available</small>
               </div>
               <div class="col-md-2">
                 <strong>${schedule.busNumber || "N/A"}</strong>
                 <br>
-                <small class="text-muted">Số xe</small>
+                <small class="text-muted">Bus number</small>
               </div>
               <div class="col-md-1 text-end">
                 ${
                   schedule.availableSeats > 0
                     ? '<i class="fas fa-check-circle text-success"></i>'
-                    : '<span class="badge bg-danger">Hết chỗ</span>'
+                    : '<span class="badge bg-danger">Full</span>'
                 }
               </div>
             </div>
@@ -148,7 +148,7 @@
       }
     } catch (e) {
       console.error("Error loading schedules:", e);
-      schedulesEmpty.textContent = "Lỗi khi tải lịch trình";
+      schedulesEmpty.textContent = "Error loading schedules";
       schedulesEmpty.style.display = "block";
     } finally {
       schedulesLoading.style.display = "none";
@@ -266,7 +266,7 @@
 
       if (totalSeats === 0) {
         seatGrid.innerHTML =
-          '<div class="alert alert-warning">Không có thông tin ghế</div>';
+          '<div class="alert alert-warning">No seat information</div>';
         return;
       }
 
@@ -283,7 +283,7 @@
             $$(".seat.selected").forEach((s) => s.classList.remove("selected"));
             this.classList.add("selected");
             seatNumberInput.value = String(i);
-            seatInfo.textContent = `Đã chọn ghế: ${i}`;
+            seatInfo.textContent = `Selected seat: ${i}`;
             seatInfo.style.display = "block";
             updateSubmitButton();
           });
@@ -294,12 +294,12 @@
 
       const info = document.createElement("div");
       info.className = "mt-2 text-muted";
-      info.textContent = `Tổng số ghế: ${totalSeats} | Trống: ${availableSeats.size} | Đã đặt: ${bookedSeats.size}`;
+      info.textContent = `Total seats: ${totalSeats} | Available: ${availableSeats.size} | Booked: ${bookedSeats.size}`;
       seatGrid.appendChild(info);
     } catch (e) {
       console.error("Error loading seats:", e);
       seatGrid.innerHTML =
-        '<div class="alert alert-danger">Lỗi khi tải ghế</div>';
+        '<div class="alert alert-danger">Error loading seats</div>';
     }
   }
 
@@ -341,7 +341,7 @@
   document.getElementById("bookingForm")?.addEventListener("submit", (e) => {
     if (!scheduleIdInput.value || !seatNumberInput.value) {
       e.preventDefault();
-      alert("Vui lòng chọn lịch trình và ghế ngồi");
+      alert("Please select a schedule and a seat");
     }
   });
 })();
