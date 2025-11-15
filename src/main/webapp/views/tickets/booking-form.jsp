@@ -1,404 +1,1169 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
-    <%@ taglib prefix="c" uri="jakarta.tags.core" %>
-        <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
-            <!DOCTYPE html>
-            <html lang="vi">
+    <%@ page import="model.Schedule" %>
+        <%@ page import="java.time.LocalDateTime" %>
+            <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+                <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
+                    <!DOCTYPE html>
+                    <html lang="en">
 
-            <head>
-                <jsp:include page="/views/partials/head.jsp">
-                    <jsp:param name="title" value="Đặt vé - Bus Booking System" />
-                </jsp:include>
-                <style>
-                    :root {
-                        --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                        --success-color: #10b981;
-                        --text-dark: #1e293b;
-                        --text-light: #64748b;
-                    }
+                    <head>
+                        <jsp:include page="/views/partials/head.jsp">
+                            <jsp:param name="title" value="Book Ticket - Bus Booking System" />
+                        </jsp:include>
+                        <style>
+                            :root {
+                                --primary-gradient: linear-gradient(135deg, #66bb6a 0%, #81c784 100%);
+                                --success-color: #4caf50;
+                                --text-dark: #1e293b;
+                                --text-light: #64748b;
+                            }
 
-                    body {
-                        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-                        background: #f8fafc;
-                    }
+                            body {
+                                font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+                                background: #f1f8f4;
+                            }
 
-                    .booking-hero {
-                        background: var(--primary-gradient);
-                        color: white;
-                        padding: 40px 0;
-                        margin-bottom: 30px;
-                    }
+                            .booking-hero {
+                                background: var(--primary-gradient);
+                                color: white;
+                                padding: 40px 0;
+                                margin-bottom: 30px;
+                            }
 
-                    .schedule-card {
-                        background: white;
-                        border: none;
-                        border-radius: 16px;
-                        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-                        margin-bottom: 20px;
-                        transition: all 0.3s ease;
-                        cursor: pointer;
-                    }
+                            .schedule-card {
+                                background: white;
+                                border: none;
+                                border-radius: 16px;
+                                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+                                margin-bottom: 20px;
+                                transition: all 0.3s ease;
+                                cursor: pointer;
+                            }
 
-                    .schedule-card:hover {
-                        transform: translateY(-4px);
-                        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
-                    }
+                            .schedule-card:hover {
+                                transform: translateY(-4px);
+                                box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+                            }
 
-                    .schedule-card.selected {
-                        border: 3px solid #667eea;
-                        box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
-                    }
+                            .schedule-card.selected {
+                                border: 3px solid #66bb6a;
+                                box-shadow: 0 8px 20px rgba(102, 187, 106, 0.3);
+                            }
 
-                    .schedule-time {
-                        font-size: 1.5rem;
-                        font-weight: 700;
-                        color: var(--text-dark);
-                    }
+                            .schedule-card.expired {
+                                opacity: 0.6;
+                                background: #f5f5f5;
+                                cursor: not-allowed;
+                            }
 
-                    .schedule-date {
-                        color: var(--text-light);
-                        font-size: 0.9rem;
-                    }
+                            .schedule-card.expired:hover {
+                                transform: none;
+                                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+                            }
 
-                    .schedule-info {
-                        display: flex;
-                        align-items: center;
-                        gap: 15px;
-                        padding: 20px;
-                    }
+                            .expired-badge {
+                                background: #dc3545;
+                                color: white;
+                                padding: 4px 12px;
+                                border-radius: 12px;
+                                font-size: 0.75rem;
+                                font-weight: 600;
+                                margin-left: 8px;
+                            }
 
-                    .schedule-details {
-                        flex: 1;
-                    }
+                            .filter-controls {
+                                background: white;
+                                border-radius: 12px;
+                                padding: 20px;
+                                margin-bottom: 20px;
+                                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+                            }
 
-                    .schedule-price {
-                        font-size: 1.5rem;
-                        font-weight: 700;
-                        color: var(--success-color);
-                    }
+                            .filter-buttons {
+                                display: flex;
+                                gap: 10px;
+                                flex-wrap: wrap;
+                            }
 
-                    .seat-selection {
-                        background: white;
-                        border-radius: 16px;
-                        padding: 30px;
-                        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-                        margin-top: 30px;
-                        display: none;
-                    }
+                            .filter-btn {
+                                padding: 8px 20px;
+                                border: 2px solid #e2e8f0;
+                                background: white;
+                                border-radius: 8px;
+                                cursor: pointer;
+                                transition: all 0.3s ease;
+                                font-weight: 500;
+                            }
 
-                    .seat-selection.active {
-                        display: block;
-                    }
+                            .filter-btn.active {
+                                background: var(--primary-gradient);
+                                color: white;
+                                border-color: #66bb6a;
+                            }
 
-                    .seat-grid {
-                        display: grid;
-                        grid-template-columns: repeat(4, 1fr);
-                        gap: 10px;
-                        margin-top: 20px;
-                    }
+                            .filter-btn:hover {
+                                border-color: #66bb6a;
+                            }
 
-                    .seat {
-                        width: 60px;
-                        height: 60px;
-                        border: 2px solid #e2e8f0;
-                        border-radius: 8px;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        font-weight: 600;
-                        cursor: pointer;
-                        transition: all 0.2s ease;
-                        background: white;
-                    }
+                            .schedule-time {
+                                font-size: 1.5rem;
+                                font-weight: 700;
+                                color: var(--text-dark);
+                            }
 
-                    .seat:hover:not(.booked):not(.selected) {
-                        border-color: #667eea;
-                        background: #f0f4ff;
-                    }
+                            .schedule-date {
+                                color: var(--text-light);
+                                font-size: 0.9rem;
+                            }
 
-                    .seat.selected {
-                        background: #667eea;
-                        color: white;
-                        border-color: #667eea;
-                    }
+                            .schedule-info {
+                                display: flex;
+                                align-items: center;
+                                gap: 15px;
+                                padding: 20px;
+                            }
 
-                    .seat.booked {
-                        background: #e2e8f0;
-                        color: #94a3b8;
-                        cursor: not-allowed;
-                    }
+                            .schedule-details {
+                                flex: 1;
+                            }
 
-                    .btn-book {
-                        background: var(--primary-gradient);
-                        color: white;
-                        border: none;
-                        padding: 15px 40px;
-                        border-radius: 12px;
-                        font-weight: 600;
-                        font-size: 1.1rem;
-                        margin-top: 30px;
-                        transition: all 0.3s ease;
-                    }
+                            .schedule-price {
+                                font-size: 1.5rem;
+                                font-weight: 700;
+                                color: var(--success-color);
+                            }
 
-                    .btn-book:hover {
-                        transform: translateY(-2px);
-                        box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
-                        color: white;
-                    }
+                            .seat-selection {
+                                background: white;
+                                border-radius: 16px;
+                                padding: 30px;
+                                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+                                margin-top: 30px;
+                                display: none;
+                            }
 
-                    .empty-schedules {
-                        text-align: center;
-                        padding: 60px 20px;
-                        background: white;
-                        border-radius: 16px;
-                        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-                    }
+                            .seat-selection.active {
+                                display: block;
+                            }
 
-                    .route-info-card {
-                        background: white;
-                        border-radius: 16px;
-                        padding: 25px;
-                        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-                        margin-bottom: 30px;
-                    }
-                </style>
-            </head>
+                            .station-selection {
+                                background: white;
+                                border-radius: 16px;
+                                padding: 30px;
+                                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+                                margin-top: 30px;
+                            }
 
-            <body>
-                <%@ include file="/views/partials/user-header.jsp" %>
+                            .form-label {
+                                font-weight: 600;
+                                color: var(--text-dark);
+                                margin-bottom: 8px;
+                            }
 
-                    <!-- Hero Section -->
-                    <div class="booking-hero">
-                        <div class="container">
-                            <h1 class="mb-0">
-                                <i class="fas fa-ticket-alt me-3"></i>Đặt vé xe
-                            </h1>
-                            <p class="mb-0 mt-2 opacity-90">Chọn lịch trình và ghế ngồi của bạn</p>
-                        </div>
-                    </div>
+                            .form-select {
+                                border: 2px solid #e2e8f0;
+                                border-radius: 8px;
+                                padding: 10px 15px;
+                                transition: all 0.3s ease;
+                            }
 
-                    <div class="container mb-5">
-                        <c:if test="${not empty error}">
-                            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                                <i class="fas fa-exclamation-circle me-2"></i>${error}
-                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                            </div>
-                        </c:if>
+                            .form-select:focus {
+                                border-color: #66bb6a;
+                                box-shadow: 0 0 0 0.2rem rgba(102, 187, 106, 0.25);
+                            }
 
-                        <c:if test="${not empty route}">
-                            <!-- Route Info -->
-                            <div class="route-info-card">
-                                <h3 class="mb-3">
-                                    <i class="fas fa-route text-primary me-2"></i>${route.routeName}
-                                </h3>
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <p class="mb-2">
-                                            <i class="fas fa-map-marker-alt text-primary me-2"></i>
-                                            <strong>Điểm đi:</strong> ${route.departureCity}
-                                        </p>
-                                        <p class="mb-2">
-                                            <i class="fas fa-map-marker-alt text-danger me-2"></i>
-                                            <strong>Điểm đến:</strong> ${route.destinationCity}
-                                        </p>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <p class="mb-2">
-                                            <i class="fas fa-road me-2"></i>
-                                            <strong>Khoảng cách:</strong> ${route.distance} km
-                                        </p>
-                                        <p class="mb-2">
-                                            <i class="fas fa-clock me-2"></i>
-                                            <strong>Thời gian:</strong> ${route.durationHours} giờ
-                                        </p>
-                                        <p class="mb-0">
-                                            <i class="fas fa-money-bill-wave text-success me-2"></i>
-                                            <strong>Giá vé:</strong>
-                                            <span class="text-success fw-bold">
-                                                <fmt:formatNumber value="${route.basePrice}" pattern="#,###" /> ₫
-                                            </span>
-                                        </p>
-                                    </div>
+                            /* Bus Seat Layout - Realistic Design */
+                            .bus-layout-container {
+                                background: #f8f9fa;
+                                border-radius: 16px;
+                                padding: 30px;
+                                margin-top: 20px;
+                                position: relative;
+                            }
+
+                            .seat-grid {
+                                display: flex;
+                                flex-direction: column;
+                                gap: 12px;
+                                max-width: 900px;
+                                margin: 0 auto;
+                            }
+
+                            .seat-row {
+                                display: flex;
+                                align-items: center;
+                                gap: 8px;
+                                justify-content: center;
+                                position: relative;
+                            }
+
+                            .seat-block {
+                                display: flex;
+                                gap: 6px;
+                                align-items: center;
+                            }
+
+                            .aisle {
+                                width: 40px;
+                                min-width: 40px;
+                                height: 60px;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                color: #94a3b8;
+                                font-size: 0.75rem;
+                            }
+
+                            .aisle.wide {
+                                width: 60px;
+                                min-width: 60px;
+                            }
+
+                            .driver-seat-row {
+                                justify-content: center;
+                                gap: 8px;
+                            }
+
+                            .seat {
+                                width: 55px;
+                                height: 55px;
+                                border: 2px solid #cbd5e1;
+                                border-radius: 8px;
+                                display: flex;
+                                flex-direction: column;
+                                align-items: center;
+                                justify-content: center;
+                                font-weight: 600;
+                                font-size: 0.75rem;
+                                cursor: pointer;
+                                transition: all 0.2s ease;
+                                background: #ffffff;
+                                color: #1e293b;
+                                position: relative;
+                            }
+
+                            .seat:hover:not(.booked):not(.selected) {
+                                border-color: #66bb6a;
+                                background: #e8f5e9;
+                                transform: scale(1.05);
+                            }
+
+                            .seat.selected {
+                                background: #4fc3f7;
+                                color: white;
+                                border-color: #29b6f6;
+                                box-shadow: 0 4px 12px rgba(79, 195, 247, 0.4);
+                            }
+
+                            .seat.booked {
+                                background: #e2e8f0;
+                                color: #94a3b8;
+                                cursor: not-allowed;
+                                opacity: 0.6;
+                            }
+
+                            .seat.driver-seat {
+                                background: #1e293b;
+                                color: white;
+                                border-color: #0f172a;
+                                cursor: default;
+                                box-shadow: inset 0 0 8px rgba(15, 23, 42, 0.4);
+                            }
+
+                            .seat.driver-seat .seat-label {
+                                font-size: 0.75rem;
+                                text-transform: uppercase;
+                            }
+
+                            .seat.driver-seat .seat-number {
+                                font-size: 0.65rem;
+                                opacity: 0.85;
+                            }
+
+                            .seat.placeholder-seat {
+                                visibility: hidden;
+                            }
+
+                            .seat-label {
+                                font-size: 0.7rem;
+                                font-weight: 700;
+                                line-height: 1;
+                            }
+
+                            .seat-number {
+                                font-size: 0.65rem;
+                                opacity: 0.8;
+                                margin-top: 2px;
+                            }
+
+                            .seat-legend {
+                                display: flex;
+                                justify-content: center;
+                                gap: 20px;
+                                margin-top: 20px;
+                                padding: 15px;
+                                background: white;
+                                border-radius: 8px;
+                                flex-wrap: wrap;
+                            }
+
+                            .legend-item {
+                                display: flex;
+                                align-items: center;
+                                gap: 8px;
+                                font-size: 0.875rem;
+                            }
+
+                            .legend-seat {
+                                width: 30px;
+                                height: 30px;
+                                border-radius: 6px;
+                                border: 2px solid #cbd5e1;
+                            }
+
+                            .legend-seat.available {
+                                background: white;
+                            }
+
+                            .legend-seat.selected {
+                                background: #4fc3f7;
+                                border-color: #29b6f6;
+                            }
+
+                            .legend-seat.booked {
+                                background: #e2e8f0;
+                                opacity: 0.6;
+                            }
+
+                            .seat-position-hint {
+                                position: absolute;
+                                top: -25px;
+                                left: 50%;
+                                transform: translateX(-50%);
+                                font-size: 0.65rem;
+                                color: #64748b;
+                                white-space: nowrap;
+                                display: none;
+                            }
+
+                            .seat:hover:not(.booked) .seat-position-hint {
+                                display: block;
+                            }
+
+                            .window-label,
+                            .aisle-label {
+                                font-size: 0.7rem;
+                                color: #64748b;
+                                font-weight: 600;
+                                writing-mode: vertical-rl;
+                                text-orientation: mixed;
+                                padding: 5px;
+                            }
+
+                            .window-label {
+                                margin-right: 8px;
+                            }
+
+                            .aisle-label {
+                                margin-left: 8px;
+                            }
+
+                            .btn-book {
+                                background: var(--primary-gradient);
+                                color: white;
+                                border: none;
+                                padding: 15px 40px;
+                                border-radius: 12px;
+                                font-weight: 600;
+                                font-size: 1.1rem;
+                                margin-top: 30px;
+                                transition: all 0.3s ease;
+                            }
+
+                            .btn-book:hover {
+                                transform: translateY(-2px);
+                                box-shadow: 0 8px 20px rgba(102, 187, 106, 0.4);
+                                color: white;
+                            }
+
+                            .empty-schedules {
+                                text-align: center;
+                                padding: 60px 20px;
+                                background: white;
+                                border-radius: 16px;
+                                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+                            }
+
+                            .route-info-card {
+                                background: white;
+                                border-radius: 16px;
+                                padding: 25px;
+                                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+                                margin-bottom: 30px;
+                            }
+                        </style>
+                    </head>
+
+                    <body>
+                        <%@ include file="/views/partials/user-header.jsp" %>
+
+                            <!-- Hero Section -->
+                            <div class="booking-hero">
+                                <div class="container">
+                                    <h1 class="mb-0">
+                                        <i class="fas fa-ticket-alt me-3"></i>Book Bus Ticket
+                                    </h1>
+                                    <p class="mb-0 mt-2 opacity-90">Select your schedule and seat</p>
                                 </div>
                             </div>
 
-                            <!-- Schedules List -->
-                            <h4 class="mb-4">
-                                <i class="fas fa-calendar-alt me-2"></i>Chọn lịch trình
-                            </h4>
-
-                            <c:choose>
-                                <c:when test="${empty schedules}">
-                                    <div class="empty-schedules">
-                                        <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
-                                        <h5 class="text-muted">Không có lịch trình nào</h5>
-                                        <p class="text-muted">Xin lỗi, hiện tại không có lịch trình nào cho tuyến đường
-                                            này.</p>
+                            <div class="container mb-5">
+                                <!-- Notification Messages -->
+                                <c:if test="${not empty param.message}">
+                                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                                        <i class="fas fa-check-circle me-2"></i>
+                                        <strong>Success!</strong> ${param.message}
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert"
+                                            aria-label="Close"></button>
                                     </div>
-                                </c:when>
-                                <c:otherwise>
-                                    <div id="schedulesList">
-                                        <c:forEach var="schedule" items="${schedules}">
-                                            <div class="schedule-card" data-schedule-id="${schedule.scheduleId}">
-                                                <div class="schedule-info">
-                                                    <div class="schedule-details">
-                                                        <div class="schedule-time">
-                                                            ${schedule.departureTime}
-                                                            <i class="fas fa-arrow-right mx-2 text-muted"></i>
-                                                            ${schedule.estimatedArrivalTime}
-                                                        </div>
-                                                        <div class="schedule-date mt-2">
-                                                            <i class="fas fa-calendar me-2"></i>
-                                                            ${schedule.departureDate}
-                                                        </div>
-                                                        <div class="mt-2">
-                                                            <span class="badge bg-info me-2">
-                                                                <i class="fas fa-bus me-1"></i>${schedule.busNumber}
-                                                            </span>
-                                                            <span class="badge bg-success">
-                                                                <i
-                                                                    class="fas fa-chair me-1"></i>${schedule.availableSeats}
-                                                                ghế trống
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                    <div class="schedule-price text-end">
+                                </c:if>
+                                <c:if test="${not empty param.error}">
+                                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                        <i class="fas fa-exclamation-circle me-2"></i>
+                                        <strong>Error!</strong> ${param.error}
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert"
+                                            aria-label="Close"></button>
+                                    </div>
+                                </c:if>
+                                <c:if test="${not empty param.warning}">
+                                    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                                        <i class="fas fa-exclamation-triangle me-2"></i>
+                                        <strong>Warning!</strong> ${param.warning}
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert"
+                                            aria-label="Close"></button>
+                                    </div>
+                                </c:if>
+                                <c:if test="${not empty param.info}">
+                                    <div class="alert alert-info alert-dismissible fade show" role="alert">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        <strong>Info:</strong> ${param.info}
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert"
+                                            aria-label="Close"></button>
+                                    </div>
+                                </c:if>
+                                <c:if test="${not empty error}">
+                                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                        <i class="fas fa-exclamation-circle me-2"></i>
+                                        <strong>Error!</strong> ${error}
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert"
+                                            aria-label="Close"></button>
+                                    </div>
+                                </c:if>
+
+                                <c:if test="${not empty route}">
+                                    <!-- Hidden input to store routeId for JavaScript -->
+                                    <input type="hidden" id="routeIdValue" value="${route.routeId}" />
+
+                                    <!-- Route Info -->
+                                    <div class="route-info-card">
+                                        <h3 class="mb-3">
+                                            <i class="fas fa-route text-primary me-2"></i>${route.routeName}
+                                        </h3>
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <p class="mb-2">
+                                                    <i class="fas fa-map-marker-alt text-primary me-2"></i>
+                                                    <strong>Departure:</strong> ${route.departureCity}
+                                                </p>
+                                                <p class="mb-2">
+                                                    <i class="fas fa-map-marker-alt text-danger me-2"></i>
+                                                    <strong>Destination:</strong> ${route.destinationCity}
+                                                </p>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <p class="mb-2">
+                                                    <i class="fas fa-road me-2"></i>
+                                                    <strong>Distance:</strong> ${route.distance} km
+                                                </p>
+                                                <p class="mb-2">
+                                                    <i class="fas fa-clock me-2"></i>
+                                                    <strong>Duration:</strong> ${route.durationHours} hours
+                                                </p>
+                                                <p class="mb-0">
+                                                    <i class="fas fa-money-bill-wave text-success me-2"></i>
+                                                    <strong>Price:</strong>
+                                                    <span class="text-success fw-bold">
                                                         <fmt:formatNumber value="${route.basePrice}" pattern="#,###" />
                                                         ₫
-                                                    </div>
-                                                </div>
+                                                    </span>
+                                                </p>
                                             </div>
-                                        </c:forEach>
+                                        </div>
                                     </div>
 
-                                    <!-- Seat Selection -->
-                                    <div id="seatSelection" class="seat-selection">
-                                        <h4 class="mb-4">
-                                            <i class="fas fa-chair me-2"></i>Chọn ghế ngồi
+                                    <!-- Schedules List -->
+                                    <div class="d-flex justify-content-between align-items-center mb-4">
+                                        <h4 class="mb-0">
+                                            <i class="fas fa-calendar-alt me-2"></i>Choose a schedule
                                         </h4>
-                                        <div id="seatGrid" class="seat-grid">
-                                            <!-- Seats will be loaded here via AJAX -->
-                                        </div>
-                                        <div class="text-center">
-                                            <button type="button" id="btnBook" class="btn btn-book" disabled>
-                                                <i class="fas fa-check me-2"></i>Đặt vé
+                                    </div>
+
+                                    <!-- Filter Controls -->
+                                    <div class="filter-controls">
+                                        <label class="form-label mb-2">
+                                            <i class="fas fa-filter me-2"></i>Filter schedules:
+                                        </label>
+                                        <div class="filter-buttons">
+                                            <button type="button" class="filter-btn active" data-filter="all">
+                                                <i class="fas fa-list me-1"></i>All
+                                            </button>
+                                            <button type="button" class="filter-btn" data-filter="valid">
+                                                <i class="fas fa-check-circle me-1"></i>Available
+                                            </button>
+                                            <button type="button" class="filter-btn" data-filter="expired">
+                                                <i class="fas fa-clock me-1"></i>Expired
                                             </button>
                                         </div>
                                     </div>
-                                </c:otherwise>
-                            </c:choose>
-                        </c:if>
 
-                        <c:if test="${empty route}">
-                            <div class="alert alert-warning">
-                                <i class="fas fa-exclamation-triangle me-2"></i>
-                                Không tìm thấy thông tin tuyến đường. Vui lòng quay lại trang tìm kiếm.
+                                    <c:choose>
+                                        <c:when test="${empty schedules}">
+                                            <div class="empty-schedules">
+                                                <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                                                <h5 class="text-muted">No schedules available</h5>
+                                                <p class="text-muted">Sorry, there are currently no schedules for this
+                                                    route.</p>
+                                            </div>
+                                        </c:when>
+                                        <c:otherwise>
+                                            <div id="schedulesList">
+                                                <c:forEach var="schedule" items="${schedules}">
+                                                    <% // Check if schedule is expired - FIX: Added variable declaration
+                                                        model.Schedule sched=(model.Schedule)
+                                                        pageContext.getAttribute("schedule"); boolean isExpired=false;
+                                                        if (sched !=null && sched.getDepartureDate() !=null &&
+                                                        sched.getDepartureTime() !=null) { java.time.LocalDateTime
+                                                        currentDateTime=(java.time.LocalDateTime)
+                                                        request.getAttribute("currentDateTime"); if (currentDateTime
+                                                        !=null) { java.time.LocalDateTime
+                                                        departureDateTime=java.time.LocalDateTime.of(
+                                                        sched.getDepartureDate(), sched.getDepartureTime() );
+                                                        isExpired=departureDateTime.isBefore(currentDateTime); } }
+                                                        pageContext.setAttribute("isExpired", isExpired); %>
+                                                        <div class="schedule-card ${isExpired ? 'expired' : ''}"
+                                                            data-schedule-id="${schedule.scheduleId}"
+                                                            data-expired="${isExpired}">
+                                                            <div class="schedule-info">
+                                                                <div class="schedule-details">
+                                                                    <div class="schedule-time">
+                                                                        ${schedule.departureTime}
+                                                                        <i
+                                                                            class="fas fa-arrow-right mx-2 text-muted"></i>
+                                                                        ${schedule.estimatedArrivalTime}
+                                                                        <c:if test="${isExpired}">
+                                                                            <span class="expired-badge">EXPIRED</span>
+                                                                        </c:if>
+                                                                    </div>
+                                                                    <div class="schedule-date mt-2">
+                                                                        <i class="fas fa-calendar me-2"></i>
+                                                                        ${schedule.departureDate}
+                                                                    </div>
+                                                                    <div class="mt-2">
+                                                                        <span class="badge bg-info me-2">
+                                                                            <i
+                                                                                class="fas fa-bus me-1"></i>${schedule.busNumber}
+                                                                        </span>
+                                                                        <span class="badge bg-success">
+                                                                            <i
+                                                                                class="fas fa-chair me-1"></i>${schedule.availableSeats}
+                                                                            seats available
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="schedule-price text-end">
+                                                                    <fmt:formatNumber value="${route.basePrice}"
+                                                                        pattern="#,###" />
+                                                                    ₫
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                </c:forEach>
+                                            </div>
+
+                                            <!-- Station Selection -->
+                                            <div id="stationSelection" class="station-selection" style="display: none;">
+                                                <h4 class="mb-4">
+                                                    <i class="fas fa-map-marker-alt me-2"></i>Select Boarding and
+                                                    Drop-off Stations
+                                                </h4>
+                                                <div class="row mb-4">
+                                                    <div class="col-md-6">
+                                                        <label for="boardingStationId" class="form-label">
+                                                            <i class="fas fa-sign-in-alt me-2"></i>Boarding Station
+                                                            <span class="text-danger">*</span>
+                                                        </label>
+                                                        <select class="form-select" id="boardingStationId"
+                                                            name="boardingStationId" required>
+                                                            <option value="">-- Select boarding station --</option>
+                                                        </select>
+                                                        <small class="form-text text-muted">Choose where you will board
+                                                            the bus</small>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <label for="alightingStationId" class="form-label">
+                                                            <i class="fas fa-sign-out-alt me-2"></i>Drop-off Station
+                                                            <span class="text-danger">*</span>
+                                                        </label>
+                                                        <select class="form-select" id="alightingStationId"
+                                                            name="alightingStationId" required>
+                                                            <option value="">-- Select drop-off station --</option>
+                                                        </select>
+                                                        <small class="form-text text-muted">Choose where you will get
+                                                            off the bus</small>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Seat Selection -->
+                                            <div id="seatSelection" class="seat-selection">
+                                                <h4 class="mb-4">
+                                                    <i class="fas fa-chair me-2"></i>Select Seats
+                                                </h4>
+                                                <div class="bus-layout-container">
+                                                    <div id="seatGrid" class="seat-grid">
+                                                        <!-- Seats will be loaded here via AJAX -->
+                                                    </div>
+                                                    <div class="seat-legend">
+                                                        <div class="legend-item">
+                                                            <div class="legend-seat available"></div>
+                                                            <span>Available seat</span>
+                                                        </div>
+                                                        <div class="legend-item">
+                                                            <div class="legend-seat selected"></div>
+                                                            <span>Selected seat</span>
+                                                        </div>
+                                                        <div class="legend-item">
+                                                            <div class="legend-seat booked"></div>
+                                                            <span>Booked seat</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="text-center mt-4">
+                                                    <button type="button" id="btnBook" class="btn btn-book" disabled>
+                                                        <i class="fas fa-check me-2"></i>Book now
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </c:otherwise>
+                                    </c:choose>
+                                </c:if>
+
+                                <% String errorMsg=(String) request.getAttribute("error"); if (errorMsg==null ||
+                                    errorMsg.trim().isEmpty()) { errorMsg=request.getParameter("error"); } if
+                                    ((errorMsg==null || errorMsg.trim().isEmpty()) &&
+                                    request.getAttribute("route")==null) { %>
+                                    <div class="alert alert-warning">
+                                        <i class="fas fa-exclamation-triangle me-2"></i>
+                                        Route information not found. Please return to the search page.
+                                    </div>
+                                    <% } %>
                             </div>
-                        </c:if>
-                    </div>
 
-                    <%@ include file="/views/partials/footer.jsp" %>
+                            <%@ include file="/views/partials/footer.jsp" %>
 
-                        <script>
-                            let selectedScheduleId = null;
-                            let selectedSeat = null;
+                                <script>
+                                    // Get routeId from hidden input or URL
+                                    const routeIdInput = document.getElementById('routeIdValue');
+                                    const routeIdFromJSP = routeIdInput ? routeIdInput.value : null;
 
-                            // Handle schedule selection
-                            document.querySelectorAll('.schedule-card').forEach(card => {
-                                card.addEventListener('click', function () {
-                                    // Remove previous selection
-                                    document.querySelectorAll('.schedule-card').forEach(c => {
-                                        c.classList.remove('selected');
+                                    let selectedScheduleId = null;
+                                    let selectedSeat = null;
+                                    let routeStations = [];
+
+                                    // Load stations when route is available
+                                    if (routeIdFromJSP) {
+                                        loadRouteStations(routeIdFromJSP);
+                                    }
+
+                                    // Filter functionality
+                                    document.querySelectorAll('.filter-btn').forEach(btn => {
+                                        btn.addEventListener('click', function () {
+                                            // Update active button
+                                            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                                            this.classList.add('active');
+
+                                            const filter = this.dataset.filter;
+                                            const scheduleCards = document.querySelectorAll('.schedule-card');
+
+                                            scheduleCards.forEach(card => {
+                                                const isExpired = card.dataset.expired === 'true';
+
+                                                if (filter === 'all') {
+                                                    card.style.display = '';
+                                                } else if (filter === 'valid') {
+                                                    card.style.display = isExpired ? 'none' : '';
+                                                } else if (filter === 'expired') {
+                                                    card.style.display = isExpired ? '' : 'none';
+                                                }
+                                            });
+                                        });
                                     });
 
-                                    // Mark this as selected
-                                    this.classList.add('selected');
-                                    selectedScheduleId = this.dataset.scheduleId;
+                                    // Handle schedule selection
+                                    document.querySelectorAll('.schedule-card').forEach(card => {
+                                        card.addEventListener('click', function () {
+                                            // Check if schedule is expired
+                                            const isExpired = this.dataset.expired === 'true';
 
-                                    // Show seat selection
-                                    document.getElementById('seatSelection').classList.add('active');
+                                            if (isExpired) {
+                                                alert('Past departure: This schedule has expired and cannot be booked.');
+                                                return;
+                                            }
 
-                                    // Load available seats
-                                    loadAvailableSeats(selectedScheduleId);
-                                });
-                            });
+                                            // Remove previous selection
+                                            document.querySelectorAll('.schedule-card').forEach(c => {
+                                                c.classList.remove('selected');
+                                            });
 
-                            function loadAvailableSeats(scheduleId) {
-                                const seatGrid = document.getElementById('seatGrid');
-                                seatGrid.innerHTML = '<div class="col-12 text-center"><i class="fas fa-spinner fa-spin"></i> Đang tải...</div>';
+                                            // Mark this as selected
+                                            this.classList.add('selected');
+                                            selectedScheduleId = this.dataset.scheduleId;
 
-                                fetch('${pageContext.request.contextPath}/tickets/schedule-seats?scheduleId=' + scheduleId)
-                                    .then(response => response.json())
-                                    .then(data => {
-                                        if (data.error) {
-                                            seatGrid.innerHTML = '<div class="col-12 text-center text-danger">' + data.error + '</div>';
+                                            // Show station selection first, then seat selection
+                                            if (routeStations.length > 0) {
+                                                document.getElementById('stationSelection').style.display = 'block';
+                                                document.getElementById('seatSelection').classList.remove('active');
+                                                resetStationSelection();
+                                            } else {
+                                                // If no stations, go directly to seat selection
+                                                document.getElementById('stationSelection').style.display = 'none';
+                                                document.getElementById('seatSelection').classList.add('active');
+                                                loadAvailableSeats(selectedScheduleId);
+                                            }
+                                        });
+                                    });
+
+                                    // Load route stations
+                                    function loadRouteStations(routeId) {
+                                        fetch('${pageContext.request.contextPath}/tickets/route-stations?routeId=' + routeId)
+                                            .then(response => response.json())
+                                            .then(data => {
+                                                if (data.stations && data.stations.length > 0) {
+                                                    routeStations = data.stations;
+                                                    populateStationDropdowns(data.stations);
+                                                }
+                                            })
+                                            .catch(error => {
+                                                console.error('Error loading stations:', error);
+                                            });
+                                    }
+
+                                    // Populate station dropdowns
+                                    function populateStationDropdowns(stations) {
+                                        const boardingSelect = document.getElementById('boardingStationId');
+                                        const alightingSelect = document.getElementById('alightingStationId');
+
+                                        // Clear existing options except the first one
+                                        boardingSelect.innerHTML = '<option value="">-- Select boarding station --</option>';
+                                        alightingSelect.innerHTML = '<option value="">-- Select drop-off station --</option>';
+
+                                        // Add stations to both dropdowns
+                                        stations.forEach(station => {
+                                            // Boarding station option
+                                            const boardingOption = document.createElement('option');
+                                            boardingOption.value = station.stationId;
+                                            boardingOption.textContent = station.stationName + ' (' + station.city + ')';
+                                            boardingOption.setAttribute('data-order', station.stopOrder);
+                                            boardingSelect.appendChild(boardingOption);
+
+                                            // Alighting station option
+                                            const alightingOption = document.createElement('option');
+                                            alightingOption.value = station.stationId;
+                                            alightingOption.textContent = station.stationName + ' (' + station.city + ')';
+                                            alightingOption.setAttribute('data-order', station.stopOrder);
+                                            alightingSelect.appendChild(alightingOption);
+                                        });
+                                    }
+
+                                    // Handle boarding station change - disable alighting stations before boarding
+                                    document.getElementById('boardingStationId').addEventListener('change', function () {
+                                        const boardingOrder = this.selectedOptions[0]?.getAttribute('data-order');
+                                        const alightingSelect = document.getElementById('alightingStationId');
+
+                                        if (boardingOrder) {
+                                            // Enable/disable alighting options based on stop order
+                                            Array.from(alightingSelect.options).forEach(option => {
+                                                if (option.value && option.getAttribute('data-order')) {
+                                                    const alightingOrder = parseInt(option.getAttribute('data-order'));
+                                                    const boardingOrderInt = parseInt(boardingOrder);
+
+                                                    if (alightingOrder <= boardingOrderInt) {
+                                                        option.disabled = true;
+                                                        option.style.display = 'none';
+                                                    } else {
+                                                        option.disabled = false;
+                                                        option.style.display = '';
+                                                    }
+                                                }
+                                            });
+
+                                            // If current alighting selection is invalid, clear it
+                                            const selectedAlighting = alightingSelect.selectedOptions[0];
+                                            if (selectedAlighting && selectedAlighting.disabled) {
+                                                alightingSelect.value = '';
+                                            }
+
+                                            // If boarding is selected, show seat selection
+                                            if (this.value && alightingSelect.value) {
+                                                validateAndShowSeatSelection();
+                                            }
+                                        }
+                                    });
+
+                                    // Handle alighting station change
+                                    document.getElementById('alightingStationId').addEventListener('change', function () {
+                                        const boardingSelect = document.getElementById('boardingStationId');
+                                        if (boardingSelect.value && this.value) {
+                                            validateAndShowSeatSelection();
+                                        }
+                                    });
+
+                                    // Validate stations and show seat selection
+                                    function validateAndShowSeatSelection() {
+                                        const boardingSelect = document.getElementById('boardingStationId');
+                                        const alightingSelect = document.getElementById('alightingStationId');
+
+                                        if (boardingSelect.value && alightingSelect.value) {
+                                            const boardingOrder = parseInt(boardingSelect.selectedOptions[0].getAttribute('data-order'));
+                                            const alightingOrder = parseInt(alightingSelect.selectedOptions[0].getAttribute('data-order'));
+
+                                            if (alightingOrder > boardingOrder) {
+                                                // Valid selection, show seat selection
+                                                document.getElementById('seatSelection').classList.add('active');
+                                                loadAvailableSeats(selectedScheduleId);
+                                            } else {
+                                                alert('Drop-off station must come after boarding station');
+                                                alightingSelect.value = '';
+                                            }
+                                        }
+                                    }
+
+                                    // Reset station selection
+                                    function resetStationSelection() {
+                                        document.getElementById('boardingStationId').value = '';
+                                        document.getElementById('alightingStationId').value = '';
+                                        document.getElementById('btnBook').disabled = true;
+                                        selectedSeat = null;
+                                    }
+
+                                    // Realistic bus seat layout mapping
+                                    // Creates a layout similar to real buses with A seats (left) and B seats (right)
+                                    function createSeatLayout(totalSeats, bookedSeats) {
+                                        const seatGrid = document.getElementById('seatGrid');
+                                        seatGrid.innerHTML = '';
+
+                                        // Render driver seat row at the top (front-left)
+                                        function renderDriverSeatRow() {
+                                            const driverRow = document.createElement('div');
+                                            driverRow.className = 'seat-row driver-seat-row';
+
+                                            const driverSeat = document.createElement('div');
+                                            driverSeat.className = 'seat driver-seat';
+
+                                            const driverLabel = document.createElement('div');
+                                            driverLabel.className = 'seat-label';
+                                            driverLabel.textContent = 'Driver';
+                                            driverSeat.appendChild(driverLabel);
+
+                                            const driverNumber = document.createElement('div');
+                                            driverNumber.className = 'seat-number';
+                                            driverNumber.textContent = 'Front';
+                                            driverSeat.appendChild(driverNumber);
+
+                                            driverRow.appendChild(driverSeat);
+
+                                            const frontAisle = document.createElement('div');
+                                            frontAisle.className = 'aisle wide';
+                                            frontAisle.textContent = '│';
+                                            driverRow.appendChild(frontAisle);
+
+                                            const placeholderSeat = document.createElement('div');
+                                            placeholderSeat.className = 'seat placeholder-seat';
+                                            driverRow.appendChild(placeholderSeat);
+
+                                            const placeholderSeat2 = document.createElement('div');
+                                            placeholderSeat2.className = 'seat placeholder-seat';
+                                            driverRow.appendChild(placeholderSeat2);
+
+                                            seatGrid.appendChild(driverRow);
+                                        }
+
+                                        renderDriverSeatRow();
+
+                                        // Calculate seats per side (A = left, B = right)
+                                        const aSeats = Math.ceil(totalSeats / 2);
+                                        const bSeats = totalSeats - aSeats;
+
+                                        // Standard bus layout: 2 seats per row on each side (2-2 layout)
+                                        // Some rows may have 1 seat on one side
+                                        const seatsPerRow = 2;
+                                        const rows = Math.ceil(Math.max(aSeats, bSeats) / seatsPerRow);
+
+                                        const seatMap = [];
+                                        let aSeatNum = 1;
+                                        let bSeatNum = 1;
+
+                                        for (let row = 0; row < rows; row++) {
+                                            const rowSeats = [];
+
+                                            // Left side: A seats (window + aisle)
+                                            if (aSeatNum <= aSeats) {
+                                                rowSeats.push(createSeatData(aSeatNum, 'A', 'window', row));
+                                                aSeatNum++;
+                                            }
+
+                                            if (aSeatNum <= aSeats) {
+                                                rowSeats.push(createSeatData(aSeatNum, 'A', 'aisle', row));
+                                                aSeatNum++;
+                                            }
+
+                                            // Aisle separator
+                                            rowSeats.push({ type: 'aisle', wide: true });
+
+                                            // Right side: B seats (aisle + window)
+                                            if (bSeatNum <= bSeats) {
+                                                rowSeats.push(createSeatData(bSeatNum + aSeats, 'B', 'aisle', row));
+                                                bSeatNum++;
+                                            }
+
+                                            if (bSeatNum <= bSeats) {
+                                                rowSeats.push(createSeatData(bSeatNum + aSeats, 'B', 'window', row));
+                                                bSeatNum++;
+                                            }
+
+                                            if (rowSeats.length > 1) {
+                                                seatMap.push(rowSeats);
+                                            }
+                                        }
+
+                                        // Helper function to create seat data
+                                        function createSeatData(number, side, position, rowIndex) {
+                                            if (number > totalSeats) return null;
+
+                                            let label;
+                                            if (side === 'A') {
+                                                label = 'A' + String(number).padStart(2, '0');
+                                            } else {
+                                                // B seats: number is already offset by aSeats
+                                                const bNumber = number - aSeats;
+                                                label = 'B' + String(bNumber).padStart(2, '0');
+                                            }
+
+                                            return {
+                                                number: number,
+                                                label: label,
+                                                side: side,
+                                                position: position,
+                                                rowIndex: rowIndex
+                                            };
+                                        }
+
+                                        // Render seats
+                                        seatMap.forEach((rowSeats, rowIndex) => {
+                                            const seatRow = document.createElement('div');
+                                            seatRow.className = 'seat-row';
+
+                                            rowSeats.forEach(item => {
+                                                if (!item) return;
+
+                                                if (item.type === 'aisle') {
+                                                    const aisle = document.createElement('div');
+                                                    aisle.className = `aisle ${item.wide ? 'wide' : ''}`;
+                                                    aisle.textContent = '│';
+                                                    seatRow.appendChild(aisle);
+                                                } else if (item.number && item.number <= totalSeats) {
+                                                    const seat = document.createElement('div');
+                                                    seat.className = 'seat';
+                                                    seat.dataset.seatNumber = item.number;
+
+                                                    const isBooked = bookedSeats.includes(item.number);
+                                                    if (isBooked) {
+                                                        seat.classList.add('booked');
+                                                    }
+
+                                                    // Create seat label
+                                                    const labelDiv = document.createElement('div');
+                                                    labelDiv.className = 'seat-label';
+                                                    labelDiv.textContent = item.label;
+                                                    seat.appendChild(labelDiv);
+
+                                                    const numberDiv = document.createElement('div');
+                                                    numberDiv.className = 'seat-number';
+                                                    numberDiv.textContent = `#${item.number}`;
+                                                    seat.appendChild(numberDiv);
+
+                                                    // Add position hint
+                                                    const hint = document.createElement('div');
+                                                    hint.className = 'seat-position-hint';
+                                                    const positionText = item.position === 'window' ? 'Window' : 'Aisle';
+                                                    const sideText = item.side === 'A' ? 'Left' : 'Right';
+                                                    const rowText = rowIndex < 3 ? 'Front' : 'Back';
+                                                    hint.textContent = `${positionText} - ${sideText} - ${rowText}`;
+                                                    seat.appendChild(hint);
+
+                                                    if (!isBooked) {
+                                                        seat.addEventListener('click', function () {
+                                                            // Remove previous selection
+                                                            document.querySelectorAll('.seat').forEach(s => {
+                                                                s.classList.remove('selected');
+                                                            });
+
+                                                            // Mark this as selected
+                                                            this.classList.add('selected');
+                                                            selectedSeat = item.number;
+
+                                                            // Check if stations are selected (if stations exist)
+                                                            const boardingStationId = document.getElementById('boardingStationId').value;
+                                                            const alightingStationId = document.getElementById('alightingStationId').value;
+
+                                                            // Enable book button
+                                                            if (routeStations.length === 0 || (boardingStationId && alightingStationId)) {
+                                                                document.getElementById('btnBook').disabled = false;
+                                                            }
+                                                        });
+                                                    }
+
+                                                    seatRow.appendChild(seat);
+                                                }
+                                            });
+
+                                            if (seatRow.children.length > 0) {
+                                                seatGrid.appendChild(seatRow);
+                                            }
+                                        });
+                                    }
+
+                                    function loadAvailableSeats(scheduleId) {
+                                        const seatGrid = document.getElementById('seatGrid');
+                                        seatGrid.innerHTML = '<div class="col-12 text-center"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+
+                                        fetch('${pageContext.request.contextPath}/tickets/schedule-seats?scheduleId=' + scheduleId)
+                                            .then(response => response.json())
+                                            .then(data => {
+                                                if (data.error) {
+                                                    seatGrid.innerHTML = '<div class="col-12 text-center text-danger">' + data.error + '</div>';
+                                                    return;
+                                                }
+
+                                                const totalSeats = data.totalSeats || 39;
+                                                const bookedSeats = data.bookedSeats || [];
+
+                                                createSeatLayout(totalSeats, bookedSeats);
+                                            })
+                                            .catch(error => {
+                                                console.error('Error loading seats:', error);
+                                                seatGrid.innerHTML = '<div class="col-12 text-center text-danger">Error while loading seats</div>';
+                                            });
+                                    }
+
+                                    // Handle booking
+                                    document.getElementById('btnBook').addEventListener('click', function () {
+                                        if (!selectedScheduleId || !selectedSeat) {
+                                            alert('Please select a schedule and a seat');
                                             return;
                                         }
 
-                                        seatGrid.innerHTML = '';
-                                        const totalSeats = data.totalSeats || 40;
-                                        const bookedSeats = data.bookedSeats || [];
+                                        // Validate stations if they exist
+                                        const boardingStationId = document.getElementById('boardingStationId').value;
+                                        const alightingStationId = document.getElementById('alightingStationId').value;
 
-                                        for (let i = 1; i <= totalSeats; i++) {
-                                            const seat = document.createElement('div');
-                                            seat.className = 'seat';
-                                            seat.textContent = i;
-                                            seat.dataset.seatNumber = i;
-
-                                            if (bookedSeats.includes(i)) {
-                                                seat.classList.add('booked');
-                                            } else {
-                                                seat.addEventListener('click', function () {
-                                                    // Remove previous selection
-                                                    document.querySelectorAll('.seat').forEach(s => {
-                                                        s.classList.remove('selected');
-                                                    });
-
-                                                    // Mark this as selected
-                                                    this.classList.add('selected');
-                                                    selectedSeat = i;
-
-                                                    // Enable book button
-                                                    document.getElementById('btnBook').disabled = false;
-                                                });
+                                        if (routeStations.length > 0) {
+                                            if (!boardingStationId || !alightingStationId) {
+                                                alert('Please select both boarding and drop-off stations');
+                                                return;
                                             }
-
-                                            seatGrid.appendChild(seat);
                                         }
-                                    })
-                                    .catch(error => {
-                                        console.error('Error loading seats:', error);
-                                        seatGrid.innerHTML = '<div class="col-12 text-center text-danger">Lỗi khi tải danh sách ghế</div>';
+
+                                        // Get routeId from URL or route object
+                                        const urlParams = new URLSearchParams(window.location.search);
+                                        let routeId = urlParams.get('routeId');
+
+                                        // If routeId not in URL, try to get it from the route object (if available)
+                                        if (!routeId && routeIdFromJSP) {
+                                            routeId = routeIdFromJSP;
+                                        }
+
+                                        // Create form and submit
+                                        const form = document.createElement('form');
+                                        form.method = 'POST';
+                                        form.action = '${pageContext.request.contextPath}/tickets/book';
+
+                                        // Add action parameter to use bookTicketBySchedule method
+                                        const actionInput = document.createElement('input');
+                                        actionInput.type = 'hidden';
+                                        actionInput.name = 'action';
+                                        actionInput.value = 'book';
+
+                                        const scheduleIdInput = document.createElement('input');
+                                        scheduleIdInput.type = 'hidden';
+                                        scheduleIdInput.name = 'scheduleId';
+                                        scheduleIdInput.value = selectedScheduleId;
+
+                                        const seatNumberInput = document.createElement('input');
+                                        seatNumberInput.type = 'hidden';
+                                        seatNumberInput.name = 'seatNumber';
+                                        seatNumberInput.value = selectedSeat;
+
+                                        // Add routeId to form so it's preserved on error redirect
+                                        if (routeId) {
+                                            const routeIdInput = document.createElement('input');
+                                            routeIdInput.type = 'hidden';
+                                            routeIdInput.name = 'routeId';
+                                            routeIdInput.value = routeId;
+                                            form.appendChild(routeIdInput);
+                                        }
+
+                                        // Add station IDs if selected
+                                        if (boardingStationId) {
+                                            const boardingInput = document.createElement('input');
+                                            boardingInput.type = 'hidden';
+                                            boardingInput.name = 'boardingStationId';
+                                            boardingInput.value = boardingStationId;
+                                            form.appendChild(boardingInput);
+                                        }
+
+                                        if (alightingStationId) {
+                                            const alightingInput = document.createElement('input');
+                                            alightingInput.type = 'hidden';
+                                            alightingInput.name = 'alightingStationId';
+                                            alightingInput.value = alightingStationId;
+                                            form.appendChild(alightingInput);
+                                        }
+
+                                        form.appendChild(actionInput);
+                                        form.appendChild(scheduleIdInput);
+                                        form.appendChild(seatNumberInput);
+                                        document.body.appendChild(form);
+                                        form.submit();
                                     });
-                            }
+                                </script>
+                                <script>
+                                    // Auto-hide alerts after 5 seconds
+                                    document.addEventListener('DOMContentLoaded', function () {
+                                        const alerts = document.querySelectorAll('.alert');
+                                        alerts.forEach(function (alert) {
+                                            setTimeout(function () {
+                                                const bsAlert = new bootstrap.Alert(alert);
+                                                bsAlert.close();
+                                            }, 5000);
+                                        });
 
-                            // Handle booking
-                            document.getElementById('btnBook').addEventListener('click', function () {
-                                if (!selectedScheduleId || !selectedSeat) {
-                                    alert('Vui lòng chọn lịch trình và ghế ngồi');
-                                    return;
-                                }
+                                        // Scroll to top if there's a message
+                                        if (alerts.length > 0) {
+                                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                                        }
+                                    });
+                                </script>
+                    </body>
 
-                                // Create form and submit
-                                const form = document.createElement('form');
-                                form.method = 'POST';
-                                form.action = '${pageContext.request.contextPath}/tickets/book';
-
-                                const scheduleIdInput = document.createElement('input');
-                                scheduleIdInput.type = 'hidden';
-                                scheduleIdInput.name = 'scheduleId';
-                                scheduleIdInput.value = selectedScheduleId;
-
-                                const seatNumberInput = document.createElement('input');
-                                seatNumberInput.type = 'hidden';
-                                seatNumberInput.name = 'seatNumber';
-                                seatNumberInput.value = selectedSeat;
-
-                                form.appendChild(scheduleIdInput);
-                                form.appendChild(seatNumberInput);
-                                document.body.appendChild(form);
-                                form.submit();
-                            });
-                        </script>
-            </body>
-
-            </html>
+                    </html>
