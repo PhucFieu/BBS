@@ -1,5 +1,5 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
-    <%@ taglib prefix="c" uri="jakarta.tags.core" %>
+    <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
         <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
             <%-- Redirect guest users to login page --%>
                 <c:if test="${empty sessionScope.user}">
@@ -11,11 +11,11 @@
                     <c:set var="role" value="${sessionScope.role}" />
 
                     <!DOCTYPE html>
-                    <html lang="vi">
+                    <html lang="en">
 
                     <head>
                         <meta charset="UTF-8">
-                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                        <maeta name="viewport" content="width=device-width, initial-scale=1.0">
                         <title>Ticket Details - Bus Booking System</title>
                         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css"
                             rel="stylesheet">
@@ -23,7 +23,7 @@
                             rel="stylesheet">
                         <style>
                             body {
-                                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                                background: linear-gradient(135deg, #66bb6a 0%, #81c784 100%);
                                 min-height: 100vh;
                             }
 
@@ -111,7 +111,7 @@
                             }
 
                             .route-info {
-                                background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+                                background: linear-gradient(135deg, #66bb6a 0%, #81c784 100%);
                                 color: white;
                                 padding: 1.5rem;
                                 border-radius: 15px;
@@ -312,12 +312,11 @@
                                                     </div>
                                                     <div class="mt-2">
                                                         <c:choose>
-                                                            <c:when test="${ticket.paymentStatus eq 'PAID'}">
-                                                                <span class="badge bg-success fs-6">Đã thanh toán</span>
+                                                <c:when test="${ticket.paymentStatus eq 'PAID'}">
+                                                                <span class="badge bg-success fs-6">Paid</span>
                                                             </c:when>
                                                             <c:when test="${ticket.paymentStatus eq 'PENDING'}">
-                                                                <span class="badge bg-warning fs-6">Chờ thanh
-                                                                    toán</span>
+                                                                <span class="badge bg-warning fs-6">Pending Payment</span>
                                                             </c:when>
                                                             <c:otherwise>
                                                                 <span
@@ -329,9 +328,9 @@
 
                                                 <!-- Journey Information -->
                                                 <div class="info-section">
-                                                    <h5><i class="fas fa-route me-2"></i>Thông tin chuyến đi</h5>
+                                                    <h5><i class="fas fa-route me-2"></i>Journey Information</h5>
                                                     <div class="info-row">
-                                                        <span class="info-label">Ngày khởi hành:</span>
+                                                        <span class="info-label">Departure Date:</span>
                                                         <span class="info-value">
                                                             <i class="fas fa-calendar me-1"></i>
                                                             <fmt:formatDate value="${ticket.departureDateSql}"
@@ -339,7 +338,7 @@
                                                         </span>
                                                     </div>
                                                     <div class="info-row">
-                                                        <span class="info-label">Giờ khởi hành:</span>
+                                                        <span class="info-label">Departure Time:</span>
                                                         <span class="info-value">
                                                             <i class="fas fa-clock me-1"></i>
                                                             <fmt:formatDate value="${ticket.departureTimeSql}"
@@ -347,13 +346,39 @@
                                                         </span>
                                                     </div>
                                                     <div class="info-row">
-                                                        <span class="info-label">Xe:</span>
+                                                        <span class="info-label">Boarding:</span>
+                                                        <span class="info-value">
+                                                            <i class="fas fa-sign-in-alt me-1"></i>
+                                                            <c:out value="${ticket.boardingStationName}" />
+                                                            <c:if test="${not empty ticket.boardingCity}">
+                                                                (<c:out value="${ticket.boardingCity}" />)
+                                                            </c:if>
+                                                            <c:if test="${not empty ticket.boardingArrivalTimeSql}">
+                                                                • <fmt:formatDate value="${ticket.boardingArrivalTimeSql}" pattern="HH:mm" />
+                                                            </c:if>
+                                                        </span>
+                                                    </div>
+                                                    <div class="info-row">
+                                                        <span class="info-label">Drop-off:</span>
+                                                        <span class="info-value">
+                                                            <i class="fas fa-sign-out-alt me-1"></i>
+                                                            <c:out value="${ticket.alightingStationName}" />
+                                                            <c:if test="${not empty ticket.alightingCity}">
+                                                                (<c:out value="${ticket.alightingCity}" />)
+                                                            </c:if>
+                                                            <c:if test="${not empty ticket.alightingArrivalTimeSql}">
+                                                                • <fmt:formatDate value="${ticket.alightingArrivalTimeSql}" pattern="HH:mm" />
+                                                            </c:if>
+                                                        </span>
+                                                    </div>
+                                                    <div class="info-row">
+                                                        <span class="info-label">Bus:</span>
                                                         <span class="info-value">
                                                             <i class="fas fa-bus me-1"></i>${ticket.busNumber}
                                                         </span>
                                                     </div>
                                                     <div class="info-row">
-                                                        <span class="info-label">Tài xế:</span>
+                                                        <span class="info-label">Driver:</span>
                                                         <span class="info-value">
                                                             <i class="fas fa-user me-1"></i>${ticket.driverName}
                                                         </span>
@@ -362,9 +387,9 @@
 
                                                 <!-- Passenger Information -->
                                                 <div class="info-section">
-                                                    <h5><i class="fas fa-user me-2"></i>Thông tin hành khách</h5>
+                                                    <h5><i class="fas fa-user me-2"></i>Passenger Information</h5>
                                                     <div class="info-row">
-                                                        <span class="info-label">Họ tên:</span>
+                                                        <span class="info-label">Full Name:</span>
                                                         <span class="info-value">
                                                             <c:choose>
                                                                 <c:when test="${not empty ticket.userName}">
@@ -374,7 +399,7 @@
                                                         </span>
                                                     </div>
                                                     <div class="info-row">
-                                                        <span class="info-label">Số ghế:</span>
+                                                        <span class="info-label">Seat:</span>
                                                         <span class="info-value">
                                                             <div class="seat-display">${ticket.seatNumber}</div>
                                                         </span>
@@ -385,16 +410,17 @@
                                                 <div class="action-buttons">
                                                     <a href="${pageContext.request.contextPath}/tickets"
                                                         class="btn btn-outline-secondary btn-action">
-                                                        <i class="fas fa-list me-1"></i>Danh sách vé
+                                                        <i class="fas fa-list me-1"></i>Ticket List
                                                     </a>
                                                     <c:if test="${role == 'ADMIN' || role == 'DRIVER'}">
                                                         <a href="${pageContext.request.contextPath}/tickets/edit?id=${ticket.ticketId}"
                                                             class="btn btn-warning btn-action">
-                                                            <i class="fas fa-edit me-1"></i>Sửa vé
+                                                            <i class="fas fa-edit me-1"></i>Edit Ticket
                                                         </a>
                                                         <button type="button" class="btn btn-danger btn-action"
-                                                            onclick="confirmDelete(${ticket.ticketId}, '${ticket.ticketNumber}')">
-                                                            <i class="fas fa-times me-1"></i>Hủy vé
+                                                            data-ticketnumber="${ticket.ticketNumber}"
+                                                            onclick="confirmDelete(${ticket.ticketId}, this)">
+                                                            <i class="fas fa-times me-1"></i>Cancel Ticket
                                                         </button>
                                                     </c:if>
                                                 </div>
@@ -404,8 +430,7 @@
                                             <div class="ticket-footer">
                                                 <p class="mb-0">
                                                     <i class="fas fa-info-circle me-1"></i>
-                                                    Vui lòng đến bến xe trước giờ khởi hành 30 phút để làm thủ tục lên
-                                                    xe.
+                                                    Please arrive at the station 30 minutes before departure for check-in.
                                                 </p>
                                             </div>
                                         </div>
@@ -418,18 +443,17 @@
                                 <div class="modal-dialog">
                                     <div class="modal-content">
                                         <div class="modal-header">
-                                            <h5 class="modal-title">Xác nhận hủy vé</h5>
+                                            <h5 class="modal-title">Confirm Ticket Cancellation</h5>
                                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                         </div>
                                         <div class="modal-body">
-                                            <p>Bạn có chắc chắn muốn hủy vé <strong id="ticketNumberToDelete"></strong>?
-                                            </p>
-                                            <p class="text-danger"><small>Hành động này không thể hoàn tác.</small></p>
+                                            <p>Are you sure you want to cancel ticket <strong id="ticketNumberToDelete"></strong>?</p>
+                                            <p class="text-danger"><small>This action cannot be undone.</small></p>
                                         </div>
                                         <div class="modal-footer">
-                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel
                                             </button>
-                                            <a href="#" id="confirmDeleteBtn" class="btn btn-danger">Hủy vé</a>
+                                            <a href="#" id="confirmDeleteBtn" class="btn btn-danger">Cancel Ticket</a>
                                         </div>
                                     </div>
                                 </div>
@@ -439,7 +463,15 @@
                                 <script
                                 src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
                                 <script>
-                                    function confirmDelete(ticketId, ticketNumber) {
+                                    function confirmDelete(ticketId, el) {
+                                        // Support calling with (ticketId, ticketNumber) for backward-compatibility
+                                        let ticketNumber = '';
+                                        if (el && typeof el.getAttribute === 'function') {
+                                            ticketNumber = el.getAttribute('data-ticketnumber') || '';
+                                        } else if (typeof el === 'string') {
+                                            ticketNumber = el;
+                                        }
+
                                         document.getElementById('ticketNumberToDelete').textContent = ticketNumber;
                                         document.getElementById('confirmDeleteBtn').href =
                                             '${pageContext.request.contextPath}/tickets/delete?id=' + ticketId;
@@ -458,3 +490,4 @@
                     </body>
 
                     </html>
+
