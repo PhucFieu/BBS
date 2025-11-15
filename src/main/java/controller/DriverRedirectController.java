@@ -25,7 +25,7 @@ public class DriverRedirectController extends HttpServlet {
         // Check if user has driver role
         if (!AuthUtils.isDriver(request.getSession(false))) {
             request.setAttribute("error", "Access denied: DRIVER role required");
-            request.getRequestDispatcher("/views/403.jsp").forward(request, response);
+            request.getRequestDispatcher("/views/errors/403.jsp").forward(request, response);
             return;
         }
 
