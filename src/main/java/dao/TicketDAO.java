@@ -39,7 +39,8 @@ public class TicketDAO {
                 + "LEFT JOIN Stations as_st ON t.alighting_station_id = as_st.station_id "
                 + "LEFT JOIN ScheduleStops ss1 ON ss1.schedule_id = s.schedule_id AND ss1.station_id = t.boarding_station_id "
                 + "LEFT JOIN ScheduleStops ss2 ON ss2.schedule_id = s.schedule_id AND ss2.station_id = t.alighting_station_id "
-                + "WHERE t.status = 'CONFIRMED' " + "ORDER BY t.booking_date DESC";
+                + "WHERE t.status IN ('CONFIRMED', 'PENDING', 'COMPLETED') " // Exclude CANCELLED tickets
+                + "ORDER BY t.booking_date DESC";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql);
@@ -150,10 +151,7 @@ public class TicketDAO {
     }
 
     public boolean addTicket(Tickets ticket) throws SQLException {
-        String sql =
-                "INSERT INTO Tickets (ticket_id, ticket_number, schedule_id, user_id, seat_number, ticket_price, booking_date, status, payment_status, boarding_station_id, alighting_station_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-
-
+        String sql = "INSERT INTO Tickets (ticket_id, ticket_number, schedule_id, user_id, seat_number, ticket_price, booking_date, status, payment_status, boarding_station_id, alighting_station_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -187,8 +185,7 @@ public class TicketDAO {
     }
 
     public boolean updateTicket(Tickets ticket) throws SQLException {
-        String sql =
-                "UPDATE Tickets SET schedule_id = ?, user_id = ?, seat_number = ?, ticket_price = ?, status = ?, payment_status = ?, boarding_station_id = ?, alighting_station_id = ?, updated_date = GETDATE() WHERE ticket_id = ?";
+        String sql = "UPDATE Tickets SET schedule_id = ?, user_id = ?, seat_number = ?, ticket_price = ?, status = ?, payment_status = ?, boarding_station_id = ?, alighting_station_id = ?, updated_date = GETDATE() WHERE ticket_id = ?";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -216,8 +213,9 @@ public class TicketDAO {
     }
 
     public boolean deleteTicket(UUID ticketId) throws SQLException {
-        String sql =
-                "UPDATE Tickets SET status = 'CANCELLED', updated_date = GETDATE() WHERE ticket_id = ?";
+        // Soft delete: Change status to CANCELLED instead of hard delete
+        // This maintains data integrity and preserves audit trail
+        String sql = "UPDATE Tickets SET status = 'CANCELLED', updated_date = GETDATE() WHERE ticket_id = ?";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -227,9 +225,61 @@ public class TicketDAO {
         }
     }
 
+    /**
+     * Hard delete ticket - use with caution
+     * First removes related TicketGroup records, then deletes the ticket
+     */
+    public boolean hardDeleteTicket(UUID ticketId) throws SQLException {
+        Connection conn = null;
+        try {
+            conn = DBConnection.getInstance().getConnection();
+            conn.setAutoCommit(false); // Start transaction
+
+            // First, delete related TicketGroup records
+            String deleteGroupSql = "DELETE FROM TicketGroups WHERE ticket_id = ?";
+            try (PreparedStatement stmt = conn.prepareStatement(deleteGroupSql)) {
+                stmt.setObject(1, ticketId);
+                stmt.executeUpdate();
+            }
+
+            // Then delete the ticket
+            String deleteTicketSql = "DELETE FROM Tickets WHERE ticket_id = ?";
+            try (PreparedStatement stmt = conn.prepareStatement(deleteTicketSql)) {
+                stmt.setObject(1, ticketId);
+                int rowsAffected = stmt.executeUpdate();
+
+                if (rowsAffected > 0) {
+                    conn.commit(); // Commit transaction
+                    return true;
+                } else {
+                    conn.rollback(); // Rollback if ticket not found
+                    return false;
+                }
+            }
+
+        } catch (SQLException e) {
+            if (conn != null) {
+                try {
+                    conn.rollback(); // Rollback on error
+                } catch (SQLException ex) {
+                    ex.printStackTrace();
+                }
+            }
+            throw e;
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.setAutoCommit(true); // Restore auto-commit
+                    conn.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
     public boolean isSeatAvailable(UUID scheduleId, int seatNumber) throws SQLException {
-        String sql =
-                "SELECT COUNT(*) FROM Tickets WHERE schedule_id = ? AND seat_number = ? AND status = 'CONFIRMED'";
+        String sql = "SELECT COUNT(*) FROM Tickets WHERE schedule_id = ? AND seat_number = ? AND status = 'CONFIRMED'";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -264,17 +314,17 @@ public class TicketDAO {
     }
 
     /**
-     * Mark user's CONFIRMED tickets as COMPLETED if the schedule's arrival time has passed.
+     * Mark user's CONFIRMED tickets as COMPLETED if the schedule's arrival time has
+     * passed.
      * Returns number of rows updated.
      */
     public int markCompletedTicketsIfArrivedForUser(UUID userId) throws SQLException {
-        String sql =
-                "UPDATE t SET t.status = 'COMPLETED', t.updated_date = GETDATE() " +
-                        "FROM Tickets t " +
-                        "JOIN Schedules s ON t.schedule_id = s.schedule_id " +
-                        "WHERE t.user_id = ? AND t.status = 'CONFIRMED' " +
-                        // Arrival datetime = departure_date + estimated_arrival_time
-                        "AND (CAST(s.departure_date AS DATETIME) + CAST(s.estimated_arrival_time AS DATETIME)) <= GETDATE()";
+        String sql = "UPDATE t SET t.status = 'COMPLETED', t.updated_date = GETDATE() " +
+                "FROM Tickets t " +
+                "JOIN Schedules s ON t.schedule_id = s.schedule_id " +
+                "WHERE t.user_id = ? AND t.status = 'CONFIRMED' " +
+                // Arrival datetime = departure_date + estimated_arrival_time
+                "AND (CAST(s.departure_date AS DATETIME) + CAST(s.estimated_arrival_time AS DATETIME)) <= GETDATE()";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -395,8 +445,7 @@ public class TicketDAO {
     }
 
     public boolean isTicketOwnedByUser(UUID ticketId, UUID userId) throws SQLException {
-        String sql =
-                "SELECT COUNT(*) FROM Tickets WHERE ticket_id = ? AND user_id = ? AND status IN ('CONFIRMED','COMPLETED')";
+        String sql = "SELECT COUNT(*) FROM Tickets WHERE ticket_id = ? AND user_id = ? AND status IN ('CONFIRMED','COMPLETED')";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -526,11 +575,18 @@ public class TicketDAO {
         String sql = "SELECT t.*, "
                 + "u.full_name as user_name, u.username, u.email as user_email, "
                 + "s.departure_date, s.departure_time, "
+                + "r.route_name, r.departure_city, r.destination_city, "
+                + "b.bus_number, dr.full_name as driver_name, "
                 + "bs.station_name as boarding_station_name, bs.city as boarding_city, "
                 + "as_st.station_name as alighting_station_name, as_st.city as alighting_city "
                 + "FROM Tickets t "
                 + "JOIN Users u ON t.user_id = u.user_id "
                 + "JOIN Schedules s ON t.schedule_id = s.schedule_id "
+                + "JOIN Routes r ON s.route_id = r.route_id "
+                + "JOIN Buses b ON s.bus_id = b.bus_id "
+                + "LEFT JOIN ScheduleDrivers sd ON s.schedule_id = sd.schedule_id "
+                + "LEFT JOIN Drivers d ON sd.driver_id = d.driver_id "
+                + "LEFT JOIN Users dr ON d.user_id = dr.user_id "
                 + "LEFT JOIN Stations bs ON t.boarding_station_id = bs.station_id "
                 + "LEFT JOIN Stations as_st ON t.alighting_station_id = as_st.station_id "
                 + "WHERE t.schedule_id = ? AND t.status = 'CONFIRMED' "
@@ -577,8 +633,7 @@ public class TicketDAO {
      */
     public boolean isSeatAvailableForUpdate(UUID scheduleId, int seatNumber, UUID excludeTicketId)
             throws SQLException {
-        String sql =
-                "SELECT COUNT(*) FROM Tickets WHERE schedule_id = ? AND seat_number = ? AND status = 'CONFIRMED' AND ticket_id != ?";
+        String sql = "SELECT COUNT(*) FROM Tickets WHERE schedule_id = ? AND seat_number = ? AND status = 'CONFIRMED' AND ticket_id != ?";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -607,7 +662,10 @@ public class TicketDAO {
         sql.append("r.route_name, r.departure_city, r.destination_city, ");
         sql.append("b.bus_number, ");
         sql.append("s.departure_date, s.departure_time, ");
-        sql.append("dr.full_name as driver_name ");
+        sql.append("dr.full_name as driver_name, ");
+        sql.append("bs.station_name as boarding_station_name, bs.city as boarding_city, ");
+        sql.append("as_st.station_name as alighting_station_name, as_st.city as alighting_city, ");
+        sql.append("ss1.arrival_time as boarding_arrival_time, ss2.arrival_time as alighting_arrival_time ");
         sql.append("FROM Tickets t ");
         sql.append("JOIN Users u ON t.user_id = u.user_id ");
         sql.append("JOIN Schedules s ON t.schedule_id = s.schedule_id ");
@@ -616,6 +674,12 @@ public class TicketDAO {
         sql.append("LEFT JOIN ScheduleDrivers sd ON s.schedule_id = sd.schedule_id ");
         sql.append("LEFT JOIN Drivers d ON sd.driver_id = d.driver_id ");
         sql.append("LEFT JOIN Users dr ON d.user_id = dr.user_id ");
+        sql.append("LEFT JOIN Stations bs ON t.boarding_station_id = bs.station_id ");
+        sql.append("LEFT JOIN Stations as_st ON t.alighting_station_id = as_st.station_id ");
+        sql.append(
+                "LEFT JOIN ScheduleStops ss1 ON ss1.schedule_id = s.schedule_id AND ss1.station_id = t.boarding_station_id ");
+        sql.append(
+                "LEFT JOIN ScheduleStops ss2 ON ss2.schedule_id = s.schedule_id AND ss2.station_id = t.alighting_station_id ");
         sql.append("WHERE 1=1 ");
 
         List<Object> parameters = new ArrayList<>();
@@ -633,6 +697,10 @@ public class TicketDAO {
         if (status != null && !status.trim().isEmpty()) {
             sql.append("AND t.status = ? ");
             parameters.add(status);
+        } else {
+            // Exclude CANCELLED tickets when no status filter is specified (hidden when
+            // deleted)
+            sql.append("AND t.status != 'CANCELLED' ");
         }
 
         if (paymentStatus != null && !paymentStatus.trim().isEmpty()) {
@@ -726,8 +794,7 @@ public class TicketDAO {
         }
 
         // Total revenue
-        String revenueSql =
-                "SELECT SUM(ticket_price) FROM Tickets WHERE status = 'CONFIRMED' AND payment_status = 'PAID'";
+        String revenueSql = "SELECT SUM(ticket_price) FROM Tickets WHERE status = 'CONFIRMED' AND payment_status = 'PAID'";
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(revenueSql);
                 ResultSet rs = stmt.executeQuery()) {
@@ -837,8 +904,7 @@ public class TicketDAO {
 
     public List<Integer> getAvailableSeats(UUID scheduleId) throws SQLException {
         List<Integer> bookedSeats = new ArrayList<>();
-        String sql =
-                "SELECT seat_number FROM Tickets WHERE schedule_id = ? AND status = 'CONFIRMED'";
+        String sql = "SELECT seat_number FROM Tickets WHERE schedule_id = ? AND status = 'CONFIRMED'";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -863,29 +929,28 @@ public class TicketDAO {
      */
     public Tickets getLatestTicketForPassengerByDriver(UUID driverUserId, UUID passengerUserId)
             throws SQLException {
-        String sql =
-                "SELECT TOP 1 t.*, u.full_name as user_name, u.username, u.email as user_email, "
-                        + "s.departure_date, s.departure_time, "
-                        + "COALESCE(ssb.arrival_time, first_stop.arrival_time) as boarding_arrival_time, "
-                        + "COALESCE(ssa.arrival_time, last_stop.arrival_time) as alighting_arrival_time, "
-                        + "COALESCE(bs.station_name, first_stop.station_name) as boarding_station_name, "
-                        + "COALESCE(bs.city, first_stop.city) as boarding_city, "
-                        + "COALESCE(as_st.station_name, last_stop.station_name) as alighting_station_name, "
-                        + "COALESCE(as_st.city, last_stop.city) as alighting_city "
-                        + "FROM Tickets t "
-                        + "JOIN Users u ON t.user_id = u.user_id "
-                        + "JOIN Schedules s ON t.schedule_id = s.schedule_id "
-                        + "LEFT JOIN ScheduleStops ssb ON ssb.schedule_id = s.schedule_id AND ssb.station_id = t.boarding_station_id "
-                        + "LEFT JOIN ScheduleStops ssa ON ssa.schedule_id = s.schedule_id AND ssa.station_id = t.alighting_station_id "
-                        + "OUTER APPLY (SELECT TOP 1 ss.arrival_time, st.station_name, st.city FROM ScheduleStops ss JOIN Stations st ON ss.station_id = st.station_id WHERE ss.schedule_id = s.schedule_id ORDER BY ss.stop_order ASC) first_stop "
-                        + "OUTER APPLY (SELECT TOP 1 ss.arrival_time, st.station_name, st.city FROM ScheduleStops ss JOIN Stations st ON ss.station_id = st.station_id WHERE ss.schedule_id = s.schedule_id ORDER BY ss.stop_order DESC) last_stop "
-                        + "JOIN ScheduleDrivers sd ON s.schedule_id = sd.schedule_id "
-                        + "JOIN Drivers d ON sd.driver_id = d.driver_id "
-                        + "JOIN Users du ON d.user_id = du.user_id "
-                        + "LEFT JOIN Stations bs ON t.boarding_station_id = bs.station_id "
-                        + "LEFT JOIN Stations as_st ON t.alighting_station_id = as_st.station_id "
-                        + "WHERE du.user_id = ? AND t.user_id = ? AND t.status IN ('PENDING','CONFIRMED','COMPLETED') "
-                        + "ORDER BY s.departure_date DESC, s.departure_time DESC";
+        String sql = "SELECT TOP 1 t.*, u.full_name as user_name, u.username, u.email as user_email, "
+                + "s.departure_date, s.departure_time, "
+                + "COALESCE(ssb.arrival_time, first_stop.arrival_time) as boarding_arrival_time, "
+                + "COALESCE(ssa.arrival_time, last_stop.arrival_time) as alighting_arrival_time, "
+                + "COALESCE(bs.station_name, first_stop.station_name) as boarding_station_name, "
+                + "COALESCE(bs.city, first_stop.city) as boarding_city, "
+                + "COALESCE(as_st.station_name, last_stop.station_name) as alighting_station_name, "
+                + "COALESCE(as_st.city, last_stop.city) as alighting_city "
+                + "FROM Tickets t "
+                + "JOIN Users u ON t.user_id = u.user_id "
+                + "JOIN Schedules s ON t.schedule_id = s.schedule_id "
+                + "LEFT JOIN ScheduleStops ssb ON ssb.schedule_id = s.schedule_id AND ssb.station_id = t.boarding_station_id "
+                + "LEFT JOIN ScheduleStops ssa ON ssa.schedule_id = s.schedule_id AND ssa.station_id = t.alighting_station_id "
+                + "OUTER APPLY (SELECT TOP 1 ss.arrival_time, st.station_name, st.city FROM ScheduleStops ss JOIN Stations st ON ss.station_id = st.station_id WHERE ss.schedule_id = s.schedule_id ORDER BY ss.stop_order ASC) first_stop "
+                + "OUTER APPLY (SELECT TOP 1 ss.arrival_time, st.station_name, st.city FROM ScheduleStops ss JOIN Stations st ON ss.station_id = st.station_id WHERE ss.schedule_id = s.schedule_id ORDER BY ss.stop_order DESC) last_stop "
+                + "JOIN ScheduleDrivers sd ON s.schedule_id = sd.schedule_id "
+                + "JOIN Drivers d ON sd.driver_id = d.driver_id "
+                + "JOIN Users du ON d.user_id = du.user_id "
+                + "LEFT JOIN Stations bs ON t.boarding_station_id = bs.station_id "
+                + "LEFT JOIN Stations as_st ON t.alighting_station_id = as_st.station_id "
+                + "WHERE du.user_id = ? AND t.user_id = ? AND t.status IN ('PENDING','CONFIRMED','COMPLETED') "
+                + "ORDER BY s.departure_date DESC, s.departure_time DESC";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
