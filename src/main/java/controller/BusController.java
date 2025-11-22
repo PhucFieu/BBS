@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 import dao.BusDAO;
 import jakarta.servlet.ServletException;
@@ -19,6 +20,10 @@ import util.AuthUtils;
 public class BusController extends HttpServlet {
 
     private BusDAO busDAO;
+    // License plate format: XX-XXXXX or XX-XXXX (e.g., 30F-256.58, 30F-25658)
+    // Pattern: 2-3 alphanumeric characters, hyphen, 4-6 alphanumeric characters (may include dots)
+    private static final Pattern LICENSE_PLATE_PATTERN =
+            Pattern.compile("^[0-9A-Z]{2,3}-[0-9A-Z.]{4,6}$");
 
     @Override
     public void init() throws ServletException {
@@ -191,37 +196,56 @@ public class BusController extends HttpServlet {
         // Get parameters from request
         String busNumber = request.getParameter("busNumber");
         String busType = request.getParameter("busType");
-        String totalSeatsStr = request.getParameter("totalSeats");
         String licensePlate = request.getParameter("licensePlate");
 
         // Validate input
         if (busNumber == null || busNumber.trim().isEmpty()) {
             response.sendRedirect(
                     request.getContextPath()
-                            + "/buses/add?error=Missing information: Bus number is required");
+                            + "/buses/add?error=Error: Please enter bus number");
             return;
         }
         if (busType == null || busType.trim().isEmpty()) {
             response.sendRedirect(
                     request.getContextPath()
-                            + "/buses/add?error=Missing information: Bus type is required");
+                            + "/buses/add?error=Error: Please select bus type");
             return;
         }
         if (licensePlate == null || licensePlate.trim().isEmpty()) {
             response.sendRedirect(
                     request.getContextPath()
-                            + "/buses/add?error=Missing information: License plate is required");
+                            + "/buses/add?error=Error: Please enter license plate");
             return;
         }
-        if (totalSeatsStr == null || totalSeatsStr.trim().isEmpty()) {
+
+        busNumber = busNumber.trim();
+        licensePlate = licensePlate.trim().toUpperCase();
+
+        // Validate license plate format
+        if (!LICENSE_PLATE_PATTERN.matcher(licensePlate).matches()) {
             response.sendRedirect(
                     request.getContextPath()
-                            + "/buses/add?error=Missing information: Total seats is required");
+                            + "/buses/add?error=Error: Invalid license plate format. Format: XX-XXXXX or XX-XXXX (e.g., 30F-256.58)");
             return;
         }
 
         try {
-            int totalSeats = Integer.parseInt(totalSeatsStr);
+            int totalSeats = determineSeatsFromType(busType);
+            if (totalSeats == 0) {
+                response.sendRedirect(
+                        request.getContextPath()
+                                + "/buses/add?error=Error: Unsupported bus type. Please choose a valid option");
+                return;
+            }
+
+            if (busDAO.isLicensePlateExists(licensePlate, null)) {
+                response.sendRedirect(
+                        request.getContextPath()
+                                + "/buses/add?error=Error: License plate \"" + licensePlate
+                                + "\" already exists. Please use a different license plate");
+                return;
+            }
+
             // Create new bus
             Bus bus = new Bus(busNumber, busType, totalSeats, licensePlate);
 
@@ -237,12 +261,34 @@ public class BusController extends HttpServlet {
                 response.sendRedirect(request.getContextPath()
                         + "/buses/add?error=Error: Failed to add bus. Please try again or contact administrator");
             }
-        } catch (NumberFormatException e) {
+        } catch (SQLException e) {
+            // Check for duplicate key violation
+            String errorMessage = e.getMessage();
+            if (errorMessage != null) {
+                String upperMessage = errorMessage.toUpperCase();
+                // Check for duplicate key constraint violation
+                if (upperMessage.contains("UNIQUE KEY")
+                        || upperMessage.contains("UNIQUE CONSTRAINT")
+                        || upperMessage.contains("DUPLICATE KEY")) {
+                    // Check if it's specifically about bus_number by looking for the bus number in
+                    // the error
+                    if (errorMessage.contains(busNumber) || upperMessage.contains("BUS_NUMBER")) {
+                        response.sendRedirect(request.getContextPath()
+                                + "/buses/add?error=Error: Bus number \"" + busNumber
+                                + "\" already exists in the system. Please use a different bus number");
+                    } else {
+                        response.sendRedirect(request.getContextPath()
+                                + "/buses/add?error=Error: Information already exists in the system. Please check your input data");
+                    }
+                    return;
+                }
+            }
+            // Other SQL errors
             response.sendRedirect(request.getContextPath()
-                    + "/buses/add?error=Error: Invalid total seats format. Please enter a valid number");
+                    + "/buses/add?error=Error: An error occurred while adding the bus. Please try again");
         } catch (Exception e) {
             response.sendRedirect(request.getContextPath()
-                    + "/buses/add?error=Error: An unexpected error occurred. " + e.getMessage());
+                    + "/buses/add?error=Error: An unexpected error occurred. Please try again");
         }
     }
 
@@ -251,7 +297,6 @@ public class BusController extends HttpServlet {
         String busIdStr = request.getParameter("busId");
         String busNumber = request.getParameter("busNumber");
         String busType = request.getParameter("busType");
-        String totalSeatsStr = request.getParameter("totalSeats");
         String licensePlate = request.getParameter("licensePlate");
         String status = request.getParameter("status");
 
@@ -283,10 +328,34 @@ public class BusController extends HttpServlet {
 
         try {
             UUID busId = UUID.fromString(busIdStr);
-            int totalSeats = Integer.parseInt(totalSeatsStr);
+            licensePlate = licensePlate.trim().toUpperCase();
+
+            // Validate license plate format
+            if (!LICENSE_PLATE_PATTERN.matcher(licensePlate).matches()) {
+                response.sendRedirect(
+                        request.getContextPath() + "/buses/edit?id=" + busIdStr
+                                + "&error=Error: Invalid license plate format. Format: XX-XXXXX or XX-XXXX (e.g., 30F-256.58)");
+                return;
+            }
+
+            int totalSeats = determineSeatsFromType(busType);
+            if (totalSeats == 0) {
+                response.sendRedirect(
+                        request.getContextPath() + "/buses/edit?id=" + busIdStr
+                                + "&error=Error: Unsupported bus type. Please choose a valid option");
+                return;
+            }
+
+            if (busDAO.isLicensePlateExists(licensePlate, busId)) {
+                response.sendRedirect(
+                        request.getContextPath() + "/buses/edit?id=" + busIdStr
+                                + "&error=Error: License plate \"" + licensePlate
+                                + "\" already exists. Please use a different license plate");
+                return;
+            }
 
             // Create bus object
-            Bus bus = new Bus(busNumber, busType, totalSeats, licensePlate);
+            Bus bus = new Bus(busNumber.trim(), busType, totalSeats, licensePlate);
             bus.setBusId(busId);
             if (status != null && !status.trim().isEmpty()) {
                 bus.setStatus(status);
@@ -304,10 +373,6 @@ public class BusController extends HttpServlet {
                 response.sendRedirect(request.getContextPath() + "/buses/edit?id=" + busId
                         + "&error=Error: Failed to update bus. Please try again or contact administrator");
             }
-        } catch (NumberFormatException e) {
-            response.sendRedirect(
-                    request.getContextPath() + "/buses/edit?id=" + busIdStr
-                            + "&error=Error: Invalid total seats format. Please enter a valid number");
         } catch (IllegalArgumentException e) {
             response.sendRedirect(
                     request.getContextPath() + "/admin/buses?error=Error: Invalid bus ID format");
@@ -380,6 +445,24 @@ public class BusController extends HttpServlet {
             request.getRequestDispatcher("/views/bus-detail.jsp").forward(request, response);
         } else {
             handleError(request, response, "Bus not found");
+        }
+    }
+
+    private int determineSeatsFromType(String busType) {
+        if (busType == null) {
+            return 0;
+        }
+        switch (busType) {
+            case "Bus 45 seats":
+                return 45;
+            case "Bus 35 seats":
+                return 35;
+            case "Bus 25 seats":
+                return 25;
+            case "Bus 16 seats":
+                return 16;
+            default:
+                return 0;
         }
     }
 
