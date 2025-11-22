@@ -229,9 +229,9 @@
                                     class="btn btn-outline-primary">
                                     <i class="fas fa-chart-line me-2"></i>Analytics
                                 </a>
-                                <a href="${pageContext.request.contextPath}/tickets/add" class="btn btn-primary">
-                                    <i class="fas fa-plus me-2"></i>New Ticket
-                                </a>
+                                <span class="badge bg-secondary align-self-center">
+                                    Tickets auto-created via bookings
+                                </span>
                             </div>
                         </div>
                     </div>
@@ -272,7 +272,17 @@
                                 <div class="d-flex align-items-center justify-content-between">
                                     <div>
                                         <div class="text-muted small">Total Tickets</div>
-                                        <div class="h4 mb-0">${tickets.size()}</div>
+                                        <div class="h4 mb-0">
+                                            <c:choose>
+                                                <c:when
+                                                    test="${not empty ticketStats and not empty ticketStats.totalTickets}">
+                                                    ${ticketStats.totalTickets}
+                                                </c:when>
+                                                <c:otherwise>
+                                                    ${tickets.size()}
+                                                </c:otherwise>
+                                            </c:choose>
+                                        </div>
                                     </div>
                                     <div class="kpi-icon kpi-total">
                                         <i class="fas fa-ticket-alt"></i>
@@ -286,13 +296,21 @@
                                     <div>
                                         <div class="text-muted small">Confirmed</div>
                                         <div class="h4 mb-0">
-                                            <c:set var="confirmedCount" value="0" />
-                                            <c:forEach var="t" items="${tickets}">
-                                                <c:if test="${t.status == 'CONFIRMED'}">
-                                                    <c:set var="confirmedCount" value="${confirmedCount + 1}" />
-                                                </c:if>
-                                            </c:forEach>
-                                            ${confirmedCount}
+                                            <c:choose>
+                                                <c:when
+                                                    test="${not empty ticketStats and not empty ticketStats.confirmedTickets}">
+                                                    ${ticketStats.confirmedTickets}
+                                                </c:when>
+                                                <c:otherwise>
+                                                    <c:set var="confirmedCount" value="0" />
+                                                    <c:forEach var="t" items="${tickets}">
+                                                        <c:if test="${t.status == 'CONFIRMED'}">
+                                                            <c:set var="confirmedCount" value="${confirmedCount + 1}" />
+                                                        </c:if>
+                                                    </c:forEach>
+                                                    ${confirmedCount}
+                                                </c:otherwise>
+                                            </c:choose>
                                         </div>
                                     </div>
                                     <div class="kpi-icon kpi-confirmed">
@@ -307,13 +325,21 @@
                                     <div>
                                         <div class="text-muted small">Pending</div>
                                         <div class="h4 mb-0">
-                                            <c:set var="pendingCount" value="0" />
-                                            <c:forEach var="t" items="${tickets}">
-                                                <c:if test="${t.status == 'PENDING'}">
-                                                    <c:set var="pendingCount" value="${pendingCount + 1}" />
-                                                </c:if>
-                                            </c:forEach>
-                                            ${pendingCount}
+                                            <c:choose>
+                                                <c:when
+                                                    test="${not empty ticketStats and not empty ticketStats.pendingTickets}">
+                                                    ${ticketStats.pendingTickets}
+                                                </c:when>
+                                                <c:otherwise>
+                                                    <c:set var="pendingCount" value="0" />
+                                                    <c:forEach var="t" items="${tickets}">
+                                                        <c:if test="${t.status == 'PENDING'}">
+                                                            <c:set var="pendingCount" value="${pendingCount + 1}" />
+                                                        </c:if>
+                                                    </c:forEach>
+                                                    ${pendingCount}
+                                                </c:otherwise>
+                                            </c:choose>
                                         </div>
                                     </div>
                                     <div class="kpi-icon kpi-pending">
@@ -328,13 +354,21 @@
                                     <div>
                                         <div class="text-muted small">Cancelled</div>
                                         <div class="h4 mb-0">
-                                            <c:set var="cancelledCount" value="0" />
-                                            <c:forEach var="t" items="${tickets}">
-                                                <c:if test="${t.status == 'CANCELLED'}">
-                                                    <c:set var="cancelledCount" value="${cancelledCount + 1}" />
-                                                </c:if>
-                                            </c:forEach>
-                                            ${cancelledCount}
+                                            <c:choose>
+                                                <c:when
+                                                    test="${not empty ticketStats and not empty ticketStats.cancelledTickets}">
+                                                    ${ticketStats.cancelledTickets}
+                                                </c:when>
+                                                <c:otherwise>
+                                                    <c:set var="cancelledCount" value="0" />
+                                                    <c:forEach var="t" items="${tickets}">
+                                                        <c:if test="${t.status == 'CANCELLED'}">
+                                                            <c:set var="cancelledCount" value="${cancelledCount + 1}" />
+                                                        </c:if>
+                                                    </c:forEach>
+                                                    ${cancelledCount}
+                                                </c:otherwise>
+                                            </c:choose>
                                         </div>
                                     </div>
                                     <div class="kpi-icon kpi-cancelled">
@@ -437,7 +471,7 @@
                                         <c:set var="passengerEmail"
                                             value="${not empty ticket.userEmail ? ticket.userEmail : ''}" />
                                         <c:set var="passengerPhone"
-                                            value="${ticket.user != null and not empty ticket.user.phoneNumber ? ticket.user.phoneNumber : ''}" />
+                                            value="${ticket.user != null and ticket.user.phoneNumber != null and not empty ticket.user.phoneNumber ? ticket.user.phoneNumber : '-'}" />
 
                                         <c:set var="safeRouteName"
                                             value="${not empty ticket.routeName ? ticket.routeName : '-'}" />
@@ -669,9 +703,9 @@
                                             </div>
                                         </div>
 
-                                        <!-- Station Information -->
+                                        <!-- Bus Station Information -->
                                         <div class="col-12">
-                                            <h6 class="text-muted text-uppercase small mb-2">Station Information</h6>
+                                            <h6 class="text-muted text-uppercase small mb-2">Bus Station Information</h6>
                                             <div class="card">
                                                 <div class="card-body">
                                                     <div class="row">
@@ -679,7 +713,7 @@
                                                             <strong class="d-block mb-2">
                                                                 <i
                                                                     class="fas fa-map-marker-alt text-success me-1"></i>Boarding
-                                                                Station
+                                                                Bus Station
                                                             </strong>
                                                             <div id="modal-boarding-station" class="fw-semibold">-</div>
                                                             <small class="text-muted" id="modal-boarding-city">-</small>
@@ -688,7 +722,7 @@
                                                             <strong class="d-block mb-2">
                                                                 <i
                                                                     class="fas fa-map-marker-alt text-danger me-1"></i>Drop-off
-                                                                Station
+                                                                Bus Station
                                                             </strong>
                                                             <div id="modal-dropoff-station" class="fw-semibold">-</div>
                                                             <small class="text-muted" id="modal-dropoff-city">-</small>
