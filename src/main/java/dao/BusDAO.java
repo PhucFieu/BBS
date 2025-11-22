@@ -34,7 +34,7 @@ public class BusDAO {
 
     public List<Bus> getAllBusesForAdmin() throws SQLException {
         List<Bus> buses = new ArrayList<>();
-        String sql = "SELECT * FROM Buses ORDER BY bus_number";
+        String sql = "SELECT * FROM Buses WHERE status != 'INACTIVE' ORDER BY bus_number";
         try (
                 Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql);
@@ -251,7 +251,7 @@ public class BusDAO {
     public List<Bus> searchBuses(String searchTerm) throws SQLException {
         List<Bus> buses = new ArrayList<>();
         String sql =
-                "SELECT * FROM Buses WHERE (bus_number LIKE ? OR bus_type LIKE ? OR license_plate LIKE ?) AND status = 'ACTIVE' ORDER BY bus_number";
+                "SELECT * FROM Buses WHERE (bus_number LIKE ? OR bus_type LIKE ? OR license_plate LIKE ?) AND status != 'INACTIVE' ORDER BY bus_number";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -282,6 +282,31 @@ public class BusDAO {
             }
         }
         return busTypes;
+    }
+
+    public boolean isLicensePlateExists(String licensePlate, UUID excludeBusId)
+            throws SQLException {
+        StringBuilder sql = new StringBuilder(
+                "SELECT COUNT(*) FROM Buses WHERE UPPER(license_plate) = ?");
+
+        if (excludeBusId != null) {
+            sql.append(" AND bus_id <> ?");
+        }
+
+        try (
+                Connection conn = DBConnection.getInstance().getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql.toString());) {
+            stmt.setString(1, licensePlate.toUpperCase());
+            if (excludeBusId != null) {
+                stmt.setObject(2, excludeBusId);
+            }
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1) > 0;
+                }
+            }
+        }
+        return false;
     }
 
     private Bus mapResultSetToBus(ResultSet rs) throws SQLException {
