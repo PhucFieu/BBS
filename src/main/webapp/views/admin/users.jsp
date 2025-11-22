@@ -234,17 +234,11 @@
                             <!-- Header Section -->
                             <div class="search-container">
                                 <div class="row align-items-center">
-                                    <div class="col-md-6">
+                                    <div class="col-12">
                                         <h2 class="mb-0">
                                             <i class="fas fa-users me-2"></i>Passenger Management
                                         </h2>
                                         <p class="mb-0 mt-2">Manage passenger accounts and information</p>
-                                    </div>
-                                    <div class="col-md-6 text-md-end">
-                                        <a href="${pageContext.request.contextPath}/admin/users/add"
-                                            class="btn btn-light btn-lg">
-                                            <i class="fas fa-plus me-2"></i>Add New Passenger
-                                        </a>
                                     </div>
                                 </div>
 
@@ -307,8 +301,7 @@
                                     <div class="text-center py-5">
                                         <i class="fas fa-users fa-3x text-muted mb-3"></i>
                                         <h4 class="text-muted">No passengers found</h4>
-                                        <p class="text-muted">Click "Add New Passenger" to create your first passenger
-                                        </p>
+                                        <p class="text-muted">Try adjusting your filters or search criteria.</p>
                                     </div>
                                 </c:when>
                                 <c:otherwise>
@@ -543,6 +536,23 @@
                                         </div>
                                     </div>
                                 </div>
+                                
+                                <!-- Tickets Section -->
+                                <hr class="my-4">
+                                <div class="mb-3">
+                                    <h6 class="mb-3">
+                                        <i class="fas fa-ticket-alt me-2 text-success"></i>Booked Tickets
+                                        <span class="badge bg-success ms-2" id="ticketCount">0</span>
+                                    </h6>
+                                    <div id="ticketsContainer">
+                                        <div class="text-center py-3">
+                                            <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                                <span class="visually-hidden">Loading...</span>
+                                            </div>
+                                            <small class="text-muted d-block mt-2">Loading tickets...</small>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                             <div class="modal-footer">
                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
@@ -560,12 +570,15 @@
                             if (userDetailModal) {
                                 userDetailModal.addEventListener('show.bs.modal', function (event) {
                                     var button = event.relatedTarget;
-                                    document.getElementById('detailUserId').textContent = button.getAttribute('data-userid');
+                                    var userId = button.getAttribute('data-userid');
+                                    var role = button.getAttribute('data-role');
+                                    
+                                    // Set user details
+                                    document.getElementById('detailUserId').textContent = userId;
                                     document.getElementById('detailFullName').textContent = button.getAttribute('data-fullname');
                                     document.getElementById('detailUsername').textContent = button.getAttribute('data-username');
                                     document.getElementById('detailEmail').textContent = button.getAttribute('data-email');
                                     document.getElementById('detailPhone').textContent = button.getAttribute('data-phone');
-                                    var role = button.getAttribute('data-role');
                                     var roleText = role === 'USER' ? 'PASSENGER' : role;
                                     var roleClass = role === 'ADMIN' ? 'role-admin' : role === 'DRIVER' ? 'role-driver' : 'role-user';
                                     document.getElementById('detailRole').innerHTML = '<span class="role-badge ' + roleClass + '">' + roleText + '</span>';
@@ -575,9 +588,83 @@
                                             ? '<span class="badge bg-success">Active</span>'
                                             : '<span class="badge bg-danger">Inactive</span>';
                                     document.getElementById('detailCreatedDate').textContent = button.getAttribute('data-createddate');
+                                    
+                                    // Load tickets if user is a passenger
+                                    if (role === 'USER') {
+                                        loadUserTickets(userId);
+                                    } else {
+                                        document.getElementById('ticketsContainer').innerHTML = '<div class="text-center py-3"><small class="text-muted">No tickets available for this user type.</small></div>';
+                                        document.getElementById('ticketCount').textContent = '0';
+                                    }
                                 });
                             }
                         });
+                        
+                        function loadUserTickets(userId) {
+                            var ticketsContainer = document.getElementById('ticketsContainer');
+                            ticketsContainer.innerHTML = '<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary" role="status"><span class="visually-hidden">Loading...</span></div><small class="text-muted d-block mt-2">Loading tickets...</small></div>';
+                            
+                            fetch('${pageContext.request.contextPath}/passengers/tickets?userId=' + userId)
+                                .then(response => response.json())
+                                .then(data => {
+                                    if (data.success && data.tickets) {
+                                        document.getElementById('ticketCount').textContent = data.count || 0;
+                                        
+                                        if (data.tickets.length === 0) {
+                                            ticketsContainer.innerHTML = '<div class="text-center py-3"><i class="fas fa-ticket-alt fa-2x text-muted mb-2"></i><p class="text-muted mb-0">No tickets found for this passenger.</p></div>';
+                                        } else {
+                                            var ticketsHtml = '<div class="list-group">';
+                                            data.tickets.forEach(function(ticket) {
+                                                var statusClass = ticket.status === 'CONFIRMED' ? 'bg-success' : 
+                                                                 ticket.status === 'COMPLETED' ? 'bg-primary' : 
+                                                                 ticket.status === 'PENDING' ? 'bg-warning' : 'bg-secondary';
+                                                var paymentClass = ticket.paymentStatus === 'PAID' ? 'bg-success' : 'bg-warning';
+                                                
+                                                var departureDate = ticket.departureDate ? new Date(ticket.departureDate).toLocaleDateString('en-GB') : '-';
+                                                var departureTime = ticket.departureTime ? ticket.departureTime.substring(0, 5) : '-';
+                                                
+                                                ticketsHtml += '<div class="list-group-item">';
+                                                ticketsHtml += '<div class="d-flex justify-content-between align-items-start mb-2">';
+                                                ticketsHtml += '<div><strong>' + ticket.ticketNumber + '</strong></div>';
+                                                ticketsHtml += '<div><span class="badge ' + statusClass + ' me-1">' + ticket.status + '</span>';
+                                                ticketsHtml += '<span class="badge ' + paymentClass + '">' + ticket.paymentStatus + '</span></div>';
+                                                ticketsHtml += '</div>';
+                                                ticketsHtml += '<div class="row g-2 small">';
+                                                ticketsHtml += '<div class="col-12"><strong>Route:</strong> ' + (ticket.routeName || '-') + ' (' + (ticket.departureCity || '') + ' → ' + (ticket.destinationCity || '') + ')</div>';
+                                                ticketsHtml += '<div class="col-6"><strong>Departure:</strong> ' + departureDate + ' ' + departureTime + '</div>';
+                                                ticketsHtml += '<div class="col-6"><strong>Seat:</strong> ' + (ticket.seatNumber || '-') + ' | <strong>Bus:</strong> ' + (ticket.busNumber || '-') + '</div>';
+                                                if (ticket.boardingStationName || ticket.alightingStationName) {
+                                                    ticketsHtml += '<div class="col-12"><strong>Stations:</strong> ';
+                                                    if (ticket.boardingStationName) {
+                                                        ticketsHtml += 'Boarding: ' + ticket.boardingStationName;
+                                                        if (ticket.boardingCity) ticketsHtml += ' (' + ticket.boardingCity + ')';
+                                                    }
+                                                    if (ticket.boardingStationName && ticket.alightingStationName) ticketsHtml += ' | ';
+                                                    if (ticket.alightingStationName) {
+                                                        ticketsHtml += 'Alighting: ' + ticket.alightingStationName;
+                                                        if (ticket.alightingCity) ticketsHtml += ' (' + ticket.alightingCity + ')';
+                                                    }
+                                                    ticketsHtml += '</div>';
+                                                }
+                                                if (ticket.ticketPrice) {
+                                                    ticketsHtml += '<div class="col-12"><strong>Price:</strong> <span class="text-success">' + new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(ticket.ticketPrice) + '</span></div>';
+                                                }
+                                                ticketsHtml += '</div></div>';
+                                            });
+                                            ticketsHtml += '</div>';
+                                            ticketsContainer.innerHTML = ticketsHtml;
+                                        }
+                                    } else {
+                                        ticketsContainer.innerHTML = '<div class="alert alert-warning"><small>Error loading tickets: ' + (data.error || 'Unknown error') + '</small></div>';
+                                        document.getElementById('ticketCount').textContent = '0';
+                                    }
+                                })
+                                .catch(error => {
+                                    console.error('Error loading tickets:', error);
+                                    ticketsContainer.innerHTML = '<div class="alert alert-danger"><small>Error loading tickets. Please try again.</small></div>';
+                                    document.getElementById('ticketCount').textContent = '0';
+                                });
+                        }
                     </script>
                     <script>
                         function confirmDelete(userId, el) {
