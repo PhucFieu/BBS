@@ -39,8 +39,6 @@ public class UserManagementController extends HttpServlet {
                 }
                 if ("/".equals(pathInfo)) {
                     showUsers(request, response);
-                } else if ("/add".equals(pathInfo)) {
-                    showAddUserForm(request, response);
                 } else if ("/edit".equals(pathInfo)) {
                     showEditUserForm(request, response);
                 } else if ("/delete".equals(pathInfo)) {
@@ -77,9 +75,7 @@ public class UserManagementController extends HttpServlet {
                     response.sendRedirect(request.getContextPath() + "/auth/login");
                     return;
                 }
-                if ("/add".equals(pathInfo)) {
-                    addUser(request, response);
-                } else if ("/update".equals(pathInfo)) {
+                if ("/update".equals(pathInfo)) {
                     updateUser(request, response);
                 } else {
                     response.sendError(HttpServletResponse.SC_NOT_FOUND);
@@ -110,11 +106,6 @@ public class UserManagementController extends HttpServlet {
         request.setAttribute("roleFilter", "USER");
 
         request.getRequestDispatcher("/views/admin/users.jsp").forward(request, response);
-    }
-
-    private void showAddUserForm(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        request.getRequestDispatcher("/views/admin/add-user-form.jsp").forward(request, response);
     }
 
     private void showEditUserForm(HttpServletRequest request, HttpServletResponse response)
@@ -202,71 +193,6 @@ public class UserManagementController extends HttpServlet {
             }
         } catch (IllegalArgumentException e) {
             response.sendRedirect(request.getContextPath() + "/admin/users?error=Invalid user ID");
-        }
-    }
-
-    private void addUser(HttpServletRequest request, HttpServletResponse response)
-            throws SQLException, IOException {
-        UserDAO userDAO = baseController.userDAO;
-        String username = request.getParameter("username");
-        String password = request.getParameter("password");
-        String fullName = request.getParameter("fullName");
-        String email = request.getParameter("email");
-        String phoneNumber = request.getParameter("phoneNumber");
-
-        // Validate input
-        if (username == null || password == null || fullName == null || email == null) {
-            response.sendRedirect(
-                    request.getContextPath() + "/admin/users?error=All fields are required");
-            return;
-        }
-
-        // Check if username already exists
-        User existingUser = userDAO.getUserByUsername(username);
-        if (existingUser != null) {
-            response.sendRedirect(
-                    request.getContextPath() + "/admin/users?error=Username already exists");
-            return;
-        }
-
-        // Check if email already exists
-        existingUser = userDAO.getUserByEmail(email);
-        if (existingUser != null) {
-            response.sendRedirect(
-                    request.getContextPath() + "/admin/users?error=Email already exists");
-            return;
-        }
-
-        // Check if phone number already exists (if provided)
-        if (phoneNumber != null && !phoneNumber.trim().isEmpty()) {
-            existingUser = userDAO.getUserByPhone(phoneNumber);
-            if (existingUser != null) {
-                response.sendRedirect(request.getContextPath()
-                        + "/admin/users?error=Phone number already exists");
-                return;
-            }
-        }
-
-        // Create new user - always as passenger (USER)
-        User user = new User(username, password, fullName, email, phoneNumber, "USER");
-        String status = request.getParameter("status");
-        if (status != null) {
-            user.setStatus(status);
-        }
-
-        // Explicitly set optional fields to null to avoid unique constraint issues
-        user.setIdCard(null);
-        user.setAddress(null);
-        user.setGender(null);
-        user.setDateOfBirth(null);
-        boolean success = userDAO.addUser(user);
-
-        if (success) {
-            response.sendRedirect(
-                    request.getContextPath() + "/admin/users?message=User added successfully");
-        } else {
-            response.sendRedirect(
-                    request.getContextPath() + "/admin/users?error=Failed to add user");
         }
     }
 
