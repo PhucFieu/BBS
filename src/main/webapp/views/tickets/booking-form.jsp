@@ -154,6 +154,74 @@
                                 margin-top: 30px;
                             }
 
+                            .station-timeline {
+                                margin-top: 20px;
+                                background: white;
+                                border-radius: 16px;
+                                padding: 20px;
+                                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+                            }
+
+                            .timeline-track {
+                                display: flex;
+                                align-items: center;
+                                gap: 12px;
+                                overflow-x: auto;
+                                padding: 10px 0;
+                            }
+
+                            .timeline-stop {
+                                min-width: 140px;
+                                padding: 12px;
+                                border-radius: 12px;
+                                border: 2px solid #e2e8f0;
+                                background: #f8fafc;
+                                text-align: center;
+                                transition: all 0.2s ease;
+                            }
+
+                            .timeline-stop.terminal {
+                                border-color: #66bb6a;
+                                background: #e8f5e9;
+                            }
+
+                            .timeline-stop.active {
+                                border-color: #4fc3f7;
+                                background: #e0f7fa;
+                                box-shadow: 0 4px 12px rgba(79, 195, 247, 0.35);
+                            }
+
+                            .timeline-connector {
+                                flex: 1;
+                                height: 4px;
+                                border-radius: 4px;
+                                background: #e2e8f0;
+                            }
+
+                            .timeline-connector.active {
+                                background: linear-gradient(90deg, #4fc3f7 0%, #66bb6a 100%);
+                            }
+
+                            .stop-sequence {
+                                font-size: 0.75rem;
+                                font-weight: 700;
+                                color: #64748b;
+                                text-transform: uppercase;
+                                letter-spacing: 0.08em;
+                                margin-bottom: 6px;
+                            }
+
+                            .stop-name {
+                                font-weight: 700;
+                                color: #1e293b;
+                            }
+
+                            .stop-city {
+                                font-size: 0.8rem;
+                                color: #64748b;
+                            }
+
+
                             .form-label {
                                 font-weight: 600;
                                 color: var(--text-dark);
@@ -463,6 +531,10 @@
                                 <c:if test="${not empty route}">
                                     <!-- Hidden input to store routeId for JavaScript -->
                                     <input type="hidden" id="routeIdValue" value="${route.routeId}" />
+                                    <c:if test="${not empty selectedSchedule}">
+                                        <input type="hidden" id="preselectedScheduleId"
+                                            value="${selectedSchedule.scheduleId}" />
+                                    </c:if>
 
                                     <!-- Route Info -->
                                     <div class="route-info-card">
@@ -590,37 +662,68 @@
                                                 </c:forEach>
                                             </div>
 
-                                            <!-- Station Selection -->
-                                            <div id="stationSelection" class="station-selection" style="display: none;">
+                                            <!-- Bus Station Selection -->
+                                            <div id="stationSelection" class="station-selection"
+                                                style="${not empty selectedSchedule ? '' : 'display: none;'}">
                                                 <h4 class="mb-4">
-                                                    <i class="fas fa-map-marker-alt me-2"></i>Select Boarding and
-                                                    Drop-off Stations
+                                                    <i class="fas fa-map-marker-alt me-2"></i>Select Boarding and Drop-off Bus Stations
                                                 </h4>
-                                                <div class="row mb-4">
-                                                    <div class="col-md-6">
+                                                
+                                                <div class="alert alert-info mb-4">
+                                                    <i class="fas fa-info-circle me-2"></i>
+                                                    <strong>Note:</strong> Please select a schedule first to load available stations. 
+                                                    The drop-off station must come after the boarding station on the route.
+                                                </div>
+
+                                                <!-- Loading indicator -->
+                                                <div id="stationLoadingIndicator" class="text-center py-3" style="display: none;">
+                                                    <i class="fas fa-spinner fa-spin me-2"></i>
+                                                    <span>Loading stations...</span>
+                                                </div>
+
+                                                <!-- Error message -->
+                                                <div id="stationError" class="alert alert-danger" style="display: none;">
+                                                    <i class="fas fa-exclamation-circle me-2"></i>
+                                                    <span id="stationErrorMessage"></span>
+                                                </div>
+
+                                                <div class="row">
+                                                    <div class="col-md-6 mb-3">
                                                         <label for="boardingStationId" class="form-label">
-                                                            <i class="fas fa-sign-in-alt me-2"></i>Boarding Station
+                                                            <i class="fas fa-sign-in-alt me-2"></i>Boarding Bus Station
                                                             <span class="text-danger">*</span>
                                                         </label>
                                                         <select class="form-select" id="boardingStationId"
-                                                            name="boardingStationId" required>
-                                                            <option value="">-- Select boarding station --</option>
+                                                            name="boardingStationId" required disabled>
+                                                            <option value="">-- Select boarding bus station --</option>
                                                         </select>
-                                                        <small class="form-text text-muted">Choose where you will board
-                                                            the bus</small>
+                                                        <small class="form-text text-muted">
+                                                            Choose where you will board the bus
+                                                        </small>
                                                     </div>
-                                                    <div class="col-md-6">
+                                                    <div class="col-md-6 mb-3">
                                                         <label for="alightingStationId" class="form-label">
-                                                            <i class="fas fa-sign-out-alt me-2"></i>Drop-off Station
+                                                            <i class="fas fa-sign-out-alt me-2"></i>Drop-off Bus Station
                                                             <span class="text-danger">*</span>
                                                         </label>
                                                         <select class="form-select" id="alightingStationId"
-                                                            name="alightingStationId" required>
-                                                            <option value="">-- Select drop-off station --</option>
+                                                            name="alightingStationId" required disabled>
+                                                            <option value="">-- Select drop-off bus station --</option>
                                                         </select>
-                                                        <small class="form-text text-muted">Choose where you will get
-                                                            off the bus</small>
+                                                        <small class="form-text text-muted">
+                                                            Choose where you will get off the bus
+                                                        </small>
                                                     </div>
+                                                </div>
+                                                <div id="stationTimeline" class="station-timeline" style="display: none;">
+                                                    <div class="d-flex align-items-center gap-2 mb-3">
+                                                        <i class="fas fa-route text-success fa-lg"></i>
+                                                        <div>
+                                                            <strong>Route stop overview</strong>
+                                                            <div class="text-muted small">Highlighted section represents your selected journey</div>
+                                                        </div>
+                                                    </div>
+                                                    <div id="stationTimelineTrack" class="timeline-track"></div>
                                                 </div>
                                             </div>
 
@@ -675,14 +778,261 @@
                                     // Get routeId from hidden input or URL
                                     const routeIdInput = document.getElementById('routeIdValue');
                                     const routeIdFromJSP = routeIdInput ? routeIdInput.value : null;
+                                    const preselectedScheduleInput = document.getElementById('preselectedScheduleId');
+                                    const preselectedScheduleId = preselectedScheduleInput ? preselectedScheduleInput.value : null;
 
                                     let selectedScheduleId = null;
                                     let selectedSeat = null;
-                                    let routeStations = [];
 
-                                    // Load stations when route is available
-                                    if (routeIdFromJSP) {
-                                        loadRouteStations(routeIdFromJSP);
+                                    // Station selection elements
+                                    const boardingSelect = document.getElementById('boardingStationId');
+                                    const alightingSelect = document.getElementById('alightingStationId');
+                                    const stationLoadingIndicator = document.getElementById('stationLoadingIndicator');
+                                    const stationError = document.getElementById('stationError');
+                                    const stationErrorMessage = document.getElementById('stationErrorMessage');
+                                    const stationTimeline = document.getElementById('stationTimeline');
+                                    const stationTimelineTrack = document.getElementById('stationTimelineTrack');
+
+                                    let currentStations = [];
+
+                                    /**
+                                     * Show loading indicator
+                                     */
+                                    function showStationLoading() {
+                                        stationLoadingIndicator.style.display = 'block';
+                                        stationError.style.display = 'none';
+                                        boardingSelect.disabled = true;
+                                        alightingSelect.disabled = true;
+                                    }
+
+                                    /**
+                                     * Hide loading indicator
+                                     */
+                                    function hideStationLoading() {
+                                        stationLoadingIndicator.style.display = 'none';
+                                        boardingSelect.disabled = false;
+                                        alightingSelect.disabled = false;
+                                    }
+
+                                    /**
+                                     * Show error message
+                                     */
+                                    function showStationError(message) {
+                                        stationError.style.display = 'block';
+                                        stationErrorMessage.textContent = message;
+                                        hideStationLoading();
+                                        currentStations = [];
+                                        renderStationTimeline();
+                                    }
+
+                                    /**
+                                     * Hide error message
+                                     */
+                                    function hideStationError() {
+                                        stationError.style.display = 'none';
+                                    }
+
+                                    function computeHighlightRange() {
+                                        if (!boardingSelect.value || !alightingSelect.value) {
+                                            return null;
+                                        }
+                                        const startIndex = currentStations.findIndex(
+                                            station => station.stationId === boardingSelect.value);
+                                        const endIndex = currentStations.findIndex(
+                                            station => station.stationId === alightingSelect.value);
+                                        if (startIndex === -1 || endIndex === -1 || endIndex <= startIndex) {
+                                            return null;
+                                        }
+                                        return { start: startIndex, end: endIndex };
+                                    }
+
+                                    function renderStationTimeline() {
+                                        if (!stationTimeline || !stationTimelineTrack) {
+                                            return;
+                                        }
+                                        stationTimelineTrack.innerHTML = '';
+                                        if (!currentStations || currentStations.length === 0) {
+                                            stationTimeline.style.display = 'none';
+                                            return;
+                                        }
+                                        stationTimeline.style.display = 'block';
+                                        const highlightRange = computeHighlightRange();
+                                        currentStations.forEach((station, index) => {
+                                            const stopEl = document.createElement('div');
+                                            stopEl.className = 'timeline-stop';
+                                            if (index === 0 || index === currentStations.length - 1) {
+                                                stopEl.classList.add('terminal');
+                                            }
+                                            if (highlightRange && index >= highlightRange.start && index <= highlightRange.end) {
+                                                stopEl.classList.add('active');
+                                            }
+
+                                            const stopSequence = document.createElement('div');
+                                            stopSequence.className = 'stop-sequence';
+                                            stopSequence.textContent = 'Stop ' + (station.sequenceNumber || (index + 1));
+
+                                            const stopName = document.createElement('div');
+                                            stopName.className = 'stop-name';
+                                            stopName.textContent = station.stationName || 'Station';
+
+                                            const stopCity = document.createElement('div');
+                                            stopCity.className = 'stop-city';
+                                            stopCity.textContent = station.city || '';
+
+                                            stopEl.appendChild(stopSequence);
+                                            stopEl.appendChild(stopName);
+                                            stopEl.appendChild(stopCity);
+                                            stationTimelineTrack.appendChild(stopEl);
+
+                                            if (index < currentStations.length - 1) {
+                                                const connector = document.createElement('div');
+                                                connector.className = 'timeline-connector';
+                                                if (highlightRange && index >= highlightRange.start && index < highlightRange.end) {
+                                                    connector.classList.add('active');
+                                                }
+                                                stationTimelineTrack.appendChild(connector);
+                                            }
+                                        });
+                                    }
+
+                                    /**
+                                     * Create station option element
+                                     */
+                                    function createStationOption(station, sequenceNumber) {
+                                        const option = document.createElement('option');
+                                        option.value = station.stationId;
+                                        option.setAttribute('data-order', sequenceNumber || '0');
+                                        
+                                        let label = station.stationName || 'Station';
+                                        if (station.city) {
+                                            label += ' - ' + station.city;
+                                        }
+                                        if (station.address) {
+                                            label += ' (' + station.address + ')';
+                                        }
+                                        if (sequenceNumber) {
+                                            label += ' [Stop ' + sequenceNumber + ']';
+                                        }
+                                        
+                                        option.textContent = label;
+                                        return option;
+                                    }
+
+                                    /**
+                                     * Populate station dropdowns
+                                     */
+                                    function populateStationDropdowns(stations) {
+                                        // Clear existing options
+                                        boardingSelect.innerHTML = '<option value="">-- Select boarding bus station --</option>';
+                                        alightingSelect.innerHTML = '<option value="">-- Select drop-off bus station --</option>';
+
+                                        if (!stations || stations.length === 0) {
+                                            showStationError('No stations available for this schedule.');
+                                            return;
+                                        }
+
+                                        // Add stations to both dropdowns
+                                        stations.forEach(station => {
+                                            const sequenceNumber = station.sequenceNumber || 0;
+                                            const boardingOption = createStationOption(station, sequenceNumber);
+                                            const alightingOption = createStationOption(station, sequenceNumber);
+                                            
+                                            boardingSelect.appendChild(boardingOption);
+                                            alightingSelect.appendChild(alightingOption);
+                                        });
+
+                                        hideStationLoading();
+                                        hideStationError();
+                                        currentStations = stations || [];
+                                        renderStationTimeline();
+                                    }
+
+                                    /**
+                                     * Load stations for a schedule
+                                     */
+                                    function loadScheduleStations(scheduleId) {
+                                        if (!scheduleId) {
+                                            showStationError('Schedule ID is required.');
+                                            return;
+                                        }
+
+                                        showStationLoading();
+                                        hideStationError();
+
+                                        fetch('${pageContext.request.contextPath}/tickets/get-stations-by-schedule?scheduleId=' + encodeURIComponent(scheduleId))
+                                            .then(response => {
+                                                if (!response.ok) {
+                                                    throw new Error('HTTP error! status: ' + response.status);
+                                                }
+                                                return response.json();
+                                            })
+                                            .then(data => {
+                                                if (data.error) {
+                                                    // Try fallback to route stations
+                                                    if (routeIdFromJSP) {
+                                                        loadRouteStations(routeIdFromJSP);
+                                                    } else {
+                                                        showStationError('Error loading stations: ' + data.error);
+                                                    }
+                                                    return;
+                                                }
+
+                                                if (data.stations && data.stations.length > 0) {
+                                                    populateStationDropdowns(data.stations);
+                                                } else {
+                                                    // Fallback to route stations
+                                                    if (routeIdFromJSP) {
+                                                        loadRouteStations(routeIdFromJSP);
+                                                    } else {
+                                                        showStationError('No stations available for this schedule.');
+                                                    }
+                                                }
+                                            })
+                                            .catch(error => {
+                                                console.error('Error loading stations:', error);
+                                                // Try fallback to route stations
+                                                if (routeIdFromJSP) {
+                                                    loadRouteStations(routeIdFromJSP);
+                                                } else {
+                                                    showStationError('Unable to load stations. Please try again.');
+                                                }
+                                            });
+                                    }
+
+                                    /**
+                                     * Load stations from route (fallback)
+                                     */
+                                    function loadRouteStations(routeId) {
+                                        if (!routeId) {
+                                            showStationError('Route ID is required.');
+                                            return;
+                                        }
+
+                                        showStationLoading();
+
+                                        fetch('${pageContext.request.contextPath}/tickets/get-stations-by-route?routeId=' + encodeURIComponent(routeId))
+                                            .then(response => {
+                                                if (!response.ok) {
+                                                    throw new Error('HTTP error! status: ' + response.status);
+                                                }
+                                                return response.json();
+                                            })
+                                            .then(data => {
+                                                if (data.error) {
+                                                    showStationError('Error loading stations: ' + data.error);
+                                                    return;
+                                                }
+
+                                                if (data.stations && data.stations.length > 0) {
+                                                    populateStationDropdowns(data.stations);
+                                                } else {
+                                                    showStationError('No stations available for this route.');
+                                                }
+                                            })
+                                            .catch(error => {
+                                                console.error('Error loading route stations:', error);
+                                                showStationError('Unable to load stations. Please try again.');
+                                            });
                                     }
 
                                     // Filter functionality
@@ -716,7 +1066,7 @@
                                             const isExpired = this.dataset.expired === 'true';
 
                                             if (isExpired) {
-                                                alert('Past departure: This schedule has expired and cannot be booked.');
+                                                alert('This schedule has expired and cannot be booked.');
                                                 return;
                                             }
 
@@ -729,73 +1079,51 @@
                                             this.classList.add('selected');
                                             selectedScheduleId = this.dataset.scheduleId;
 
-                                            // Show station selection first, then seat selection
-                                            if (routeStations.length > 0) {
-                                                document.getElementById('stationSelection').style.display = 'block';
-                                                document.getElementById('seatSelection').classList.remove('active');
-                                                resetStationSelection();
-                                            } else {
-                                                // If no stations, go directly to seat selection
-                                                document.getElementById('stationSelection').style.display = 'none';
-                                                document.getElementById('seatSelection').classList.add('active');
-                                                loadAvailableSeats(selectedScheduleId);
+                                            // Show station selection
+                                            document.getElementById('stationSelection').style.display = 'block';
+                                            
+                                            // Reset station selection
+                                            resetStationSelection();
+                                            
+                                            // Load stations for this schedule
+                                            if (selectedScheduleId) {
+                                                loadScheduleStations(selectedScheduleId);
+                                            } else if (routeIdFromJSP) {
+                                                loadRouteStations(routeIdFromJSP);
                                             }
+
+                                            // Hide seat selection until stations are selected
+                                            document.getElementById('seatSelection').classList.remove('active');
+                                            document.getElementById('btnBook').disabled = true;
+                                            selectedSeat = null;
                                         });
                                     });
 
-                                    // Load route stations
-                                    function loadRouteStations(routeId) {
-                                        fetch('${pageContext.request.contextPath}/tickets/route-stations?routeId=' + routeId)
-                                            .then(response => response.json())
-                                            .then(data => {
-                                                if (data.stations && data.stations.length > 0) {
-                                                    routeStations = data.stations;
-                                                    populateStationDropdowns(data.stations);
-                                                }
-                                            })
-                                            .catch(error => {
-                                                console.error('Error loading stations:', error);
-                                            });
+                                    // Handle preselected schedule
+                                    if (preselectedScheduleId) {
+                                        const preselectedCard = document.querySelector('.schedule-card[data-schedule-id="' + preselectedScheduleId + '"]');
+                                        if (preselectedCard) {
+                                            preselectedCard.classList.add('selected');
+                                            selectedScheduleId = preselectedScheduleId;
+                                            document.getElementById('stationSelection').style.display = 'block';
+                                            resetStationSelection();
+                                            loadScheduleStations(preselectedScheduleId);
+                                        }
                                     }
 
-                                    // Populate station dropdowns
-                                    function populateStationDropdowns(stations) {
-                                        const boardingSelect = document.getElementById('boardingStationId');
-                                        const alightingSelect = document.getElementById('alightingStationId');
-
-                                        // Clear existing options except the first one
-                                        boardingSelect.innerHTML = '<option value="">-- Select boarding station --</option>';
-                                        alightingSelect.innerHTML = '<option value="">-- Select drop-off station --</option>';
-
-                                        // Add stations to both dropdowns
-                                        stations.forEach(station => {
-                                            // Boarding station option
-                                            const boardingOption = document.createElement('option');
-                                            boardingOption.value = station.stationId;
-                                            boardingOption.textContent = station.stationName + ' (' + station.city + ')';
-                                            boardingOption.setAttribute('data-order', station.stopOrder);
-                                            boardingSelect.appendChild(boardingOption);
-
-                                            // Alighting station option
-                                            const alightingOption = document.createElement('option');
-                                            alightingOption.value = station.stationId;
-                                            alightingOption.textContent = station.stationName + ' (' + station.city + ')';
-                                            alightingOption.setAttribute('data-order', station.stopOrder);
-                                            alightingSelect.appendChild(alightingOption);
-                                        });
-                                    }
-
-                                    // Handle boarding station change - disable alighting stations before boarding
-                                    document.getElementById('boardingStationId').addEventListener('change', function () {
+                                    /**
+                                     * Handle boarding station change
+                                     */
+                                    boardingSelect.addEventListener('change', function () {
                                         const boardingOrder = this.selectedOptions[0]?.getAttribute('data-order');
-                                        const alightingSelect = document.getElementById('alightingStationId');
-
+                                        
                                         if (boardingOrder) {
+                                            const boardingOrderInt = parseInt(boardingOrder);
+
                                             // Enable/disable alighting options based on stop order
                                             Array.from(alightingSelect.options).forEach(option => {
                                                 if (option.value && option.getAttribute('data-order')) {
                                                     const alightingOrder = parseInt(option.getAttribute('data-order'));
-                                                    const boardingOrderInt = parseInt(boardingOrder);
 
                                                     if (alightingOrder <= boardingOrderInt) {
                                                         option.disabled = true;
@@ -807,54 +1135,102 @@
                                                 }
                                             });
 
-                                            // If current alighting selection is invalid, clear it
+                                            // Clear alighting if current selection is invalid
                                             const selectedAlighting = alightingSelect.selectedOptions[0];
-                                            if (selectedAlighting && selectedAlighting.disabled) {
+                                            if (selectedAlighting && (selectedAlighting.disabled || !selectedAlighting.value)) {
                                                 alightingSelect.value = '';
                                             }
-
-                                            // If boarding is selected, show seat selection
-                                            if (this.value && alightingSelect.value) {
-                                                validateAndShowSeatSelection();
-                                            }
+                                        }
+                                        renderStationTimeline();
+                                        // Validate and show seat selection if both stations are selected
+                                        if (this.value && alightingSelect.value) {
+                                            validateAndShowSeatSelection();
+                                        } else {
+                                            document.getElementById('seatSelection').classList.remove('active');
+                                            document.getElementById('btnBook').disabled = true;
                                         }
                                     });
 
-                                    // Handle alighting station change
-                                    document.getElementById('alightingStationId').addEventListener('change', function () {
-                                        const boardingSelect = document.getElementById('boardingStationId');
+                                    /**
+                                     * Handle alighting station change
+                                     */
+                                    alightingSelect.addEventListener('change', function () {
+                                        renderStationTimeline();
                                         if (boardingSelect.value && this.value) {
                                             validateAndShowSeatSelection();
+                                        } else {
+                                            document.getElementById('seatSelection').classList.remove('active');
+                                            document.getElementById('btnBook').disabled = true;
                                         }
                                     });
 
-                                    // Validate stations and show seat selection
+                                    /**
+                                     * Validate stations and show seat selection
+                                     */
                                     function validateAndShowSeatSelection() {
-                                        const boardingSelect = document.getElementById('boardingStationId');
-                                        const alightingSelect = document.getElementById('alightingStationId');
+                                        if (!boardingSelect.value || !alightingSelect.value) {
+                                            document.getElementById('seatSelection').classList.remove('active');
+                                            document.getElementById('btnBook').disabled = true;
+                                            renderStationTimeline();
+                                            return;
+                                        }
 
-                                        if (boardingSelect.value && alightingSelect.value) {
-                                            const boardingOrder = parseInt(boardingSelect.selectedOptions[0].getAttribute('data-order'));
-                                            const alightingOrder = parseInt(alightingSelect.selectedOptions[0].getAttribute('data-order'));
+                                        // Check if stations are the same
+                                        if (boardingSelect.value === alightingSelect.value) {
+                                            alert('Boarding and drop-off stations must be different.');
+                                            alightingSelect.value = '';
+                                            document.getElementById('seatSelection').classList.remove('active');
+                                            document.getElementById('btnBook').disabled = true;
+                                            renderStationTimeline();
+                                            return;
+                                        }
 
-                                            if (alightingOrder > boardingOrder) {
-                                                // Valid selection, show seat selection
-                                                document.getElementById('seatSelection').classList.add('active');
-                                                loadAvailableSeats(selectedScheduleId);
-                                            } else {
-                                                alert('Drop-off station must come after boarding station');
+                                        // Validate order
+                                        const boardingOrder = boardingSelect.selectedOptions[0]?.getAttribute('data-order');
+                                        const alightingOrder = alightingSelect.selectedOptions[0]?.getAttribute('data-order');
+
+                                        if (boardingOrder && alightingOrder) {
+                                            const boardingOrderInt = parseInt(boardingOrder);
+                                            const alightingOrderInt = parseInt(alightingOrder);
+
+                                            if (alightingOrderInt <= boardingOrderInt) {
+                                                alert('Drop-off station must come after boarding station on the route.');
                                                 alightingSelect.value = '';
+                                                document.getElementById('seatSelection').classList.remove('active');
+                                                document.getElementById('btnBook').disabled = true;
+                                                renderStationTimeline();
+                                                return;
                                             }
                                         }
+
+                                        // Valid selection - show seat selection
+                                        document.getElementById('seatSelection').classList.add('active');
+                                        if (selectedScheduleId) {
+                                            loadAvailableSeats(selectedScheduleId);
+                                        }
+                                        renderStationTimeline();
                                     }
 
-                                    // Reset station selection
+                                    /**
+                                     * Reset station selection
+                                     */
                                     function resetStationSelection() {
-                                        document.getElementById('boardingStationId').value = '';
-                                        document.getElementById('alightingStationId').value = '';
+                                        boardingSelect.value = '';
+                                        alightingSelect.value = '';
+                                        document.getElementById('seatSelection').classList.remove('active');
                                         document.getElementById('btnBook').disabled = true;
                                         selectedSeat = null;
+
+                                        // Reset alighting options - enable all
+                                        Array.from(alightingSelect.options).forEach(option => {
+                                            if (option.value) {
+                                                option.disabled = false;
+                                                option.style.display = '';
+                                            }
+                                        });
+                                        renderStationTimeline();
                                     }
+
 
                                     // Realistic bus seat layout mapping
                                     // Creates a layout similar to real buses with A seats (left) and B seats (right)
@@ -978,7 +1354,7 @@
 
                                                 if (item.type === 'aisle') {
                                                     const aisle = document.createElement('div');
-                                                    aisle.className = `aisle ${item.wide ? 'wide' : ''}`;
+                                                    aisle.className = 'aisle ' + (item.wide ? 'wide' : '');
                                                     aisle.textContent = '│';
                                                     seatRow.appendChild(aisle);
                                                 } else if (item.number && item.number <= totalSeats) {
@@ -999,7 +1375,7 @@
 
                                                     const numberDiv = document.createElement('div');
                                                     numberDiv.className = 'seat-number';
-                                                    numberDiv.textContent = `#${item.number}`;
+                                                    numberDiv.textContent = '#' + item.number;
                                                     seat.appendChild(numberDiv);
 
                                                     // Add position hint
@@ -1008,7 +1384,7 @@
                                                     const positionText = item.position === 'window' ? 'Window' : 'Aisle';
                                                     const sideText = item.side === 'A' ? 'Left' : 'Right';
                                                     const rowText = rowIndex < 3 ? 'Front' : 'Back';
-                                                    hint.textContent = `${positionText} - ${sideText} - ${rowText}`;
+                                                    hint.textContent = positionText + ' - ' + sideText + ' - ' + rowText;
                                                     seat.appendChild(hint);
 
                                                     if (!isBooked) {
@@ -1022,13 +1398,11 @@
                                                             this.classList.add('selected');
                                                             selectedSeat = item.number;
 
-                                                            // Check if stations are selected (if stations exist)
-                                                            const boardingStationId = document.getElementById('boardingStationId').value;
-                                                            const alightingStationId = document.getElementById('alightingStationId').value;
-
-                                                            // Enable book button
-                                                            if (routeStations.length === 0 || (boardingStationId && alightingStationId)) {
+                                                            // Validate and enable book button
+                                                            if (boardingSelect.value && alightingSelect.value && selectedSeat) {
                                                                 document.getElementById('btnBook').disabled = false;
+                                                            } else {
+                                                                document.getElementById('btnBook').disabled = true;
                                                             }
                                                         });
                                                     }
@@ -1047,8 +1421,13 @@
                                         const seatGrid = document.getElementById('seatGrid');
                                         seatGrid.innerHTML = '<div class="col-12 text-center"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
 
-                                        fetch('${pageContext.request.contextPath}/tickets/schedule-seats?scheduleId=' + scheduleId)
-                                            .then(response => response.json())
+                                        fetch('${pageContext.request.contextPath}/tickets/schedule-seats?scheduleId=' + encodeURIComponent(scheduleId))
+                                            .then(response => {
+                                                if (!response.ok) {
+                                                    throw new Error('HTTP error! status: ' + response.status);
+                                                }
+                                                return response.json();
+                                            })
                                             .then(data => {
                                                 if (data.error) {
                                                     seatGrid.innerHTML = '<div class="col-12 text-center text-danger">' + data.error + '</div>';
@@ -1062,7 +1441,7 @@
                                             })
                                             .catch(error => {
                                                 console.error('Error loading seats:', error);
-                                                seatGrid.innerHTML = '<div class="col-12 text-center text-danger">Error while loading seats</div>';
+                                                seatGrid.innerHTML = '<div class="col-12 text-center text-danger">Error while loading seats. Please try again.</div>';
                                             });
                                     }
 
@@ -1073,15 +1452,16 @@
                                             return;
                                         }
 
-                                        // Validate stations if they exist
+                                        // Validate station choices
                                         const boardingStationId = document.getElementById('boardingStationId').value;
                                         const alightingStationId = document.getElementById('alightingStationId').value;
-
-                                        if (routeStations.length > 0) {
-                                            if (!boardingStationId || !alightingStationId) {
-                                                alert('Please select both boarding and drop-off stations');
-                                                return;
-                                            }
+                                        if (!boardingStationId || !alightingStationId) {
+                                            alert('Please select both boarding and drop-off stations');
+                                            return;
+                                        }
+                                        if (boardingStationId === alightingStationId) {
+                                            alert('Boarding and drop-off stations must be different.');
+                                            return;
                                         }
 
                                         // Get routeId from URL or route object
