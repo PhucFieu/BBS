@@ -154,9 +154,10 @@
                                 </div>
                                 <div class="row g-3 mt-2">
                                     <div class="col-md-6">
-                                        <label for="totalSeats" class="form-label">Total Seats *</label>
-                                        <input type="number" class="form-control" id="totalSeats" name="totalSeats"
-                                            value="${bus.totalSeats}" min="1" max="100" required>
+                                        <label class="form-label">Total Seats (auto)</label>
+                                        <input type="text" class="form-control" id="totalSeatsDisplay"
+                                            value="${bus != null ? bus.totalSeats : ''}" readonly>
+                                        <div class="form-text">Total seats are determined automatically based on the selected bus type.</div>
                                     </div>
                                 </div>
                                 <!-- Additional Information -->
