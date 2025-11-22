@@ -257,8 +257,8 @@
                         color: var(--danger-color);
                     }
 
-                    .was-validated .form-control:invalid ~ .invalid-feedback,
-                    .was-validated .form-select:invalid ~ .invalid-feedback {
+                    .was-validated .form-control:invalid~.invalid-feedback,
+                    .was-validated .form-select:invalid~.invalid-feedback {
                         display: block;
                     }
 
@@ -318,6 +318,7 @@
                             opacity: 0;
                             transform: translateY(-10px);
                         }
+
                         to {
                             opacity: 1;
                             transform: translateY(0);
@@ -333,6 +334,7 @@
                             opacity: 0;
                             transform: translateX(-20px);
                         }
+
                         to {
                             opacity: 1;
                             transform: translateX(0);
@@ -446,28 +448,32 @@
                                 <div class="alert alert-success alert-dismissible fade show" role="alert">
                                     <i class="fas fa-check-circle me-2"></i>
                                     <strong>Success!</strong> ${param.message}
-                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"
+                                        aria-label="Close"></button>
                                 </div>
                             </c:if>
                             <c:if test="${not empty param.error}">
                                 <div class="alert alert-danger alert-dismissible fade show" role="alert">
                                     <i class="fas fa-exclamation-circle me-2"></i>
                                     <strong>Error!</strong> ${param.error}
-                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"
+                                        aria-label="Close"></button>
                                 </div>
                             </c:if>
                             <c:if test="${not empty param.warning}">
                                 <div class="alert alert-warning alert-dismissible fade show" role="alert">
                                     <i class="fas fa-exclamation-triangle me-2"></i>
                                     <strong>Warning!</strong> ${param.warning}
-                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"
+                                        aria-label="Close"></button>
                                 </div>
                             </c:if>
                             <c:if test="${not empty param.info}">
                                 <div class="alert alert-info alert-dismissible fade show" role="alert">
                                     <i class="fas fa-info-circle me-2"></i>
                                     <strong>Info:</strong> ${param.info}
-                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"
+                                        aria-label="Close"></button>
                                 </div>
                             </c:if>
 
@@ -511,7 +517,8 @@
                                                             <c:forEach var="bus" items="${buses}">
                                                                 <option value="${bus.busId}"
                                                                     data-seats="${bus.totalSeats}">
-                                                                    ${bus.busNumber} - ${bus.busType} (${bus.totalSeats} seats)
+                                                                    ${bus.busNumber} - ${bus.busType} (${bus.totalSeats}
+                                                                    seats)
                                                                 </option>
                                                             </c:forEach>
                                                         </select>
@@ -519,23 +526,39 @@
                                                     </div>
                                                     <div class="col-md-6">
                                                         <label for="boardingStationId" class="form-label">
-                                                            Boarding Station <span class="text-danger">*</span>
+                                                            Boarding Bus Station <span class="text-danger">*</span>
                                                         </label>
                                                         <select class="form-select" id="boardingStationId"
                                                             name="boardingStationId" required>
-                                                            <option value="">Select boarding station</option>
+                                                            <option value="">Select boarding bus station</option>
+                                                            <c:forEach var="station" items="${stations}">
+                                                                <option value="${station.stationId}" <c:if
+                                                                    test="${ticket != null && ticket.boardingStationId == station.stationId}">
+                                                                    selected</c:if>>
+                                                                    ${station.stationName} (${station.city})
+                                                                </option>
+                                                            </c:forEach>
                                                         </select>
-                                                        <div class="invalid-feedback">Please select a boarding station</div>
+                                                        <div class="invalid-feedback">Please select a boarding bus
+                                                            station</div>
                                                     </div>
                                                     <div class="col-md-6">
                                                         <label for="alightingStationId" class="form-label">
-                                                            Alighting Station <span class="text-danger">*</span>
+                                                            Drop-off Bus Station <span class="text-danger">*</span>
                                                         </label>
                                                         <select class="form-select" id="alightingStationId"
                                                             name="alightingStationId" required>
-                                                            <option value="">Select alighting station</option>
+                                                            <option value="">Select drop-off bus station</option>
+                                                            <c:forEach var="station" items="${stations}">
+                                                                <option value="${station.stationId}" <c:if
+                                                                    test="${ticket != null && ticket.alightingStationId == station.stationId}">
+                                                                    selected</c:if>>
+                                                                    ${station.stationName} (${station.city})
+                                                                </option>
+                                                            </c:forEach>
                                                         </select>
-                                                        <div class="invalid-feedback">Please select an alighting station</div>
+                                                        <div class="invalid-feedback">Please select a drop-off bus
+                                                            station</div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -584,7 +607,8 @@
                                                         </label>
                                                         <input type="date" class="form-control" id="departureDate"
                                                             name="departureDate" required>
-                                                        <div class="invalid-feedback">Please select a departure date</div>
+                                                        <div class="invalid-feedback">Please select a departure date
+                                                        </div>
                                                     </div>
                                                     <div class="col-md-6">
                                                         <label for="scheduleId" class="form-label">
@@ -595,7 +619,8 @@
                                                             <option value="">-- Select schedule --</option>
                                                         </select>
                                                         <div class="invalid-feedback">Please select a schedule</div>
-                                                        <small class="form-text text-muted">Selecting a schedule will auto-fill the departure time</small>
+                                                        <small class="form-text text-muted">Selecting a schedule will
+                                                            auto-fill the departure time</small>
                                                         <!-- Hidden field to store departureTime for backward compatibility -->
                                                         <input type="hidden" id="departureTime" name="departureTime">
                                                     </div>
@@ -620,7 +645,8 @@
                                                             name="seatNumber" min="1" max="50"
                                                             placeholder="Enter a seat number between 1 and bus capacity"
                                                             required>
-                                                        <div class="invalid-feedback">Please enter a valid seat number</div>
+                                                        <div class="invalid-feedback">Please enter a valid seat number
+                                                        </div>
                                                     </div>
                                                     <div class="col-md-6">
                                                         <label class="form-label">View available seats</label>
@@ -676,7 +702,8 @@
                                                         name="ticketPrice" min="0" step="1000"
                                                         placeholder="Ticket price will auto-fill when selecting a route"
                                                         required>
-                                                    <div class="form-text">Ticket price will be auto-filled after selecting a route</div>
+                                                    <div class="form-text">Ticket price will be auto-filled after
+                                                        selecting a route</div>
                                                     <div class="invalid-feedback">Vui lòng nhập giá vé</div>
                                                 </div>
 
@@ -732,8 +759,8 @@
                     // Auto-hide alerts after 5 seconds
                     document.addEventListener('DOMContentLoaded', function () {
                         const alerts = document.querySelectorAll('.alert');
-                        alerts.forEach(function(alert) {
-                            setTimeout(function() {
+                        alerts.forEach(function (alert) {
+                            setTimeout(function () {
                                 const bsAlert = new bootstrap.Alert(alert);
                                 bsAlert.close();
                             }, 5000);
@@ -757,68 +784,25 @@
                         }
                     })();
 
-                    // Load stations when route is selected
-                    document.getElementById('routeId').addEventListener('change', function () {
-                        const routeId = this.value;
-                        if (routeId) {
-                            fetch('${pageContext.request.contextPath}/tickets/route-stations?routeId=' + routeId)
-                                .then(response => response.json())
-                                .then(data => {
-                                    const boardingSelect = document.getElementById('boardingStationId');
-                                    const alightingSelect = document.getElementById('alightingStationId');
-
-                                    // Clear existing options
-                                    boardingSelect.innerHTML = '<option value="">Select boarding station</option>';
-                                    alightingSelect.innerHTML = '<option value="">Select alighting station</option>';
-
-                                    // Add stations
-                                    if (data.stations) {
-                                        data.stations.forEach(station => {
-                                            const boardingOption = document.createElement('option');
-                                            boardingOption.value = station.stationId;
-                                            boardingOption.textContent = station.stationName + ' (' + station.city + ')';
-                                            boardingOption.setAttribute('data-order', station.stopOrder);
-                                            boardingSelect.appendChild(boardingOption);
-
-                                            const alightingOption = document.createElement('option');
-                                            alightingOption.value = station.stationId;
-                                            alightingOption.textContent = station.stationName + ' (' + station.city + ')';
-                                            alightingOption.setAttribute('data-order', station.stopOrder);
-                                            alightingSelect.appendChild(alightingOption);
-                                        });
-                                    }
-                                })
-                                .catch(error => {
-                                    console.error('Error loading stations:', error);
-                                });
-                        } else {
-                            // Clear stations if no route selected
-                            document.getElementById('boardingStationId').innerHTML = '<option value="">Select boarding station</option>';
-                            document.getElementById('alightingStationId').innerHTML = '<option value="">Select alighting station</option>';
-                        }
-                    });
-
-                    // Validate that alighting station comes after boarding station
-                    document.getElementById('boardingStationId').addEventListener('change', function () {
-                        const boardingOrder = this.selectedOptions[0]?.getAttribute('data-order');
+                    // Basic validation to ensure stations are not identical
+                    function validateTicketStations(changedSelect) {
+                        const boardingSelect = document.getElementById('boardingStationId');
                         const alightingSelect = document.getElementById('alightingStationId');
-
-                        if (boardingOrder) {
-                            Array.from(alightingSelect.options).forEach(option => {
-                                if (option.value && option.getAttribute('data-order')) {
-                                    if (parseInt(option.getAttribute('data-order')) <= parseInt(boardingOrder)) {
-                                        option.disabled = true;
-                                        option.style.display = 'none';
-                                    } else {
-                                        option.disabled = false;
-                                        option.style.display = '';
-                                    }
-                                }
-                            });
+                        if (boardingSelect.value && alightingSelect.value && boardingSelect.value === alightingSelect.value) {
+                            alert('Boarding and drop-off stations must be different.');
+                            if (changedSelect) {
+                                changedSelect.value = '';
+                            }
                         }
+                    }
+
+                    document.getElementById('boardingStationId').addEventListener('change', function () {
+                        validateTicketStations(this);
+                    });
+                    document.getElementById('alightingStationId').addEventListener('change', function () {
+                        validateTicketStations(this);
                     });
                 </script>
             </body>
 
             </html>
-
