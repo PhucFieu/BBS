@@ -3,8 +3,10 @@ package controller;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import dao.RouteDAO;
 import dao.ScheduleDAO;
@@ -99,16 +101,17 @@ public class RouteSearchController extends HttpServlet {
         String returnDateStr = request.getParameter("returnDate");
         String tripType = request.getParameter("tripType"); // "oneway" or "roundtrip"
 
-        // Validate required parameters - only departureCity and destinationCity are required
+        // Validate required parameters - only departureCity and destinationCity are
+        // required
         if (departureCity == null || departureCity.trim().isEmpty()
                 || destinationCity == null || destinationCity.trim().isEmpty()) {
-            request.setAttribute("error", "Vui lòng điền đầy đủ thông tin thành phố đi và đến");
+            request.setAttribute("error", "Please enter both departure and destination cities");
             showSearchForm(request, response);
             return;
         }
 
         if (departureCity.trim().equalsIgnoreCase(destinationCity.trim())) {
-            request.setAttribute("error", "Thành phố đi và thành phố đến không thể giống nhau");
+            request.setAttribute("error", "Departure and destination cities cannot be the same");
             showSearchForm(request, response);
             return;
         }
@@ -118,8 +121,7 @@ public class RouteSearchController extends HttpServlet {
 
         if (routes.isEmpty()) {
             request.setAttribute("error",
-                    "Không tìm thấy tuyến đường nào từ " + departureCity + " đến "
-                            + destinationCity);
+                    "No routes found from " + departureCity + " to " + destinationCity);
             showSearchForm(request, response);
             return;
         }
@@ -132,28 +134,40 @@ public class RouteSearchController extends HttpServlet {
                 departureDate = LocalDate.parse(departureDateStr);
                 // Check if departure date is not in the past
                 if (departureDate.isBefore(LocalDate.now())) {
-                    request.setAttribute("error", "Ngày khởi hành không thể trong quá khứ");
+                    request.setAttribute("error", "Departure date cannot be in the past");
                     showSearchForm(request, response);
                     return;
                 }
             } catch (Exception e) {
-                request.setAttribute("error", "Định dạng ngày không hợp lệ");
+                request.setAttribute("error", "Invalid date format");
                 showSearchForm(request, response);
                 return;
             }
         }
 
-        // Get schedules for each route
+        // Get schedules for each route and filter out expired ones
+        LocalDateTime now = LocalDateTime.now();
         for (Routes route : routes) {
             List<Schedule> schedules;
             if (departureDate != null) {
                 // Filter by date if provided
-                schedules =
-                        scheduleDAO.getSchedulesByRouteAndDate(route.getRouteId(), departureDate);
+                schedules = scheduleDAO.getSchedulesByRouteAndDate(route.getRouteId(), departureDate);
             } else {
                 // Get all schedules if no date specified
                 schedules = scheduleDAO.getSchedulesByRoute(route.getRouteId());
             }
+            // Filter out expired schedules (departure date + time is before now)
+            schedules = schedules.stream()
+                    .filter(schedule -> {
+                        if (schedule.getDepartureDate() == null || schedule.getDepartureTime() == null) {
+                            return false;
+                        }
+                        LocalDateTime departureDateTime = LocalDateTime.of(
+                                schedule.getDepartureDate(),
+                                schedule.getDepartureTime());
+                        return departureDateTime.isAfter(now);
+                    })
+                    .collect(Collectors.toList());
             route.setSchedules(schedules);
         }
 
@@ -174,38 +188,48 @@ public class RouteSearchController extends HttpServlet {
                     returnDate = LocalDate.parse(returnDateStr);
                     // Check if return date is not in the past
                     if (returnDate.isBefore(LocalDate.now())) {
-                        request.setAttribute("error", "Ngày về không thể trong quá khứ");
+                        request.setAttribute("error", "Return date cannot be in the past");
                         showSearchForm(request, response);
                         return;
                     }
                     // Check if return date is after departure date (if departure date is provided)
                     if (departureDate != null && returnDate.isBefore(departureDate)) {
-                        request.setAttribute("error", "Ngày về phải sau ngày đi");
+                        request.setAttribute("error", "Return date must be after departure date");
                         showSearchForm(request, response);
                         return;
                     }
                 } catch (Exception e) {
-                    request.setAttribute("error", "Định dạng ngày về không hợp lệ");
+                    request.setAttribute("error", "Invalid return date format");
                     showSearchForm(request, response);
                     return;
                 }
             }
 
             // Search for return routes (reversed)
-            List<Routes> returnRoutes =
-                    routeDAO.searchRoutes(destinationCity.trim(), departureCity.trim());
+            List<Routes> returnRoutes = routeDAO.searchRoutes(destinationCity.trim(), departureCity.trim());
 
-            // Get schedules for return routes
+            // Get schedules for return routes and filter out expired ones
             for (Routes route : returnRoutes) {
                 List<Schedule> returnSchedules;
                 if (returnDate != null) {
                     // Filter by return date if provided
-                    returnSchedules =
-                            scheduleDAO.getSchedulesByRouteAndDate(route.getRouteId(), returnDate);
+                    returnSchedules = scheduleDAO.getSchedulesByRouteAndDate(route.getRouteId(), returnDate);
                 } else {
                     // Get all schedules if no return date specified
                     returnSchedules = scheduleDAO.getSchedulesByRoute(route.getRouteId());
                 }
+                // Filter out expired schedules (departure date + time is before now)
+                returnSchedules = returnSchedules.stream()
+                        .filter(schedule -> {
+                            if (schedule.getDepartureDate() == null || schedule.getDepartureTime() == null) {
+                                return false;
+                            }
+                            LocalDateTime departureDateTime = LocalDateTime.of(
+                                    schedule.getDepartureDate(),
+                                    schedule.getDepartureTime());
+                            return departureDateTime.isAfter(now);
+                        })
+                        .collect(Collectors.toList());
                 route.setSchedules(returnSchedules);
             }
 
@@ -297,26 +321,30 @@ public class RouteSearchController extends HttpServlet {
 
         if (departureCity == null || departureCity.trim().isEmpty()
                 || destinationCity == null || destinationCity.trim().isEmpty()) {
-            response.getWriter().write("{\"error\":\"Thành phố đi và đến là bắt buộc\"}");
+            response.getWriter().write("{\"error\":\"Departure and destination are required\"}");
             return;
         }
 
         try {
             // Search for routes
-            List<Routes> routes =
-                    routeDAO.searchRoutes(departureCity.trim(), destinationCity.trim());
+            List<Routes> routes = routeDAO.searchRoutes(departureCity.trim(), destinationCity.trim());
 
             // For each route, get available dates from schedules
             List<java.util.Map<String, Object>> routesData = new ArrayList<>();
             for (Routes route : routes) {
                 List<Schedule> schedules = scheduleDAO.getSchedulesByRoute(route.getRouteId());
 
-                // Get unique dates from schedules
+                // Get unique dates from schedules (only future dates)
                 java.util.Set<String> availableDates = new java.util.TreeSet<>();
+                LocalDateTime now = LocalDateTime.now();
                 for (Schedule schedule : schedules) {
-                    if (schedule.getDepartureDate() != null
-                            && !schedule.getDepartureDate().isBefore(LocalDate.now())) {
-                        availableDates.add(schedule.getDepartureDate().toString());
+                    if (schedule.getDepartureDate() != null && schedule.getDepartureTime() != null) {
+                        LocalDateTime departureDateTime = LocalDateTime.of(
+                                schedule.getDepartureDate(),
+                                schedule.getDepartureTime());
+                        if (departureDateTime.isAfter(now)) {
+                            availableDates.add(schedule.getDepartureDate().toString());
+                        }
                     }
                 }
 
