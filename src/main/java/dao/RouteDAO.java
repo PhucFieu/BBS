@@ -33,6 +33,25 @@ public class RouteDAO {
         return routes;
     }
 
+    public List<Routes> getAllRoutesAnyStatus() throws SQLException {
+        List<Routes> routes = new ArrayList<>();
+        String sql = "SELECT * FROM Routes ORDER BY status DESC, route_name";
+
+        try (Connection conn = DBConnection.getInstance().getConnection()) {
+            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+                try (ResultSet rs = stmt.executeQuery()) {
+                    while (rs.next()) {
+                        Routes route = mapResultSetToRoute(rs);
+                        routes.add(route);
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            throw e;
+        }
+        return routes;
+    }
+
     public Routes getRouteById(UUID routeId) throws SQLException {
         String sql = "SELECT * FROM Routes WHERE route_id = ? AND status = 'ACTIVE'";
 
@@ -49,7 +68,24 @@ public class RouteDAO {
         return null;
     }
 
-    public List<Routes> searchRoutes(String departureCity, String destinationCity) throws SQLException {
+    public Routes getRouteByIdAnyStatus(UUID routeId) throws SQLException {
+        String sql = "SELECT * FROM Routes WHERE route_id = ?";
+
+        try (Connection conn = DBConnection.getInstance().getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setObject(1, routeId);
+            ResultSet rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                return mapResultSetToRoute(rs);
+            }
+        }
+        return null;
+    }
+
+    public List<Routes> searchRoutes(String departureCity, String destinationCity)
+            throws SQLException {
         List<Routes> routes = new ArrayList<>();
         String sql = "SELECT * FROM Routes WHERE status = 'ACTIVE'";
 
@@ -83,7 +119,8 @@ public class RouteDAO {
     }
 
     public boolean addRoute(Routes route) throws SQLException {
-        String sql = "INSERT INTO Routes (route_id, route_name, departure_city, destination_city, distance, duration_hours, base_price, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        String sql =
+                "INSERT INTO Routes (route_id, route_name, departure_city, destination_city, distance, duration_hours, base_price, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -102,7 +139,8 @@ public class RouteDAO {
     }
 
     public boolean updateRoute(Routes route) throws SQLException {
-        String sql = "UPDATE Routes SET route_name = ?, departure_city = ?, destination_city = ?, distance = ?, duration_hours = ?, base_price = ?, status = ?, updated_date = GETDATE() WHERE route_id = ?";
+        String sql =
+                "UPDATE Routes SET route_name = ?, departure_city = ?, destination_city = ?, distance = ?, duration_hours = ?, base_price = ?, status = ?, updated_date = GETDATE() WHERE route_id = ?";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -121,7 +159,8 @@ public class RouteDAO {
     }
 
     public boolean deleteRoute(UUID routeId) throws SQLException {
-        String sql = "UPDATE Routes SET status = 'INACTIVE', updated_date = GETDATE() WHERE route_id = ?";
+        String sql =
+                "UPDATE Routes SET status = 'INACTIVE', updated_date = GETDATE() WHERE route_id = ?";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -177,6 +216,28 @@ public class RouteDAO {
         return null;
     }
 
+    /**
+     * Check if a route is assigned to any schedules
+     * 
+     * @param routeId The route ID to check
+     * @return true if the route is assigned to at least one schedule, false otherwise
+     */
+    public boolean isRouteAssignedToSchedule(UUID routeId) throws SQLException {
+        String sql = "SELECT COUNT(*) FROM Schedules WHERE route_id = ? AND status != 'CANCELLED'";
+
+        try (Connection conn = DBConnection.getInstance().getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setObject(1, routeId);
+            ResultSet rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                return rs.getInt(1) > 0;
+            }
+        }
+        return false;
+    }
+
     private Routes mapResultSetToRoute(ResultSet rs) throws SQLException {
         Routes route = new Routes();
         route.setRouteId(UUIDUtils.getUUIDFromResultSet(rs, "route_id"));
@@ -207,9 +268,10 @@ public class RouteDAO {
     public UUID findScheduleId(UUID routeId, UUID busId, java.time.LocalDate departureDate,
             java.time.LocalTime departureTime) throws SQLException {
         // Fixed SQL query - use CAST to ensure proper type matching
-        String sql = "SELECT schedule_id FROM Schedules WHERE route_id = ? AND bus_id = ? AND departure_date = ? AND departure_time = CAST(? AS TIME) AND status = 'SCHEDULED'";
+        String sql =
+                "SELECT schedule_id FROM Schedules WHERE route_id = ? AND bus_id = ? AND departure_date = ? AND departure_time = CAST(? AS TIME) AND status = 'SCHEDULED'";
 
-        
+
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
