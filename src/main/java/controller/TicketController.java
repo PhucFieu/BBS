@@ -17,9 +17,10 @@ import com.google.gson.Gson;
 
 import dao.BusDAO;
 import dao.RouteDAO;
-import dao.RouteStopDAO;
+import dao.RouteStationDAO;
 import dao.ScheduleDAO;
-import dao.ScheduleStopDAO;
+import dao.ScheduleStationDAO;
+import dao.StationDAO;
 import dao.TicketDAO;
 import dao.UserDAO;
 import jakarta.servlet.ServletException;
@@ -29,8 +30,11 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import model.Bus;
+import model.RouteStation;
 import model.Routes;
 import model.Schedule;
+import model.ScheduleStation;
+import model.Station;
 import model.Tickets;
 import model.User;
 import util.URLUtils;
@@ -45,21 +49,23 @@ public class TicketController extends HttpServlet {
 
     private TicketDAO ticketDAO;
     private RouteDAO routeDAO;
-    private RouteStopDAO routeStopDAO;
+    private RouteStationDAO routeStationDAO;
     private ScheduleDAO scheduleDAO;
+    private ScheduleStationDAO scheduleStationDAO;
     private BusDAO busDAO;
     private UserDAO userDAO;
-    private ScheduleStopDAO scheduleStopDAO;
+    private StationDAO stationDAO;
 
     @Override
     public void init() throws ServletException {
         ticketDAO = new TicketDAO();
         routeDAO = new RouteDAO();
-        routeStopDAO = new RouteStopDAO();
+        routeStationDAO = new RouteStationDAO();
         scheduleDAO = new ScheduleDAO();
+        scheduleStationDAO = new ScheduleStationDAO();
         busDAO = new BusDAO();
         userDAO = new UserDAO();
-        scheduleStopDAO = new ScheduleStopDAO();
+        stationDAO = new StationDAO();
     }
 
     @Override
@@ -89,7 +95,9 @@ public class TicketController extends HttpServlet {
                 if ("/".equals(pathInfo)) {
                     adminListTickets(request, response);
                 } else if ("/add".equals(pathInfo)) {
-                    response.sendRedirect(request.getContextPath() + "/tickets/add");
+                    response.sendRedirect(
+                            request.getContextPath()
+                                    + "/admin/tickets?error=Manual ticket creation is disabled");
                 } else if ("/edit".equals(pathInfo)) {
                     adminShowEditForm(request, response);
                 } else if ("/delete".equals(pathInfo)) {
@@ -105,10 +113,13 @@ public class TicketController extends HttpServlet {
                 if (pathInfo.equals("/") || pathInfo.isEmpty()) {
                     listTickets(request, response);
                 } else if (pathInfo.equals("/add")) {
-                    showAddForm(request, response);
+                    response.sendRedirect(request.getContextPath()
+                            + "/tickets?error=Manual ticket creation is disabled");
                 } else if (pathInfo.equals("/edit")) {
                     showEditForm(request, response);
                 } else if (pathInfo.equals("/delete")) {
+                    deleteTicket(request, response);
+                } else if (pathInfo.equals("/cancel")) {
                     deleteTicket(request, response);
                 } else if (pathInfo.equals("/search")) {
                     searchTickets(request, response);
@@ -128,14 +139,14 @@ public class TicketController extends HttpServlet {
                     getAvailableSchedules(request, response);
                 } else if (pathInfo.equals("/search-passengers")) {
                     searchPassengers(request, response);
-                } else if (pathInfo.equals("/route-stations")) {
-                    getRouteStations(request, response);
                 } else if (pathInfo.equals("/book")) {
                     showBookingForm(request, response);
                 } else if (pathInfo.equals("/get-schedules-by-route")) {
                     getSchedulesByRoute(request, response);
-                } else if (pathInfo.equals("/get-schedule-stations")) {
-                    getScheduleStations(request, response);
+                } else if (pathInfo.equals("/get-stations-by-schedule")) {
+                    getStationsBySchedule(request, response);
+                } else if (pathInfo.equals("/get-stations-by-route")) {
+                    getStationsByRoute(request, response);
                 } else {
                     getTicketById(request, response);
                 }
@@ -169,7 +180,9 @@ public class TicketController extends HttpServlet {
                 }
 
                 if ("/add".equals(pathInfo)) {
-                    response.sendRedirect(request.getContextPath() + "/tickets/add");
+                    response.sendRedirect(
+                            request.getContextPath()
+                                    + "/admin/tickets?error=Manual ticket creation is disabled");
                 } else if ("/edit".equals(pathInfo)) {
                     adminUpdateTicket(request, response);
                 } else if ("/bulk-action".equals(pathInfo)) {
@@ -179,7 +192,8 @@ public class TicketController extends HttpServlet {
                 }
             } else {
                 if (pathInfo.equals("/add")) {
-                    addTicket(request, response);
+                    response.sendRedirect(request.getContextPath()
+                            + "/tickets?error=Manual ticket creation is disabled");
                 } else if (pathInfo.equals("/edit")) {
                     updateTicket(request, response);
                 } else if (pathInfo.equals("/book")) {
@@ -281,44 +295,75 @@ public class TicketController extends HttpServlet {
         }
     }
 
-    private void getRouteStations(HttpServletRequest request, HttpServletResponse response)
-            throws SQLException, IOException {
-        String routeIdStr = request.getParameter("routeId");
+    private UUID parseUuidOrNull(String rawValue) {
+        if (rawValue == null || rawValue.trim().isEmpty()) {
+            return null;
+        }
+        return UUID.fromString(rawValue.trim());
+    }
 
-        if (routeIdStr == null || routeIdStr.trim().isEmpty()) {
-            response.setContentType("application/json; charset=UTF-8");
-            response.setCharacterEncoding("UTF-8");
-            response.getWriter().write("{\"error\":\"Route ID is required\"}");
-            return;
+    private StationValidationResult validateStationSelection(UUID routeId, UUID boardingStationId,
+            UUID alightingStationId) throws SQLException {
+        if (routeId == null) {
+            throw new IllegalArgumentException("Route is required to validate stations");
+        }
+        if (boardingStationId == null || alightingStationId == null) {
+            throw new IllegalArgumentException("Both boarding and drop-off stations are required");
         }
 
-        try {
-            UUID routeId = UUID.fromString(routeIdStr);
-            List<model.RouteStop> routeStops = routeStopDAO.getRouteStopsByRoute(routeId);
+        List<RouteStation> routeStations = routeStationDAO.getStationsByRoute(routeId);
+        if (routeStations == null || routeStations.isEmpty()) {
+            throw new IllegalArgumentException("Route template does not contain any stations");
+        }
 
-            // Convert to JSON format
-            List<java.util.Map<String, Object>> stationData = new ArrayList<>();
-            for (model.RouteStop routeStop : routeStops) {
-                java.util.Map<String, Object> stationMap = new java.util.HashMap<>();
-                stationMap.put("stationId", routeStop.getStationId().toString());
-                stationMap.put("stationName", routeStop.getStationName());
-                stationMap.put("city", routeStop.getCity());
-                stationMap.put("stopOrder", routeStop.getStopOrder());
-                stationData.add(stationMap);
+        RouteStation boardingStation = null;
+        RouteStation alightingStation = null;
+        for (RouteStation routeStation : routeStations) {
+            if (boardingStation == null
+                    && boardingStationId.equals(routeStation.getStationId())) {
+                boardingStation = routeStation;
             }
+            if (alightingStation == null
+                    && alightingStationId.equals(routeStation.getStationId())) {
+                alightingStation = routeStation;
+            }
+        }
 
-            java.util.Map<String, Object> result = new java.util.HashMap<>();
-            result.put("stations", stationData);
+        if (boardingStation == null || alightingStation == null) {
+            throw new IllegalArgumentException("Selected stations are not part of this route");
+        }
+        if (alightingStation.getSequenceNumber() <= boardingStation.getSequenceNumber()) {
+            throw new IllegalArgumentException(
+                    "Drop-off station must come after the boarding station");
+        }
 
-            response.setContentType("application/json; charset=UTF-8");
-            response.setCharacterEncoding("UTF-8");
-            response.getWriter().write(new com.google.gson.Gson().toJson(result));
+        Station boarding = boardingStation.getStation();
+        if (boarding == null) {
+            boarding = stationDAO.getStationById(boardingStation.getStationId());
+        }
+        Station alighting = alightingStation.getStation();
+        if (alighting == null) {
+            alighting = stationDAO.getStationById(alightingStation.getStationId());
+        }
 
-        } catch (Exception e) {
-            response.setContentType("application/json; charset=UTF-8");
-            response.setCharacterEncoding("UTF-8");
-            response.getWriter()
-                    .write("{\"error\":\"Error getting route stations: " + e.getMessage() + "\"}");
+        return new StationValidationResult(boarding, alighting);
+    }
+
+    private static class StationValidationResult {
+        private final Station boardingStation;
+        private final Station alightingStation;
+
+        StationValidationResult(Station boardingStation, Station alightingStation) {
+            this.boardingStation = boardingStation;
+            this.alightingStation = alightingStation;
+        }
+
+        public Station getBoardingStation() {
+            return boardingStation;
+        }
+
+        public Station getAlightingStation() {
+            return alightingStation;
         }
     }
 
@@ -378,7 +423,7 @@ public class TicketController extends HttpServlet {
         }
     }
 
-    private void getScheduleStations(HttpServletRequest request, HttpServletResponse response)
+    private void getStationsBySchedule(HttpServletRequest request, HttpServletResponse response)
             throws SQLException, IOException {
         String scheduleIdStr = request.getParameter("scheduleId");
 
@@ -391,21 +436,23 @@ public class TicketController extends HttpServlet {
 
         try {
             UUID scheduleId = UUID.fromString(scheduleIdStr);
-            List<model.ScheduleStop> scheduleStops =
-                    scheduleStopDAO.getScheduleStopsByScheduleId(scheduleId);
-
-            // Convert to JSON format
             List<java.util.Map<String, Object>> stationData = new ArrayList<>();
-            for (model.ScheduleStop scheduleStop : scheduleStops) {
-                java.util.Map<String, Object> stationMap = new java.util.HashMap<>();
-                stationMap.put("stationId", scheduleStop.getStationId().toString());
-                stationMap.put("stationName", scheduleStop.getStationName());
-                stationMap.put("city", scheduleStop.getCity());
-                stationMap.put("stopOrder", scheduleStop.getStopOrder());
-                if (scheduleStop.getArrivalTime() != null) {
-                    stationMap.put("arrivalTime", scheduleStop.getArrivalTime().toString());
+
+            List<ScheduleStation> scheduleStations = scheduleStationDAO.getStationsBySchedule(scheduleId);
+            boolean hasStations = appendScheduleStations(stationData, scheduleStations);
+
+            if (!hasStations) {
+                Schedule schedule = scheduleDAO.getScheduleById(scheduleId);
+                if (schedule != null) {
+                    List<RouteStation> routeStations =
+                            routeStationDAO.getStationsByRoute(schedule.getRouteId());
+                    hasStations = appendRouteStations(stationData, routeStations);
                 }
-                stationData.add(stationMap);
+            }
+
+            if (!hasStations) {
+                List<Station> allStations = stationDAO.getAllStations();
+                appendStations(stationData, allStations);
             }
 
             java.util.Map<String, Object> result = new java.util.HashMap<>();
@@ -413,15 +460,128 @@ public class TicketController extends HttpServlet {
 
             response.setContentType("application/json; charset=UTF-8");
             response.setCharacterEncoding("UTF-8");
-            response.getWriter().write(new com.google.gson.Gson().toJson(result));
+            response.getWriter().write(new Gson().toJson(result));
 
+        } catch (IllegalArgumentException e) {
+            response.setContentType("application/json; charset=UTF-8");
+            response.setCharacterEncoding("UTF-8");
+            response.getWriter()
+                    .write("{\"error\":\"Invalid schedule ID format: " + e.getMessage() + "\"}");
+        } catch (SQLException e) {
+            response.setContentType("application/json; charset=UTF-8");
+            response.setCharacterEncoding("UTF-8");
+            response.getWriter()
+                    .write("{\"error\":\"Database error retrieving stations: " + e.getMessage() + "\"}");
         } catch (Exception e) {
             response.setContentType("application/json; charset=UTF-8");
             response.setCharacterEncoding("UTF-8");
             response.getWriter()
-                    .write("{\"error\":\"Error getting schedule stations: " + e.getMessage()
-                            + "\"}");
+                    .write("{\"error\":\"Error retrieving stations: " + e.getMessage() + "\"}");
         }
+    }
+
+    private void getStationsByRoute(HttpServletRequest request, HttpServletResponse response)
+            throws SQLException, IOException {
+        String routeIdStr = request.getParameter("routeId");
+
+        if (routeIdStr == null || routeIdStr.trim().isEmpty()) {
+            response.setContentType("application/json; charset=UTF-8");
+            response.setCharacterEncoding("UTF-8");
+            response.getWriter().write("{\"error\":\"Route ID is required\"}");
+            return;
+        }
+
+        try {
+            UUID routeId = UUID.fromString(routeIdStr);
+            List<java.util.Map<String, Object>> stationData = new ArrayList<>();
+
+            List<RouteStation> routeStations = routeStationDAO.getStationsByRoute(routeId);
+            boolean hasStations = appendRouteStations(stationData, routeStations);
+
+            if (!hasStations) {
+                List<Station> allStations = stationDAO.getAllStations();
+                appendStations(stationData, allStations);
+            }
+
+            java.util.Map<String, Object> result = new java.util.HashMap<>();
+            result.put("stations", stationData);
+
+            response.setContentType("application/json; charset=UTF-8");
+            response.setCharacterEncoding("UTF-8");
+            response.getWriter().write(new Gson().toJson(result));
+
+        } catch (IllegalArgumentException e) {
+            response.setContentType("application/json; charset=UTF-8");
+            response.setCharacterEncoding("UTF-8");
+            response.getWriter()
+                    .write("{\"error\":\"Invalid route ID format: " + e.getMessage() + "\"}");
+        } catch (SQLException e) {
+            response.setContentType("application/json; charset=UTF-8");
+            response.setCharacterEncoding("UTF-8");
+            response.getWriter()
+                    .write("{\"error\":\"Database error retrieving stations: " + e.getMessage() + "\"}");
+        } catch (Exception e) {
+            response.setContentType("application/json; charset=UTF-8");
+            response.setCharacterEncoding("UTF-8");
+            response.getWriter()
+                    .write("{\"error\":\"Error retrieving stations: " + e.getMessage() + "\"}");
+        }
+    }
+
+    private boolean appendScheduleStations(List<java.util.Map<String, Object>> stationData,
+            List<ScheduleStation> scheduleStations) throws SQLException {
+        if (scheduleStations == null || scheduleStations.isEmpty()) {
+            return false;
+        }
+        for (ScheduleStation scheduleStation : scheduleStations) {
+            Station station = scheduleStation.getStation();
+            if (station == null) {
+                station = stationDAO.getStationById(scheduleStation.getStationId());
+            }
+            appendStationRecord(stationData, station, scheduleStation.getSequenceNumber());
+        }
+        return !stationData.isEmpty();
+    }
+
+    private boolean appendRouteStations(List<java.util.Map<String, Object>> stationData,
+            List<RouteStation> routeStations) throws SQLException {
+        if (routeStations == null || routeStations.isEmpty()) {
+            return false;
+        }
+        for (RouteStation routeStation : routeStations) {
+            Station station = routeStation.getStation();
+            if (station == null) {
+                station = stationDAO.getStationById(routeStation.getStationId());
+            }
+            appendStationRecord(stationData, station, routeStation.getSequenceNumber());
+        }
+        return !stationData.isEmpty();
+    }
+
+    private void appendStations(List<java.util.Map<String, Object>> stationData,
+            List<Station> stations) {
+        if (stations == null || stations.isEmpty()) {
+            return;
+        }
+        for (int i = 0; i < stations.size(); i++) {
+            appendStationRecord(stationData, stations.get(i), i + 1);
+        }
+    }
+
+    private void appendStationRecord(List<java.util.Map<String, Object>> stationData,
+            Station station, Integer sequenceNumber) {
+        if (station == null) {
+            return;
+        }
+        java.util.Map<String, Object> stationMap = new java.util.HashMap<>();
+        stationMap.put("stationId", station.getStationId().toString());
+        stationMap.put("stationName", station.getStationName());
+        stationMap.put("city", station.getCity());
+        stationMap.put("address", station.getAddress());
+        if (sequenceNumber != null && sequenceNumber > 0) {
+            stationMap.put("sequenceNumber", sequenceNumber);
+        }
+        stationData.add(stationMap);
     }
 
     private void getAvailableSchedules(HttpServletRequest request, HttpServletResponse response)
@@ -708,6 +868,13 @@ public class TicketController extends HttpServlet {
         User user = (session != null) ? (User) session.getAttribute("user") : null;
         List<Tickets> tickets;
 
+        // Get filter parameters
+        String statusFilter = request.getParameter("status");
+        String paymentStatusFilter = request.getParameter("paymentStatus");
+        String dateFromStr = request.getParameter("dateFrom");
+        String filterType = request.getParameter("filter"); // For quick actions: "upcoming",
+                                                            // "completed"
+
         if (user != null && "USER".equals(user.getRole())) {
             // Auto-mark arrived tickets as COMPLETED for this user
             try {
@@ -715,11 +882,45 @@ public class TicketController extends HttpServlet {
             } catch (SQLException e) {
                 // Ignore auto-update failure; still show tickets
             }
-            // Only show tickets for this user
-            tickets = ticketDAO.getTicketsByUserId(user.getUserId());
+
+            // Handle quick action filters
+            if ("upcoming".equals(filterType)) {
+                statusFilter = "CONFIRMED";
+            } else if ("completed".equals(filterType)) {
+                statusFilter = "COMPLETED";
+            }
+
+            // Convert dateFrom string to java.sql.Date if provided
+            java.sql.Date dateFrom = null;
+            if (dateFromStr != null && !dateFromStr.trim().isEmpty()) {
+                try {
+                    LocalDate dateFromLocal = LocalDate.parse(dateFromStr);
+                    dateFrom = java.sql.Date.valueOf(dateFromLocal);
+                } catch (Exception e) {
+                    // Invalid date format, ignore filter
+                }
+            }
+
+            // Use filtered method for users
+            tickets = ticketDAO.getTicketsByUserIdWithFilters(user.getUserId(), statusFilter,
+                    paymentStatusFilter, dateFrom);
         } else {
-            // Admin/Driver: show all tickets
-            tickets = ticketDAO.getAllTickets();
+            // Admin/Driver: show all tickets (can use searchTickets for filtering if needed)
+            if (statusFilter != null || paymentStatusFilter != null || dateFromStr != null) {
+                java.sql.Date dateFrom = null;
+                if (dateFromStr != null && !dateFromStr.trim().isEmpty()) {
+                    try {
+                        LocalDate dateFromLocal = LocalDate.parse(dateFromStr);
+                        dateFrom = java.sql.Date.valueOf(dateFromLocal);
+                    } catch (Exception e) {
+                        // Invalid date format, ignore filter
+                    }
+                }
+                tickets = ticketDAO.searchTickets(null, statusFilter, paymentStatusFilter, dateFrom,
+                        null, null, null);
+            } else {
+                tickets = ticketDAO.getAllTickets();
+            }
         }
 
         request.setAttribute("tickets", tickets);
@@ -731,29 +932,6 @@ public class TicketController extends HttpServlet {
         } else {
             request.getRequestDispatcher("/views/tickets/tickets.jsp").forward(request, response);
         }
-    }
-
-    private void showAddForm(HttpServletRequest request, HttpServletResponse response)
-            throws SQLException, ServletException, IOException {
-        // Check if user has permission to add tickets
-        HttpSession session = request.getSession(false);
-        User user = (session != null) ? (User) session.getAttribute("user") : null;
-
-        if (user != null && "USER".equals(user.getRole())) {
-            // User cannot add tickets manually
-            handleError(request, response, "Access denied. Users cannot add tickets manually.");
-            return;
-        }
-
-        // Load data for dropdowns
-        List<Routes> routes = routeDAO.getAllRoutes();
-        List<Bus> buses = busDAO.getAvailableBuses();
-        List<User> users = userDAO.getUsersByRole("USER"); // Get users with USER role
-
-        request.setAttribute("routes", routes);
-        request.setAttribute("buses", buses);
-        request.setAttribute("users", users); // This will be used as passengers in the form
-        request.getRequestDispatcher("/views/tickets/ticket-form.jsp").forward(request, response);
     }
 
     private void showBookingForm(HttpServletRequest request, HttpServletResponse response)
@@ -831,17 +1009,50 @@ public class TicketController extends HttpServlet {
         }
 
         // If scheduleId is provided, load schedule details
+        List<model.Station> validStations = null;
         if (scheduleIdStr != null && !scheduleIdStr.trim().isEmpty()) {
             try {
                 UUID scheduleId = UUID.fromString(scheduleIdStr);
                 Schedule schedule = scheduleDAO.getScheduleById(scheduleId);
                 if (schedule != null) {
                     request.setAttribute("selectedSchedule", schedule);
+                    // Get stations for this schedule (from ScheduleStations table)
+                    validStations = scheduleStationDAO.getValidStationsForBooking(scheduleId);
+                    // If no schedule stations, use route stations from the schedule's route
+                    if (validStations == null || validStations.isEmpty()) {
+                        validStations = routeStationDAO.getStationsByRouteAsStations(schedule.getRouteId());
+                    }
                 }
             } catch (Exception e) {
-                // Ignore invalid scheduleId
+                // Ignore invalid scheduleId, will try route stations below
             }
         }
+
+        // If no schedule-specific stations, use route stations
+        if (validStations == null || validStations.isEmpty()) {
+            if (routeIdStr != null && !routeIdStr.trim().isEmpty()) {
+                try {
+                    UUID routeId = UUID.fromString(routeIdStr);
+                    validStations = routeStationDAO.getStationsByRouteAsStations(routeId);
+                } catch (Exception e) {
+                    // Log error but continue to try all stations
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        // Fall back to all stations if no route/schedule stations found
+        if (validStations == null || validStations.isEmpty()) {
+            try {
+                validStations = stationDAO.getAllStations();
+            } catch (Exception e) {
+                // If all fails, create empty list
+                validStations = new ArrayList<>();
+            }
+        }
+
+        // Provide list of valid bus stations for selection
+        request.setAttribute("stations", validStations);
 
         // Always render the booking page
         request.getRequestDispatcher("/views/tickets/booking-form.jsp").forward(request, response);
@@ -923,18 +1134,39 @@ public class TicketController extends HttpServlet {
             // Set boarding and alighting stations if provided
             String boardingStationIdStr = request.getParameter("boardingStationId");
             String alightingStationIdStr = request.getParameter("alightingStationId");
-            if (boardingStationIdStr != null && !boardingStationIdStr.trim().isEmpty()) {
-                try {
-                    ticket.setBoardingStationId(UUID.fromString(boardingStationIdStr));
-                } catch (Exception e) {
-
-                }
+            UUID boardingStationId = null;
+            UUID alightingStationId = null;
+            try {
+                boardingStationId = parseUuidOrNull(boardingStationIdStr);
+                alightingStationId = parseUuidOrNull(alightingStationIdStr);
+            } catch (IllegalArgumentException stationFormatEx) {
+                response.sendRedirect(buildRedirectUrl.apply("Invalid station selection"));
+                return;
             }
-            if (alightingStationIdStr != null && !alightingStationIdStr.trim().isEmpty()) {
-                try {
-                    ticket.setAlightingStationId(UUID.fromString(alightingStationIdStr));
-                } catch (Exception e) {
 
+            if (boardingStationId != null || alightingStationId != null) {
+                if (boardingStationId == null || alightingStationId == null) {
+                    response.sendRedirect(buildRedirectUrl.apply(
+                            "Please select both boarding and drop-off stations"));
+                    return;
+                }
+                try {
+                    StationValidationResult stationValidationResult =
+                            validateStationSelection(route.getRouteId(), boardingStationId,
+                                    alightingStationId);
+                    ticket.setBoardingStationId(boardingStationId);
+                    ticket.setAlightingStationId(alightingStationId);
+                    if (stationValidationResult.getBoardingStation() != null) {
+                        ticket.setBoardingStationName(
+                                stationValidationResult.getBoardingStation().getStationName());
+                    }
+                    if (stationValidationResult.getAlightingStation() != null) {
+                        ticket.setAlightingStationName(
+                                stationValidationResult.getAlightingStation().getStationName());
+                    }
+                } catch (IllegalArgumentException validationError) {
+                    response.sendRedirect(buildRedirectUrl.apply(validationError.getMessage()));
+                    return;
                 }
             }
 
@@ -984,20 +1216,39 @@ public class TicketController extends HttpServlet {
                             request.getParameter("returnBoardingStationId");
                     String returnAlightingStationIdStr =
                             request.getParameter("returnAlightingStationId");
-                    if (returnBoardingStationIdStr != null
-                            && !returnBoardingStationIdStr.trim().isEmpty()) {
-                        try {
-                            returnTicket.setBoardingStationId(
-                                    UUID.fromString(returnBoardingStationIdStr));
-                        } catch (Exception e) {
-                        }
+                    UUID returnBoardingStationId = null;
+                    UUID returnAlightingStationId = null;
+                    try {
+                        returnBoardingStationId = parseUuidOrNull(returnBoardingStationIdStr);
+                        returnAlightingStationId = parseUuidOrNull(returnAlightingStationIdStr);
+                    } catch (IllegalArgumentException stationFormatEx) {
+                        response.sendRedirect(buildRedirectUrl.apply(
+                                "Outbound booked but return station selection was invalid"));
+                        return;
                     }
-                    if (returnAlightingStationIdStr != null
-                            && !returnAlightingStationIdStr.trim().isEmpty()) {
+                    if (returnBoardingStationId != null || returnAlightingStationId != null) {
+                        if (returnBoardingStationId == null || returnAlightingStationId == null) {
+                            response.sendRedirect(buildRedirectUrl.apply(
+                                    "Please select both return boarding and drop-off stations"));
+                            return;
+                        }
                         try {
-                            returnTicket.setAlightingStationId(
-                                    UUID.fromString(returnAlightingStationIdStr));
-                        } catch (Exception e) {
+                            StationValidationResult returnStations =
+                                    validateStationSelection(returnRoute.getRouteId(),
+                                            returnBoardingStationId, returnAlightingStationId);
+                            returnTicket.setBoardingStationId(returnBoardingStationId);
+                            returnTicket.setAlightingStationId(returnAlightingStationId);
+                            if (returnStations.getBoardingStation() != null) {
+                                returnTicket.setBoardingStationName(
+                                        returnStations.getBoardingStation().getStationName());
+                            }
+                            if (returnStations.getAlightingStation() != null) {
+                                returnTicket.setAlightingStationName(
+                                        returnStations.getAlightingStation().getStationName());
+                            }
+                        } catch (IllegalArgumentException validationError) {
+                            response.sendRedirect(buildRedirectUrl.apply(validationError.getMessage()));
+                            return;
                         }
                     }
 
@@ -1243,160 +1494,6 @@ public class TicketController extends HttpServlet {
         }
     }
 
-    private void addTicket(HttpServletRequest request, HttpServletResponse response)
-            throws SQLException, IOException {
-        // Check if user has permission to add tickets
-        HttpSession session = request.getSession(false);
-        User user = (session != null) ? (User) session.getAttribute("user") : null;
-
-        if (user != null && "USER".equals(user.getRole())) {
-            // User cannot add tickets manually
-            response.sendRedirect(request.getContextPath()
-                    + "/tickets?error=Access denied. Users cannot add tickets manually.");
-            return;
-        }
-
-        // Get parameters from request
-        String routeIdStr = request.getParameter("routeId");
-        String busIdStr = request.getParameter("busId");
-        String userIdStr = request.getParameter("userId");
-        String seatNumberStr = request.getParameter("seatNumber");
-        String departureDateStr = request.getParameter("departureDate");
-        String departureTimeStr = request.getParameter("departureTime");
-        String scheduleIdStr = request.getParameter("scheduleId");
-        String ticketPriceStr = request.getParameter("ticketPrice");
-        String boardingStationIdStr = request.getParameter("boardingStationId");
-        String alightingStationIdStr = request.getParameter("alightingStationId");
-
-        // Log all input parameters
-
-        // Validate and parse parameters
-        UUID routeId, busId, userId;
-        int seatNumber;
-        BigDecimal ticketPrice;
-        UUID scheduleId;
-        LocalDate departureDate = null;
-        LocalTime departureTime = null;
-
-        try {
-            routeId = UUID.fromString(routeIdStr);
-            busId = UUID.fromString(busIdStr);
-            userId = UUID.fromString(userIdStr);
-            seatNumber = Integer.parseInt(seatNumberStr);
-            ticketPrice = new BigDecimal(ticketPriceStr);
-
-        } catch (Exception e) {
-            response.sendRedirect(request.getContextPath()
-                    + "/tickets/add?error=Invalid parameter format: " + e.getMessage());
-            return;
-        }
-
-        // Try to get scheduleId directly if provided, otherwise find by
-        // route/bus/date/time
-        try {
-            if (scheduleIdStr != null && !scheduleIdStr.trim().isEmpty()) {
-                // Use scheduleId directly (preferred method - consistent with route search)
-                scheduleId = UUID.fromString(scheduleIdStr);
-
-                // Validate schedule exists and get its details
-                Schedule schedule = scheduleDAO.getScheduleById(scheduleId);
-                if (schedule == null) {
-                    response.sendRedirect(request.getContextPath()
-                            + "/tickets/add?error=Schedule not found");
-                    return;
-                }
-                // Use schedule's date/time if needed
-                departureDate = schedule.getDepartureDate();
-                departureTime = schedule.getDepartureTime();
-            } else if (departureDateStr != null && departureTimeStr != null
-                    && !departureDateStr.trim().isEmpty() && !departureTimeStr.trim().isEmpty()) {
-                // Fallback to finding schedule by route/bus/date/time (backward compatibility)
-                departureDate = LocalDate.parse(departureDateStr);
-                departureTime = LocalTime.parse(departureTimeStr);
-
-                scheduleId = routeDAO.findScheduleId(routeId, busId, departureDate, departureTime);
-            } else {
-                response.sendRedirect(request.getContextPath()
-                        + "/tickets/add?error=Either scheduleId or departure date/time must be provided");
-                return;
-            }
-        } catch (Exception e) {
-            response.sendRedirect(request.getContextPath()
-                    + "/tickets/add?error=Database error finding schedule: " + e.getMessage());
-            return;
-        }
-
-        if (scheduleId == null) {
-            response.sendRedirect(request.getContextPath()
-                    + "/tickets/add?error=Schedule not found for the specified date and time");
-            return;
-        }
-
-        // Check seat availability
-
-        boolean isSeatAvailable;
-        try {
-            isSeatAvailable = ticketDAO.isSeatAvailable(scheduleId, seatNumber);
-        } catch (Exception e) {
-            response.sendRedirect(request.getContextPath()
-                    + "/tickets/add?error=Database error checking seat availability: "
-                    + e.getMessage());
-            return;
-        }
-
-        if (!isSeatAvailable) {
-            response.sendRedirect(
-                    request.getContextPath() + "/tickets/add?error=Seat is not available");
-            return;
-        }
-
-        // Generate ticket number
-        String ticketNumber = ticketDAO.generateTicketNumber();
-
-        // Create new ticket
-        Tickets ticket = new Tickets();
-        ticket.setTicketNumber(ticketNumber);
-        ticket.setScheduleId(scheduleId);
-        ticket.setUserId(userId);
-        ticket.setSeatNumber(seatNumber);
-        ticket.setTicketPrice(ticketPrice);
-        ticket.setStatus("CONFIRMED");
-        ticket.setPaymentStatus("PENDING");
-
-        // Set boarding and alighting stations if provided
-        if (boardingStationIdStr != null && !boardingStationIdStr.trim().isEmpty()) {
-            try {
-                ticket.setBoardingStationId(UUID.fromString(boardingStationIdStr));
-            } catch (Exception e) {
-            }
-        }
-        if (alightingStationIdStr != null && !alightingStationIdStr.trim().isEmpty()) {
-            try {
-                ticket.setAlightingStationId(UUID.fromString(alightingStationIdStr));
-            } catch (Exception e) {
-            }
-        }
-
-        // Save to database
-        boolean success;
-        try {
-            success = ticketDAO.addTicket(ticket);
-        } catch (Exception e) {
-            response.sendRedirect(request.getContextPath()
-                    + "/tickets/add?error=Database error saving ticket: " + e.getMessage());
-            return;
-        }
-
-        if (success) {
-            response.sendRedirect(
-                    request.getContextPath() + "/tickets?message=Ticket added successfully");
-        } else {
-            response.sendRedirect(
-                    request.getContextPath() + "/tickets/add?error=Failed to add ticket");
-        }
-
-    }
-
     private void updateTicket(HttpServletRequest request, HttpServletResponse response)
             throws SQLException, IOException {
         // Check if user has permission to update tickets
@@ -1615,8 +1712,22 @@ public class TicketController extends HttpServlet {
     }
 
     private void deleteTicket(HttpServletRequest request, HttpServletResponse response)
-            throws SQLException, IOException {
-        UUID ticketId = UUID.fromString(request.getParameter("id"));
+            throws SQLException, IOException, ServletException {
+        String ticketIdStr = request.getParameter("id");
+
+        // Validate ticket ID parameter
+        if (ticketIdStr == null || ticketIdStr.trim().isEmpty()) {
+            handleError(request, response, "Ticket ID is required");
+            return;
+        }
+
+        UUID ticketId;
+        try {
+            ticketId = UUID.fromString(ticketIdStr.trim());
+        } catch (IllegalArgumentException e) {
+            handleError(request, response, "Invalid ticket ID format: " + ticketIdStr);
+            return;
+        }
 
         // Check if user has permission to delete this ticket
         HttpSession session = request.getSession(false);
@@ -1684,18 +1795,18 @@ public class TicketController extends HttpServlet {
             String status = request.getParameter("status");
             String paymentStatus = request.getParameter("paymentStatus");
 
-            // Use searchTickets method which supports filtering and returns all tickets
-            // when no
-            // filters are provided
-            // This allows admin to see all tickets (CONFIRMED, PENDING, CANCELLED) when no
-            // status
-            // filter is set
-            List<Tickets> tickets = ticketDAO.searchTickets(
+            // Use searchTicketsForAdmin method with optional filters
+            // CANCELLED tickets stay hidden unless admin explicitly selects that status
+            List<Tickets> tickets = ticketDAO.searchTicketsForAdmin(
                     (searchTerm != null && !searchTerm.trim().isEmpty()) ? searchTerm : null,
                     (status != null && !status.trim().isEmpty()) ? status : null,
                     (paymentStatus != null && !paymentStatus.trim().isEmpty()) ? paymentStatus
                             : null,
                     null, null, null, null);
+
+            // Get accurate statistics from database (includes all tickets regardless of filters)
+            java.util.Map<String, Object> statistics = ticketDAO.getTicketStatistics();
+            request.setAttribute("ticketStats", statistics);
 
             request.setAttribute("tickets", tickets);
             request.getRequestDispatcher("/views/admin/tickets-list.jsp").forward(request,
@@ -1729,6 +1840,7 @@ public class TicketController extends HttpServlet {
                 List<Routes> routes = routeDAO.getAllRoutes();
                 List<Bus> buses = busDAO.getAllBuses();
                 List<User> users = userDAO.getUsersByRole("USER");
+                request.setAttribute("stations", stationDAO.getAllStations());
                 request.setAttribute("ticket", ticket);
                 request.setAttribute("routes", routes);
                 request.setAttribute("buses", buses);
@@ -2029,3 +2141,4 @@ public class TicketController extends HttpServlet {
         }
     }
 }
+
