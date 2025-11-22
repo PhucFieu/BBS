@@ -19,7 +19,7 @@ import util.UUIDUtils;
 public class UserDAO {
 
     public User authenticate(String username, String password) throws SQLException {
-        String sql = "SELECT * FROM Users WHERE username = ? AND status = 'ACTIVE'";
+        String sql = "SELECT * FROM Users WHERE username = ?";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -31,6 +31,15 @@ public class UserDAO {
                 User user = mapResultSetToUser(rs);
                 // Verify password using MD5 hash
                 if (PasswordUtils.verifyPassword(password, user.getPassword())) {
+                    if (!"USER".equalsIgnoreCase(user.getRole())
+                            && !"ACTIVE".equalsIgnoreCase(user.getStatus())) {
+                        return null;
+                    }
+                    if ("INACTIVE".equalsIgnoreCase(user.getStatus())
+                            && "USER".equalsIgnoreCase(user.getRole())) {
+                        reactivateUser(user.getUserId());
+                        user.setStatus("ACTIVE");
+                    }
                     // Update last login
                     updateLastLogin(user.getUserId());
                     return user;
@@ -89,7 +98,8 @@ public class UserDAO {
     }
 
     public boolean addUser(User user) throws SQLException {
-        String sql = "INSERT INTO Users (user_id, username, password, full_name, email, phone_number, role, status, id_card, address, date_of_birth, gender) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        String sql =
+                "INSERT INTO Users (user_id, username, password, full_name, email, phone_number, role, status, id_card, address, date_of_birth, gender) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -98,9 +108,12 @@ public class UserDAO {
             System.out.println("=== DEBUG: Adding User ===");
             System.out.println("User ID: " + user.getUserId());
             System.out.println("Username: '" + user.getUsername() + "'");
-            System.out.println("Email: '" + user.getEmail() + "' (null=" + (user.getEmail() == null) + ")");
-            System.out.println("Phone: '" + user.getPhoneNumber() + "' (null=" + (user.getPhoneNumber() == null) + ")");
-            System.out.println("ID Card: '" + user.getIdCard() + "' (null=" + (user.getIdCard() == null) + ")");
+            System.out.println(
+                    "Email: '" + user.getEmail() + "' (null=" + (user.getEmail() == null) + ")");
+            System.out.println("Phone: '" + user.getPhoneNumber() + "' (null="
+                    + (user.getPhoneNumber() == null) + ")");
+            System.out.println("ID Card: '" + user.getIdCard() + "' (null="
+                    + (user.getIdCard() == null) + ")");
             System.out.println("Full Name: '" + user.getFullName() + "'");
             System.out.println("Role: '" + user.getRole() + "'");
             System.out.println("==========================");
@@ -156,7 +169,8 @@ public class UserDAO {
 
             try {
                 int rowsAffected = stmt.executeUpdate();
-                System.out.println("=== DEBUG: Insert successful, rows affected: " + rowsAffected + " ===");
+                System.out.println(
+                        "=== DEBUG: Insert successful, rows affected: " + rowsAffected + " ===");
                 return rowsAffected > 0;
             } catch (SQLException e) {
                 System.err.println("=== DEBUG: SQLException occurred ===");
@@ -166,7 +180,8 @@ public class UserDAO {
                 System.err
                         .println("Constraint Name: "
                                 + (e.getMessage().contains("UQ__Users__")
-                                        ? e.getMessage().substring(e.getMessage().indexOf("UQ__Users__"),
+                                        ? e.getMessage().substring(
+                                                e.getMessage().indexOf("UQ__Users__"),
                                                 Math.min(e.getMessage().indexOf("UQ__Users__") + 30,
                                                         e.getMessage().length()))
                                         : "N/A"));
@@ -177,7 +192,8 @@ public class UserDAO {
     }
 
     public boolean updateUser(User user) throws SQLException {
-        String sql = "UPDATE Users SET full_name = ?, email = ?, phone_number = ?, role = ?, status = ?, id_card = ?, address = ?, date_of_birth = ?, gender = ?, updated_date = GETDATE() WHERE user_id = ?";
+        String sql =
+                "UPDATE Users SET full_name = ?, email = ?, phone_number = ?, role = ?, status = ?, id_card = ?, address = ?, date_of_birth = ?, gender = ?, updated_date = GETDATE() WHERE user_id = ?";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -235,7 +251,8 @@ public class UserDAO {
     }
 
     public boolean deleteUser(UUID userId) throws SQLException {
-        String sql = "UPDATE Users SET status = 'INACTIVE', updated_date = GETDATE() WHERE user_id = ?";
+        String sql =
+                "UPDATE Users SET status = 'INACTIVE', updated_date = GETDATE() WHERE user_id = ?";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -258,7 +275,8 @@ public class UserDAO {
 
     public List<User> searchUsers(String searchTerm) throws SQLException {
         List<User> users = new ArrayList<>();
-        String sql = "SELECT * FROM Users WHERE (username LIKE ? OR full_name LIKE ? OR email LIKE ? OR phone_number LIKE ?) AND status = 'ACTIVE' ORDER BY username";
+        String sql =
+                "SELECT * FROM Users WHERE (username LIKE ? OR full_name LIKE ? OR email LIKE ? OR phone_number LIKE ?) AND status = 'ACTIVE' ORDER BY username";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -383,6 +401,7 @@ public class UserDAO {
     /**
      * Get distinct passengers (Users with role USER) who have confirmed tickets
      * on schedules assigned to the given driver (identified by driver's user_id).
+     * Only includes passengers with tickets that have payment_status = 'PAID'.
      */
     public List<User> getPassengersByDriverUserId(UUID driverUserId) throws SQLException {
         List<User> users = new ArrayList<>();
@@ -393,7 +412,8 @@ public class UserDAO {
                 "JOIN Drivers d ON sd.driver_id = d.driver_id " +
                 "JOIN Users du ON d.user_id = du.user_id " +
                 "JOIN Users u ON t.user_id = u.user_id " +
-                "WHERE du.user_id = ? AND t.status = 'CONFIRMED' AND u.status = 'ACTIVE' AND u.role = 'USER' " +
+                "WHERE du.user_id = ? AND t.status = 'CONFIRMED' AND t.payment_status = 'PAID' AND u.status = 'ACTIVE' AND u.role = 'USER' "
+                +
                 "ORDER BY u.full_name";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
@@ -412,7 +432,8 @@ public class UserDAO {
 
     public List<User> getRecentUsers(int limit) throws SQLException {
         List<User> users = new ArrayList<>();
-        String sql = "SELECT TOP (?) * FROM Users WHERE status = 'ACTIVE' ORDER BY created_date DESC";
+        String sql =
+                "SELECT TOP (?) * FROM Users WHERE status = 'ACTIVE' ORDER BY created_date DESC";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -484,7 +505,8 @@ public class UserDAO {
      * Deactivate user account (soft delete)
      */
     public boolean deactivateUser(UUID userId) throws SQLException {
-        String sql = "UPDATE Users SET status = 'INACTIVE', updated_date = GETDATE() WHERE user_id = ?";
+        String sql =
+                "UPDATE Users SET status = 'INACTIVE', updated_date = GETDATE() WHERE user_id = ?";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -495,4 +517,42 @@ public class UserDAO {
         }
     }
 
+    /**
+     * Reactivate a user account.
+     */
+    public boolean reactivateUser(UUID userId) throws SQLException {
+        String sql =
+                "UPDATE Users SET status = 'ACTIVE', updated_date = GETDATE() WHERE user_id = ?";
+
+        try (Connection conn = DBConnection.getInstance().getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setObject(1, userId);
+            return stmt.executeUpdate() > 0;
+        }
+    }
+
+    /**
+     * Automatically deactivate passenger accounts that have been inactive for the given number of
+     * months.
+     *
+     * @param monthsThreshold number of months without login activity before marking inactive
+     * @return number of affected rows
+     */
+    public int deactivateInactivePassengers(int monthsThreshold) throws SQLException {
+        String sql = "UPDATE Users SET status = 'INACTIVE', updated_date = GETDATE() "
+                + "WHERE role = 'USER' AND status = 'ACTIVE' "
+                + "AND ("
+                + "    (last_login IS NOT NULL AND last_login < DATEADD(MONTH, ?, GETDATE())) "
+                + " OR (last_login IS NULL AND created_date < DATEADD(MONTH, ?, GETDATE()))"
+                + ")";
+
+        try (Connection conn = DBConnection.getInstance().getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, -Math.abs(monthsThreshold));
+            stmt.setInt(2, -Math.abs(monthsThreshold));
+            return stmt.executeUpdate();
+        }
+    }
 }
