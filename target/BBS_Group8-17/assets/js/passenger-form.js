@@ -48,7 +48,7 @@ document.addEventListener("DOMContentLoaded", function () {
       const age = today.getFullYear() - birthDate.getFullYear();
 
       if (age < 0 || age > 120) {
-        alert("Ngày sinh không hợp lệ");
+        alert("Invalid date of birth");
         this.value = "";
       }
     });
@@ -68,7 +68,7 @@ document.addEventListener("DOMContentLoaded", function () {
       // Full name validation
       if (fullName.length < 2) {
         e.preventDefault();
-        alert("Họ và tên phải có ít nhất 2 ký tự");
+        alert("Full name must be at least 2 characters");
         document.getElementById("fullName").focus();
         return false;
       }
@@ -76,7 +76,7 @@ document.addEventListener("DOMContentLoaded", function () {
       // Username validation
       if (username.length < 3) {
         e.preventDefault();
-        alert("Tên đăng nhập phải có ít nhất 3 ký tự");
+        alert("Username must be at least 3 characters");
         document.getElementById("username").focus();
         return false;
       }
@@ -84,7 +84,7 @@ document.addEventListener("DOMContentLoaded", function () {
       // Role validation
       if (!role) {
         e.preventDefault();
-        alert("Vui lòng chọn vai trò");
+        alert("Please select a role");
         document.getElementById("role").focus();
         return false;
       }
@@ -93,7 +93,7 @@ document.addEventListener("DOMContentLoaded", function () {
       const phoneRegex = /^[0-9]{10,11}$/;
       if (!phoneRegex.test(phoneNumber)) {
         e.preventDefault();
-        alert("Số điện thoại phải có 10-11 số");
+        alert("Phone number must be 10-11 digits");
         document.getElementById("phoneNumber").focus();
         return false;
       }
@@ -101,7 +101,7 @@ document.addEventListener("DOMContentLoaded", function () {
       // Email validation (if provided)
       if (email && !isValidEmail(email)) {
         e.preventDefault();
-        alert("Email không hợp lệ");
+        alert("Invalid email");
         document.getElementById("email").focus();
         return false;
       }
@@ -111,7 +111,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const idCardRegex = /^[0-9]{9,12}$/;
         if (!idCardRegex.test(idCard)) {
           e.preventDefault();
-          alert("Số CMND/CCCD không hợp lệ");
+          alert("Invalid ID card number");
           document.getElementById("idCard").focus();
           return false;
         }

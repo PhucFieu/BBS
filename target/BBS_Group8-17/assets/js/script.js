@@ -506,18 +506,13 @@ document.addEventListener("DOMContentLoaded", function () {
         // Check if this is a bus delete action
         if (this.closest("#deleteModal")) {
           console.log("[DELETE] Delete modal detected");
-
-          // Check if this is a driver delete action
-          if (this.href && this.href.includes("/admin/drivers/delete")) {
-            console.log("[DELETE] Driver delete action detected");
-            // Proceed with driver deletion
+          // If a delete URL is set, navigate to it (works for stations, drivers, buses, etc.)
+          if (this.href) {
+            console.log("[DELETE] Navigating to:", this.href);
             window.location.href = this.href;
             return;
           }
-
-          // For bus delete actions, let the modal's own script handle the deletion
-          console.log("[DELETE] Bus delete modal detected");
-          return;
+          // If no href is present, fall through to avoid blocking default behavior
         }
 
         // For other delete actions, proceed with original logic

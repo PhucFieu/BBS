@@ -16,42 +16,42 @@ document.addEventListener("DOMContentLoaded", function () {
 
       if (departureCity.length < 2) {
         e.preventDefault();
-        alert("Thành phố khởi hành phải có ít nhất 2 ký tự");
+        alert("Departure city must be at least 2 characters");
         document.getElementById("departureCity").focus();
         return false;
       }
 
       if (destinationCity.length < 2) {
         e.preventDefault();
-        alert("Thành phố đến phải có ít nhất 2 ký tự");
+        alert("Destination city must be at least 2 characters");
         document.getElementById("destinationCity").focus();
         return false;
       }
 
       if (departureCity === destinationCity) {
         e.preventDefault();
-        alert("Thành phố khởi hành và đến không được giống nhau");
+        alert("Departure and destination cities cannot be the same");
         document.getElementById("destinationCity").focus();
         return false;
       }
 
       if (distance < 1 || distance > 5000) {
         e.preventDefault();
-        alert("Khoảng cách phải từ 1 đến 5000 km");
+        alert("Distance must be between 1 and 5000 km");
         document.getElementById("distance").focus();
         return false;
       }
 
       if (durationHours < 0.5 || durationHours > 48) {
         e.preventDefault();
-        alert("Thời gian di chuyển phải từ 0.5 đến 48 giờ");
+        alert("Travel time must be between 0.5 and 48 hours");
         document.getElementById("durationHours").focus();
         return false;
       }
 
       if (basePrice < 1000 || basePrice > 10000000) {
         e.preventDefault();
-        alert("Giá vé phải từ 1,000 đến 10,000,000 VNĐ");
+        alert("Ticket price must be from 1,000 to 10,000,000 VND");
         document.getElementById("basePrice").focus();
         return false;
       }

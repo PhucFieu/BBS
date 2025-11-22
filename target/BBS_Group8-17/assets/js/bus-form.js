@@ -46,21 +46,21 @@ document.addEventListener("DOMContentLoaded", function () {
 
       if (busNumber.length < 2) {
         e.preventDefault();
-        alert("Số xe phải có ít nhất 2 ký tự");
+        alert("Bus number must be at least 2 characters");
         document.getElementById("busNumber").focus();
         return false;
       }
 
       if (!busType) {
         e.preventDefault();
-        alert("Vui lòng chọn loại xe");
+        alert("Please select a bus type");
         document.getElementById("busType").focus();
         return false;
       }
 
       if (totalSeats < 1 || totalSeats > 100) {
         e.preventDefault();
-        alert("Tổng số ghế phải từ 1 đến 100");
+        alert("Total seats must be between 1 and 100");
         document.getElementById("totalSeats").focus();
         return false;
       }
@@ -68,7 +68,7 @@ document.addEventListener("DOMContentLoaded", function () {
       const licensePlateRegex = /^[0-9]{2}[A-Z]-[0-9]{4,5}$/;
       if (!licensePlateRegex.test(licensePlate)) {
         e.preventDefault();
-        alert("Biển số xe không hợp lệ. Định dạng: XX-XXXXX hoặc XX-XXXX");
+        alert("Invalid license plate. Format: XX-XXXXX or XX-XXXX");
         document.getElementById("licensePlate").focus();
         return false;
       }

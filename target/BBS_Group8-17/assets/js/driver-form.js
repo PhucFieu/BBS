@@ -12,21 +12,21 @@ document.addEventListener("DOMContentLoaded", function () {
 
       if (!userId) {
         e.preventDefault();
-        alert("Vui lòng chọn người dùng");
+        alert("Please select a user");
         document.getElementById("userId").focus();
         return false;
       }
 
       if (licenseNumber.length < 5) {
         e.preventDefault();
-        alert("Số bằng lái phải có ít nhất 5 ký tự");
+        alert("License number must be at least 5 characters");
         document.getElementById("licenseNumber").focus();
         return false;
       }
 
       if (experienceYears < 0 || experienceYears > 50) {
         e.preventDefault();
-        alert("Số năm kinh nghiệm phải từ 0 đến 50");
+        alert("Years of experience must be between 0 and 50");
         document.getElementById("experienceYears").focus();
         return false;
       }

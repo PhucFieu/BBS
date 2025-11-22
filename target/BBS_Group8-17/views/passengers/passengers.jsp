@@ -1,13 +1,13 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
-    <%@ taglib prefix="c" uri="jakarta.tags.core" %>
-        <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
+    <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+        <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
             <!DOCTYPE html>
             <html lang="en">
 
             <head>
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>User Management - Bus Booking System</title>
+                <title>Passenger Management - Bus Booking System</title>
                 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
                 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
                 <style>
@@ -41,7 +41,7 @@
                         width: 60px;
                         height: 60px;
                         border-radius: 50%;
-                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        background: linear-gradient(135deg, #66bb6a 0%, #81c784 100%);
                         display: flex;
                         align-items: center;
                         justify-content: center;
@@ -67,23 +67,39 @@
                 <div class="container mt-4">
                     <!-- Header -->
                     <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h2><i class="fas fa-users me-2"></i>User Management</h2>
+                        <h2><i class="fas fa-users me-2"></i>Passenger Management</h2>
                         <a href="${pageContext.request.contextPath}/passengers/add" class="btn btn-primary">
-                            <i class="fas fa-plus me-1"></i>Add User
+                            <i class="fas fa-plus me-1"></i>Add Passenger
                         </a>
                     </div>
 
-                    <!-- Messages -->
+                    <!-- Notification Messages -->
                     <c:if test="${not empty param.message}">
                         <div class="alert alert-success alert-dismissible fade show" role="alert">
-                            <i class="fas fa-check-circle me-2"></i>${param.message}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            <i class="fas fa-check-circle me-2"></i>
+                            <strong>Success!</strong> ${param.message}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                         </div>
                     </c:if>
                     <c:if test="${not empty param.error}">
                         <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                            <i class="fas fa-exclamation-circle me-2"></i>${param.error}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            <i class="fas fa-exclamation-circle me-2"></i>
+                            <strong>Error!</strong> ${param.error}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    </c:if>
+                    <c:if test="${not empty param.warning}">
+                        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Warning!</strong> ${param.warning}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    </c:if>
+                    <c:if test="${not empty param.info}">
+                        <div class="alert alert-info alert-dismissible fade show" role="alert">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Info:</strong> ${param.info}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                         </div>
                     </c:if>
 
@@ -106,7 +122,8 @@
                                 <select class="form-select" id="gender" name="gender">
                                     <option value="">All</option>
                                     <option value="Nam" ${param.gender eq 'Nam' ? 'selected' : '' }>Male</option>
-                                    <option value="Nữ" ${param.gender eq 'Nữ' ? 'selected' : '' }>Female</option>
+                                    <option value="FEMALE" ${param.gender eq 'FEMALE' ? 'selected' : '' }>Female
+                                    </option>
                                 </select>
                             </div>
                             <div class="col-md-3">
@@ -136,8 +153,8 @@
                         <c:when test="${empty users}">
                             <div class="text-center py-5">
                                 <i class="fas fa-users fa-3x text-muted mb-3"></i>
-                                <h5 class="text-muted">No users found</h5>
-                                <p class="text-muted">Please add the first user to get started</p>
+                                <h5 class="text-muted">No passengers found</h5>
+                                <p class="text-muted">Please add the first passenger to get started</p>
                             </div>
                         </c:when>
                         <c:otherwise>
@@ -153,14 +170,19 @@
                                                     </div>
                                                     <div>
                                                         <h6 class="mb-1">${user.fullName}</h6>
-                                                        <span class="badge bg-info">${user.role}</span>
+                                                        <span class="badge bg-info">
+                                                            <c:choose>
+                                                                <c:when test="${user.role eq 'USER'}">PASSENGER</c:when>
+                                                                <c:otherwise>${user.role}</c:otherwise>
+                                                            </c:choose>
+                                                        </span>
                                                         <c:choose>
                                                             <c:when test="${user.gender eq 'Nam'}">
                                                                 <span class="badge bg-primary gender-badge">
                                                                     <i class="fas fa-mars me-1"></i>Male
                                                                 </span>
                                                             </c:when>
-                                                            <c:when test="${user.gender eq 'Nữ'}">
+                                                            <c:when test="${user.gender eq 'FEMALE'}">
                                                                 <span class="badge bg-danger gender-badge">
                                                                     <i class="fas fa-venus me-1"></i>Female
                                                                 </span>
@@ -206,6 +228,48 @@
                                                         </div>
                                                     </c:if>
                                                 </div>
+
+                                                <!-- Ticket Information for Drivers -->
+                                                <c:if test="${not empty passengerTickets[user.userId]}">
+                                                    <div class="mt-3 pt-3 border-top">
+                                                        <h6 class="text-primary mb-2">
+                                                            <i class="fas fa-ticket-alt me-1"></i>Vé đã đặt:
+                                                        </h6>
+                                                        <c:forEach var="ticket"
+                                                            items="${passengerTickets[user.userId]}">
+                                                            <div class="mb-2 p-2 bg-light rounded">
+                                                                <div class="small">
+                                                                    <strong>Mã vé:</strong> ${ticket.ticketNumber}<br>
+                                                                    <strong>Tuyến:</strong> ${ticket.routeName}<br>
+                                                                    <strong>Ghế:</strong> ${ticket.seatNumber}<br>
+                                                                    <c:if
+                                                                        test="${not empty ticket.boardingStationName}">
+                                                                        <strong>Lên xe tại:</strong>
+                                                                        ${ticket.boardingStationName}
+                                                                        <c:if test="${not empty ticket.boardingCity}">
+                                                                            (${ticket.boardingCity})
+                                                                        </c:if>
+                                                                        <br>
+                                                                    </c:if>
+                                                                    <c:if
+                                                                        test="${not empty ticket.alightingStationName}">
+                                                                        <strong>Xuống xe tại:</strong>
+                                                                        ${ticket.alightingStationName}
+                                                                        <c:if test="${not empty ticket.alightingCity}">
+                                                                            (${ticket.alightingCity})
+                                                                        </c:if>
+                                                                        <br>
+                                                                    </c:if>
+                                                                    <strong>Ngày đi:</strong>
+                                                                    <fmt:formatDate value="${ticket.departureDateSql}"
+                                                                        pattern="dd/MM/yyyy" />
+                                                                    <fmt:formatDate value="${ticket.departureTimeSql}"
+                                                                        pattern="HH:mm" />
+                                                                </div>
+                                                            </div>
+                                                        </c:forEach>
+                                                    </div>
+                                                </c:if>
                                             </div>
                                             <div class="card-footer bg-transparent">
                                                 <div class="d-flex justify-content-between">
@@ -222,8 +286,8 @@
                                                         <i class="fas fa-edit"></i>
                                                     </a>
                                                     <button type="button" class="btn btn-sm btn-danger btn-action"
-                                                        onclick="confirmDelete('${user.userId}', '${user.fullName}')"
-                                                        title="Delete">
+                                                        data-username="${user.fullName}"
+                                                        onclick="confirmDelete('${user.userId}', this)" title="Delete">
                                                         <i class="fas fa-trash"></i>
                                                     </button>
                                                 </div>
@@ -259,7 +323,12 @@
                                                 <td>${user.phoneNumber}</td>
                                                 <td>${user.email}</td>
                                                 <td>
-                                                    <span class="badge bg-info">${user.role}</span>
+                                                    <span class="badge bg-info">
+                                                        <c:choose>
+                                                            <c:when test="${user.role eq 'USER'}">PASSENGER</c:when>
+                                                            <c:otherwise>${user.role}</c:otherwise>
+                                                        </c:choose>
+                                                    </span>
                                                 </td>
                                                 <td>
                                                     <c:choose>
@@ -268,7 +337,7 @@
                                                                 <i class="fas fa-mars me-1"></i>Male
                                                             </span>
                                                         </c:when>
-                                                        <c:when test="${user.gender eq 'Nữ'}">
+                                                        <c:when test="${user.gender eq 'FEMALE'}">
                                                             <span class="badge bg-danger">
                                                                 <i class="fas fa-venus me-1"></i>Female
                                                             </span>
@@ -308,8 +377,8 @@
                                                         <i class="fas fa-edit"></i>
                                                     </a>
                                                     <button type="button" class="btn btn-sm btn-danger btn-action"
-                                                        onclick="confirmDelete('${user.userId}', '${user.fullName}')"
-                                                        title="Delete">
+                                                        data-username="${user.fullName}"
+                                                        onclick="confirmDelete('${user.userId}', this)" title="Delete">
                                                         <i class="fas fa-trash"></i>
                                                     </button>
                                                 </td>
@@ -344,7 +413,8 @@
                                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                             </div>
                             <div class="modal-body">
-                                <p>Are you sure you want to delete user <strong id="passengerNameToDelete"></strong>?
+                                <p>Are you sure you want to delete passenger <strong
+                                        id="passengerNameToDelete"></strong>?
                                 </p>
                                 <p class="text-danger"><small>This action cannot be undone.</small></p>
                             </div>
@@ -356,32 +426,57 @@
                     </div>
                 </div>
 
-                <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-                <script>
-                    function confirmDelete(userId, userName) {
-                        document.getElementById('passengerNameToDelete').textContent = userName;
-                        document.getElementById('confirmDeleteBtn').href =
-                            '${pageContext.request.contextPath}/passengers/delete?id=' + userId;
-                        new bootstrap.Modal(document.getElementById('deleteModal')).show();
-                    }
+                <%@ include file="/views/partials/footer.jsp" %>
+                    <script>
+                        // Auto-hide alerts after 5 seconds
+                        document.addEventListener('DOMContentLoaded', function () {
+                            const alerts = document.querySelectorAll('.alert');
+                            alerts.forEach(function (alert) {
+                                setTimeout(function () {
+                                    const bsAlert = new bootstrap.Alert(alert);
+                                    bsAlert.close();
+                                }, 5000);
+                            });
 
-                    function switchView(view) {
-                        const gridView = document.getElementById('usersGrid');
-                        const tableView = document.getElementById('usersTable');
-                        const buttons = document.querySelectorAll('.btn-group .btn');
+                            // Scroll to top if there's a message
+                            if (alerts.length > 0) {
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                            }
+                        });
+                    </script>
+                    <script>
+                        function confirmDelete(userId, el) {
+                            // Support calling with (userId, userName) for backward-compatibility
+                            let userName = '';
+                            if (el && typeof el.getAttribute === 'function') {
+                                userName = el.getAttribute('data-username') || '';
+                            } else if (typeof el === 'string') {
+                                userName = el;
+                            }
 
-                        buttons.forEach(btn => btn.classList.remove('active'));
-                        event.target.classList.add('active');
-
-                        if (view === 'grid') {
-                            gridView.classList.remove('d-none');
-                            tableView.classList.add('d-none');
-                        } else {
-                            gridView.classList.add('d-none');
-                            tableView.classList.remove('d-none');
+                            document.getElementById('passengerNameToDelete').textContent = userName;
+                            document.getElementById('confirmDeleteBtn').href =
+                                '${pageContext.request.contextPath}/passengers/delete?id=' + userId;
+                            new bootstrap.Modal(document.getElementById('deleteModal')).show();
                         }
-                    }
-                </script>
+
+                        function switchView(view) {
+                            const gridView = document.getElementById('usersGrid');
+                            const tableView = document.getElementById('usersTable');
+                            const buttons = document.querySelectorAll('.btn-group .btn');
+
+                            buttons.forEach(btn => btn.classList.remove('active'));
+                            event.target.classList.add('active');
+
+                            if (view === 'grid') {
+                                gridView.classList.remove('d-none');
+                                tableView.classList.add('d-none');
+                            } else {
+                                gridView.classList.add('d-none');
+                                tableView.classList.remove('d-none');
+                            }
+                        }
+                    </script>
             </body>
 
             </html>

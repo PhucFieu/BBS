@@ -118,7 +118,7 @@ function initializeFormValidation() {
       const submitBtn = form.querySelector('button[type="submit"]');
       const originalText = submitBtn.innerHTML;
       submitBtn.innerHTML =
-        '<i class="fas fa-spinner fa-spin me-2"></i>Đang tạo vé...';
+        '<i class="fas fa-spinner fa-spin me-2"></i>Creating ticket...';
       submitBtn.disabled = true;
 
       // Submit form
@@ -248,8 +248,14 @@ function updateTotalPrice() {
 
   if (ticketPriceInput && totalPriceElement) {
     const price = parseFloat(ticketPriceInput.value) || 0;
-    totalPriceElement.textContent =
-      new Intl.NumberFormat("vi-VN").format(price) + "₫";
+    // Use proper Vietnamese dong symbol (₫) with UTF-8 encoding
+    const formattedPrice = new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(price);
+    totalPriceElement.textContent = formattedPrice;
   }
 }
 
@@ -262,7 +268,7 @@ function updateSeatInputMax(maxSeats) {
   const seatNumberInput = document.getElementById("seatNumber");
   if (seatNumberInput) {
     seatNumberInput.max = maxSeats;
-    seatNumberInput.placeholder = `Nhập số ghế từ 1 đến ${maxSeats}`;
+    seatNumberInput.placeholder = `Enter a seat number from 1 to ${maxSeats}`;
   }
 }
 
@@ -315,12 +321,12 @@ function populateScheduleSelect(schedules) {
   if (!scheduleSelect) return;
 
   // Clear existing options
-  scheduleSelect.innerHTML = '<option value="">-- Chọn lịch trình --</option>';
+  scheduleSelect.innerHTML = '<option value="">-- Select schedule --</option>';
 
   if (schedules.length === 0) {
     const option = document.createElement("option");
     option.value = "";
-    option.textContent = "Không có lịch trình khả dụng";
+    option.textContent = "No available schedules";
     option.disabled = true;
     scheduleSelect.appendChild(option);
     return;
@@ -332,13 +338,13 @@ function populateScheduleSelect(schedules) {
     option.value = schedule.scheduleId;
     option.dataset.departureTime = schedule.departureTime;
 
-    // Format display: "HH:mm - Xe số XXX - Ghế trống: Y"
+    // Format display: "HH:mm - Bus XXX - Seats available: Y"
     let displayText = schedule.departureTime;
     if (schedule.busNumber) {
-      displayText += " - Xe: " + schedule.busNumber;
+      displayText += " - Bus: " + schedule.busNumber;
     }
     if (schedule.availableSeats !== undefined) {
-      displayText += " - Ghế trống: " + schedule.availableSeats;
+      displayText += " - Seats available: " + schedule.availableSeats;
     }
 
     option.textContent = displayText;
@@ -355,7 +361,7 @@ function viewAvailableSeats() {
 
   if (!routeSelect || !busSelect || !departureDateInput || !scheduleSelect) {
     alert(
-      "Vui lòng chọn đầy đủ thông tin tuyến đường, xe khách, ngày và lịch trình"
+      "Please select route, bus, date, and schedule"
     );
     return;
   }
@@ -367,7 +373,7 @@ function viewAvailableSeats() {
 
   if (!routeId || !busId || !date || !scheduleId) {
     alert(
-      "Vui lòng chọn đầy đủ thông tin tuyến đường, xe khách, ngày và lịch trình"
+      "Please select route, bus, date, and schedule"
     );
     return;
   }
@@ -391,7 +397,7 @@ function viewAvailableSeats() {
   const viewSeatsBtn = document.getElementById("viewSeatsBtn");
   const originalText = viewSeatsBtn.innerHTML;
   viewSeatsBtn.innerHTML =
-    '<i class="fas fa-spinner fa-spin me-1"></i>Đang tải...';
+    '<i class="fas fa-spinner fa-spin me-1"></i>Loading...';
   viewSeatsBtn.disabled = true;
 
   fetch(url)
@@ -403,7 +409,7 @@ function viewAvailableSeats() {
     })
     .then((data) => {
       if (data.error) {
-        alert("Lỗi: " + data.error);
+        alert("Error: " + data.error);
         return;
       }
 
@@ -411,7 +417,7 @@ function viewAvailableSeats() {
     })
     .catch((error) => {
       console.error("Error loading seats:", error);
-      alert("Lỗi khi tải danh sách ghế: " + error.message);
+      alert("Error loading seat list: " + error.message);
     })
     .finally(() => {
       // Restore button state
@@ -430,60 +436,30 @@ function displaySeatMap(data) {
 
   if (!data.totalSeats) {
     seatGrid.innerHTML =
-      '<div class="col-12 text-center text-muted">Không có thông tin ghế</div>';
+      '<div class="col-12 text-center text-muted">No seat information</div>';
     seatMap.style.display = "block";
     return;
   }
 
-  // Render as bus layout: 2 seats, aisle, 2 seats per row
-  let i = 1;
-  while (i <= data.totalSeats) {
-    // Left 2 seats
-    for (let c = 0; c < 2 && i <= data.totalSeats; c++, i++) {
-      const seatElement = document.createElement("div");
-      seatElement.className = "seat";
-      seatElement.textContent = i;
-      seatElement.dataset.seatNumber = i;
+  // Render as bus layout: 4 columns (like actual bus seat arrangement)
+  for (let i = 1; i <= data.totalSeats; i++) {
+    const seatElement = document.createElement("div");
+    seatElement.className = "seat";
+    seatElement.textContent = i;
+    seatElement.dataset.seatNumber = i;
 
-      if (data.bookedSeats && data.bookedSeats.includes(i)) {
-        seatElement.classList.add("occupied");
-        seatElement.title = "Ghế đã được đặt";
-      } else {
-        seatElement.classList.add("available");
-        seatElement.title = "Ghế trống - Click để chọn";
-        seatElement.addEventListener("click", function () {
-          selectSeat(this);
-        });
-      }
-
-      seatGrid.appendChild(seatElement);
+    if (data.bookedSeats && data.bookedSeats.includes(i)) {
+      seatElement.classList.add("occupied");
+      seatElement.title = "Seat already booked";
+    } else {
+      seatElement.classList.add("available");
+      seatElement.title = "Available - Click to select";
+      seatElement.addEventListener("click", function () {
+        selectSeat(this);
+      });
     }
 
-    // Aisle spacer
-    const aisle = document.createElement("div");
-    aisle.className = "aisle";
-    seatGrid.appendChild(aisle);
-
-    // Right 2 seats
-    for (let c = 0; c < 2 && i <= data.totalSeats; c++, i++) {
-      const seatElement = document.createElement("div");
-      seatElement.className = "seat";
-      seatElement.textContent = i;
-      seatElement.dataset.seatNumber = i;
-
-      if (data.bookedSeats && data.bookedSeats.includes(i)) {
-        seatElement.classList.add("occupied");
-        seatElement.title = "Ghế đã được đặt";
-      } else {
-        seatElement.classList.add("available");
-        seatElement.title = "Ghế trống - Click để chọn";
-        seatElement.addEventListener("click", function () {
-          selectSeat(this);
-        });
-      }
-
-      seatGrid.appendChild(seatElement);
-    }
+    seatGrid.appendChild(seatElement);
   }
 
   seatMap.style.display = "block";

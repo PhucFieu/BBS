@@ -1,36 +1,210 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
-    <%@ taglib prefix="c" uri="jakarta.tags.core" %>
+    <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
         <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
             <!DOCTYPE html>
             <html lang="en">
 
             <head>
-                <jsp:include page="/views/partials/head.jsp">
-                    <jsp:param name="title" value="Passenger Management - Admin Panel" />
-                </jsp:include>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Passenger Management - Admin Dashboard</title>
+                <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+                <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
                 <style>
-                    .user-card {
-                        transition: transform 0.2s ease;
+                    /* ===== GLOBAL STYLES ===== */
+                    :root {
+                        --primary-color: #66bb6a;
+                        --secondary-color: #81c784;
+                        --success-color: #4caf50;
+                        --danger-color: #dc3545;
+                        --warning-color: #ffc107;
+                        --info-color: #66bb6a;
+                        --light-color: #e8f5e9;
+                        --dark-color: #2e7d32;
+                        --white: #ffffff;
+                        --gray-100: #e8f5e9;
+                        --gray-200: #c8e6c9;
+                        --gray-300: #a5d6a7;
+                        --gray-400: #81c784;
+                        --gray-500: #66bb6a;
+                        --gray-600: #4caf50;
+                        --gray-700: #388e3c;
+                        --gray-800: #2e7d32;
+                        --gray-900: #1b5e20;
+                        --shadow-sm: 0 0.125rem 0.25rem rgba(102, 187, 106, 0.15);
+                        --shadow: 0 0.5rem 1rem rgba(102, 187, 106, 0.2);
+                        --shadow-lg: 0 1rem 3rem rgba(102, 187, 106, 0.25);
+                        --border-radius: 0.375rem;
+                        --border-radius-lg: 0.5rem;
+                        --border-radius-xl: 0.75rem;
+                        --transition: all 0.3s ease;
+                    }
+
+                    body {
+                        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+                        line-height: 1.6;
+                        color: var(--gray-800);
+                        background-color: #f1f8f4;
+                        min-height: 100vh;
+                    }
+
+                    .navbar {
+                        background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%) !important;
+                        box-shadow: var(--shadow);
+                        padding: 1rem 0;
+                    }
+
+                    .navbar-brand {
+                        font-weight: 700;
+                        font-size: 1.5rem;
+                        color: var(--white) !important;
+                        text-decoration: none;
+                        transition: var(--transition);
+                    }
+
+                    .navbar-brand:hover {
+                        color: var(--gray-200) !important;
+                        transform: translateY(-1px);
+                    }
+
+                    .navbar-nav .nav-link {
+                        color: var(--white) !important;
+                        font-weight: 500;
+                        padding: 0.5rem 1rem !important;
+                        border-radius: var(--border-radius);
+                        transition: var(--transition);
+                        margin: 0 0.25rem;
+                    }
+
+                    .navbar-nav .nav-link:hover {
+                        background-color: rgba(255, 255, 255, 0.1);
+                        color: var(--white) !important;
+                        transform: translateY(-1px);
+                    }
+
+                    .dropdown-menu {
                         border: none;
-                        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                        box-shadow: var(--shadow-lg);
+                        border-radius: var(--border-radius-lg);
+                        padding: 0.5rem 0;
+                        background-color: var(--white);
+                        margin-top: 0.5rem;
                     }
 
-                    .user-card:hover {
-                        transform: translateY(-2px);
-                        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+                    .dropdown-item {
+                        padding: 0.75rem 1.5rem;
+                        transition: var(--transition);
+                        color: var(--gray-700);
+                        text-decoration: none;
+                        display: block;
                     }
 
-                    .search-form {
-                        background: #f8f9fa;
-                        padding: 20px;
-                        border-radius: 8px;
-                        margin-bottom: 20px;
+                    .dropdown-item:hover {
+                        background-color: var(--gray-100);
+                        color: var(--primary-color);
+                        text-decoration: none;
+                    }
+
+                    footer {
+                        background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+                        color: var(--white);
+                        padding: 2rem 0;
+                        margin-top: auto;
+                    }
+
+                    footer a {
+                        color: var(--gray-300);
+                        text-decoration: none;
+                        transition: var(--transition);
+                    }
+
+                    footer a:hover {
+                        color: var(--white);
+                    }
+
+                    ::-webkit-scrollbar {
+                        width: 8px;
+                    }
+
+                    ::-webkit-scrollbar-track {
+                        background: var(--gray-200);
+                    }
+
+                    ::-webkit-scrollbar-thumb {
+                        background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+                        border-radius: 4px;
+                    }
+
+                    ::-webkit-scrollbar-thumb:hover {
+                        background: linear-gradient(135deg, #4caf50 0%, #66bb6a 100%);
+                    }
+
+                    @media (max-width: 768px) {
+                        .container {
+                            padding: 0 1rem;
+                        }
+                        .card-body {
+                            padding: 1rem;
+                        }
+                        .btn {
+                            padding: 0.5rem 1rem;
+                            font-size: 0.875rem;
+                        }
+                    }
+                    .status-badge {
+                        font-size: 0.85em;
+                        padding: 0.4em 0.8em;
+                    }
+
+                    .search-container {
+                        background: linear-gradient(135deg, #66bb6a 0%, #81c784 100%);
+                        border-radius: 15px;
+                        padding: 2rem;
+                        margin-bottom: 2rem;
+                        color: white;
+                    }
+
+                    .filter-section {
+                        background: rgba(255, 255, 255, 0.1);
+                        border-radius: 10px;
+                        padding: 1.5rem;
+                        margin-top: 1rem;
+                    }
+
+                    #usersTable {
+                        margin-bottom: 0;
+                    }
+
+                    #usersTable tbody tr:hover {
+                        background-color: #f8f9fa;
+                    }
+
+                    #usersTable th {
+                        font-weight: 600;
+                        text-transform: uppercase;
+                        font-size: 0.85em;
+                        letter-spacing: 0.5px;
+                        border-bottom: 2px solid #dee2e6;
+                    }
+
+                    .btn-group .btn {
+                        border-radius: 0;
+                    }
+
+                    .btn-group .btn:first-child {
+                        border-top-left-radius: 0.25rem;
+                        border-bottom-left-radius: 0.25rem;
+                    }
+
+                    .btn-group .btn:last-child {
+                        border-top-right-radius: 0.25rem;
+                        border-bottom-right-radius: 0.25rem;
                     }
 
                     .role-badge {
-                        padding: 0.5em 1em;
+                        padding: 0.4em 0.8em;
                         border-radius: 20px;
-                        font-size: 0.9rem;
+                        font-size: 0.85em;
                         font-weight: 500;
                     }
 
@@ -45,256 +219,381 @@
                     }
 
                     .role-user {
-                        background-color: #28a745;
+                        background-color: #66bb6a;
                         color: white;
-                    }
-
-                    .status-badge {
-                        font-size: 0.9rem;
                     }
                 </style>
             </head>
 
             <body>
-                <%@ include file="/views/partials/admin-header.jsp" %>
+                <jsp:include page="../partials/admin-header.jsp" />
 
-                    <div class="container mt-4">
-                        <!-- Header -->
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h2><i class="fas fa-users me-2"></i>Passenger Management</h2>
-                            <a href="${pageContext.request.contextPath}/admin/user/add" class="btn btn-primary">
-                                <i class="fas fa-plus me-1"></i>Add Passenger
-                            </a>
-                        </div>
-
-                        <!-- Messages -->
-                        <c:if test="${not empty param.message}">
-                            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                                <i class="fas fa-check-circle me-2"></i>${param.message}
-                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                            </div>
-                        </c:if>
-                        <c:if test="${not empty param.error}">
-                            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                                <i class="fas fa-exclamation-circle me-2"></i>${param.error}
-                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                            </div>
-                        </c:if>
-
-                        <!-- Search Form -->
-                        <div class="search-form">
-                            <form action="${pageContext.request.contextPath}/admin/users" method="get" class="row g-3">
-                                <div class="col-md-4">
-                                    <label for="search" class="form-label">Search</label>
-                                    <input type="text" class="form-control" id="search" name="search"
-                                        value="${searchTerm}" placeholder="Name, email, username...">
-                                </div>
-                                <div class="col-md-3">
-                                    <label for="role" class="form-label">Role</label>
-                                    <select class="form-select" id="role" name="role">
-                                        <option value="">All</option>
-                                        <option value="ADMIN" ${roleFilter=='ADMIN' ? 'selected' : '' }>Admin</option>
-                                        <option value="USER" ${roleFilter=='USER' ? 'selected' : '' }>Passenger</option>
-                                        <option value="DRIVER" ${roleFilter=='DRIVER' ? 'selected' : '' }>Driver
-                                        </option>
-                                    </select>
-                                </div>
-                                <div class="col-md-5 d-flex align-items-end">
-                                    <button type="submit" class="btn btn-outline-primary me-2">
-                                        <i class="fas fa-search me-1"></i>Search
-                                    </button>
-                                    <a href="${pageContext.request.contextPath}/admin/users"
-                                        class="btn btn-outline-secondary">
-                                        <i class="fas fa-refresh me-1"></i>Refresh
-                                    </a>
-                                </div>
-                            </form>
-                        </div>
-
-                        <!-- Passengers Display -->
-                        <c:choose>
-                            <c:when test="${empty users}">
-                                <div class="text-center py-5">
-                                    <i class="fas fa-users fa-3x text-muted mb-3"></i>
-                                    <h5 class="text-muted">No passengers found</h5>
-                                    <p class="text-muted">Add the first passenger to get started</p>
-                                </div>
-                            </c:when>
-                            <c:otherwise>
-                                <!-- Grid View -->
-                                <div class="row g-4" id="usersGrid">
-                                    <c:forEach var="user" items="${users}">
-                                        <div class="col-md-6 col-lg-4">
-                                            <div class="card user-card h-100">
-                                                <div class="card-header bg-primary text-white">
-                                                    <div class="d-flex justify-content-between align-items-center">
-                                                        <h6 class="mb-0">
-                                                            <i class="fas fa-user me-2"></i>${user.fullName}
-                                                        </h6>
-                                                        <span class="role-badge role-${user.role.toLowerCase()}">
-                                                            <c:choose>
-                                                                <c:when test="${user.role eq 'USER'}">PASSENGER</c:when>
-                                                                <c:otherwise>${user.role}</c:otherwise>
-                                                            </c:choose>
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                                <div class="card-body">
-                                                    <div class="mb-2"><strong>Username:</strong> ${user.username}</div>
-                                                    <div class="mb-2"><strong>Email:</strong> ${user.email}</div>
-                                                    <div class="mb-2"><strong>Phone:</strong> ${user.phoneNumber}</div>
-                                                    <div class="mb-2"><strong>Status:</strong>
-                                                        <span
-                                                            class="badge ${user.status == 'ACTIVE' ? 'bg-success' : 'bg-danger'} status-badge">
-                                                            ${user.status}
-                                                        </span>
-                                                    </div>
-                                                    <div class="mb-2"><strong>Creation Date:</strong>
-                                                        ${user.formattedCreatedDate}
-                                                    </div>
-                                                </div>
-                                                <div class="card-footer bg-transparent">
-                                                    <div class="d-flex justify-content-between">
-                                                        <a href="${pageContext.request.contextPath}/admin/user/edit?id=${user.userId}"
-                                                            class="btn btn-sm btn-warning btn-action" title="Edit">
-                                                            <i class="fas fa-edit"></i>
-                                                        </a>
-                                                        <button type="button" class="btn btn-sm btn-danger btn-action"
-                                                            onclick="confirmDelete('${user.userId}', '${user.fullName}')"
-                                                            title="Delete">
-                                                            <i class="fas fa-trash"></i>
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </c:forEach>
-                                </div>
-
-                                <!-- Table View (Hidden by default) -->
-                                <div class="table-responsive d-none" id="usersTable">
-                                    <table class="table table-hover">
-                                        <thead class="table-dark">
-                                            <tr>
-                                                <th>ID</th>
-                                                <th>Name</th>
-                                                <th>Username</th>
-                                                <th>Email</th>
-                                                <th>Phone</th>
-                                                <th>Role</th>
-                                                <th>Status</th>
-                                                <th>Creation Date</th>
-                                                <th>Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <c:forEach var="user" items="${users}">
-                                                <tr>
-                                                    <td>${user.userId}</td>
-                                                    <td><strong>${user.fullName}</strong></td>
-                                                    <td>${user.username}</td>
-                                                    <td>${user.email}</td>
-                                                    <td>${user.phoneNumber}</td>
-                                                    <td>
-                                                        <span class="role-badge role-${user.role.toLowerCase()}">
-                                                            <c:choose>
-                                                                <c:when test="${user.role eq 'USER'}">PASSENGER</c:when>
-                                                                <c:otherwise>${user.role}</c:otherwise>
-                                                            </c:choose>
-                                                        </span>
-                                                    </td>
-                                                    <td>
-                                                        <span
-                                                            class="badge ${user.status == 'ACTIVE' ? 'bg-success' : 'bg-danger'} status-badge">
-                                                            ${user.status}
-                                                        </span>
-                                                    </td>
-                                                    <td>
-                                                        ${user.formattedCreatedDate}
-                                                    </td>
-                                                    <td>
-                                                        <a href="${pageContext.request.contextPath}/admin/user/edit?id=${user.userId}"
-                                                            class="btn btn-sm btn-warning btn-action" title="Edit">
-                                                            <i class="fas fa-edit"></i>
-                                                        </a>
-                                                        <button type="button" class="btn btn-sm btn-danger btn-action"
-                                                            onclick="confirmDelete('${user.userId}', '${user.fullName}')"
-                                                            title="Delete">
-                                                            <i class="fas fa-trash"></i>
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                            </c:forEach>
-                                        </tbody>
-                                    </table>
-                                </div>
-
-                                <!-- View Toggle -->
-                                <div class="text-center mt-4">
-                                    <div class="btn-group" role="group">
-                                        <button type="button" class="btn btn-outline-primary active"
-                                            onclick="switchView('grid')">
-                                            <i class="fas fa-th-large me-1"></i>Grid
-                                        </button>
-                                        <button type="button" class="btn btn-outline-primary"
-                                            onclick="switchView('table')">
-                                            <i class="fas fa-table me-1"></i>Table
-                                        </button>
+                <div class="container-fluid py-4">
+                    <div class="row">
+                        <div class="col-12">
+                            <!-- Header Section -->
+                            <div class="search-container">
+                                <div class="row align-items-center">
+                                    <div class="col-md-6">
+                                        <h2 class="mb-0">
+                                            <i class="fas fa-users me-2"></i>Passenger Management
+                                        </h2>
+                                        <p class="mb-0 mt-2">Manage passenger accounts and information</p>
+                                    </div>
+                                    <div class="col-md-6 text-md-end">
+                                        <a href="${pageContext.request.contextPath}/admin/users/add"
+                                            class="btn btn-light btn-lg">
+                                            <i class="fas fa-plus me-2"></i>Add New Passenger
+                                        </a>
                                     </div>
                                 </div>
-                            </c:otherwise>
-                        </c:choose>
-                    </div>
 
-                    <!-- Delete Confirmation Modal -->
-                    <div class="modal fade" id="deleteModal" tabindex="-1">
-                        <div class="modal-dialog">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h5 class="modal-title">Confirm Delete</h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                <!-- Search and Filter Section -->
+                                <div class="filter-section">
+                                    <form action="${pageContext.request.contextPath}/admin/users" method="get">
+                                        <div class="row">
+                                            <div class="col-md-4">
+                                                <div class="input-group">
+                                                    <span class="input-group-text bg-white border-0">
+                                                        <i class="fas fa-search text-muted"></i>
+                                                    </span>
+                                                    <input type="text" class="form-control border-0" id="search"
+                                                        name="search" value="${searchTerm}"
+                                                        placeholder="Search passengers...">
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <select class="form-select border-0" id="statusFilter" name="status">
+                                                    <option value="">All Status</option>
+                                                    <option value="ACTIVE" ${param.status eq 'ACTIVE' ? 'selected' : ''
+                                                        }>Active</option>
+                                                    <option value="INACTIVE" ${param.status eq 'INACTIVE' ? 'selected'
+                                                        : '' }>Inactive</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <button type="submit" class="btn btn-outline-light w-100">
+                                                    <i class="fas fa-search me-1"></i>Search
+                                                </button>
+                                            </div>
+                                            <div class="col-md-2">
+                                                <a href="${pageContext.request.contextPath}/admin/users"
+                                                    class="btn btn-outline-light w-100">
+                                                    <i class="fas fa-times me-1"></i>Clear
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </form>
                                 </div>
-                                <div class="modal-body">
-                                    <p>Are you sure you want to delete passenger <strong
-                                            id="userNameToDelete"></strong>?</p>
-                                    <p class="text-danger"><small>This action cannot be undone.</small></p>
+                            </div>
+
+                            <!-- Messages -->
+                            <c:if test="${not empty param.message}">
+                                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                                    <i class="fas fa-check-circle me-2"></i>${param.message}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                                 </div>
-                                <div class="modal-footer">
-                                    <button type="button" class="btn btn-secondary"
-                                        data-bs-dismiss="modal">Cancel</button>
-                                    <a href="#" id="confirmDeleteBtn" class="btn btn-danger">Delete</a>
+                            </c:if>
+                            <c:if test="${not empty param.error}">
+                                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                    <i class="fas fa-exclamation-circle me-2"></i>${param.error}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                                 </div>
+                            </c:if>
+
+                            <!-- Users Table -->
+                            <c:choose>
+                                <c:when test="${empty users}">
+                                    <div class="text-center py-5">
+                                        <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                                        <h4 class="text-muted">No passengers found</h4>
+                                        <p class="text-muted">Click "Add New Passenger" to create your first passenger
+                                        </p>
+                                    </div>
+                                </c:when>
+                                <c:otherwise>
+                                    <div class="card shadow-sm">
+                                        <div class="card-body">
+                                            <div class="table-responsive">
+                                                <table class="table table-hover align-middle" id="usersTable">
+                                                    <thead class="table-light">
+                                                        <tr>
+                                                            <th>Name</th>
+                                                            <th>Username</th>
+                                                            <th>Email</th>
+                                                            <th>Phone</th>
+                                                            <th>Role</th>
+                                                            <th>Status</th>
+                                                            <th>Creation Date</th>
+                                                            <th>Actions</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody id="usersContainer">
+                                                        <c:forEach var="user" items="${users}">
+                                                            <tr class="user-item" data-status="${user.status}">
+                                                                <td>
+                                                                    <div class="fw-bold">
+                                                                        <i class="fas fa-user me-1 text-primary"></i>
+                                                                        ${user.fullName}
+                                                                    </div>
+                                                                </td>
+                                                                <td>
+                                                                    <span class="text-muted">${user.username}</span>
+                                                                </td>
+                                                                <td>
+                                                                    <div class="fw-bold">${user.email}</div>
+                                                                </td>
+                                                                <td>
+                                                                    <span class="text-muted">
+                                                                        <i
+                                                                            class="fas fa-phone me-1"></i>${user.phoneNumber}
+                                                                    </span>
+                                                                </td>
+                                                                <td>
+                                                                    <span
+                                                                        class="role-badge role-${user.role.toLowerCase()}">
+                                                                        <c:choose>
+                                                                            <c:when test="${user.role eq 'USER'}">
+                                                                                PASSENGER</c:when>
+                                                                            <c:otherwise>${user.role}</c:otherwise>
+                                                                        </c:choose>
+                                                                    </span>
+                                                                </td>
+                                                                <td>
+                                                                    <span
+                                                                        class="badge status-badge ${user.status == 'ACTIVE' ? 'bg-success' : 'bg-danger'}">
+                                                                        ${user.status}
+                                                                    </span>
+                                                                </td>
+                                                                <td>
+                                                                    <small
+                                                                        class="text-muted">${user.formattedCreatedDate}</small>
+                                                                </td>
+                                                                <td>
+                                                                    <div class="btn-group" role="group">
+                                                                        <button type="button"
+                                                                            class="btn btn-outline-info btn-sm"
+                                                                            title="View Details" data-bs-toggle="modal"
+                                                                            data-bs-target="#userDetailModal"
+                                                                            data-userid="${user.userId}"
+                                                                            data-username="${user.username}"
+                                                                            data-fullname="${user.fullName}"
+                                                                            data-email="${user.email}"
+                                                                            data-phone="${user.phoneNumber}"
+                                                                            data-role="${user.role}"
+                                                                            data-status="${user.status}"
+                                                                            data-createddate="${user.formattedCreatedDate}">
+                                                                            <i class="fas fa-eye"></i>
+                                                                        </button>
+                                                                        <a href="${pageContext.request.contextPath}/admin/users/edit?id=${user.userId}"
+                                                                            class="btn btn-outline-primary btn-sm"
+                                                                            title="Edit">
+                                                                            <i class="fas fa-edit"></i>
+                                                                        </a>
+                                                                        <button type="button"
+                                                                            class="btn btn-outline-danger btn-sm"
+                                                                            data-username="${user.fullName}"
+                                                                            onclick="confirmDelete('${user.userId}', this)"
+                                                                            title="Delete">
+                                                                            <i class="fas fa-trash"></i>
+                                                                        </button>
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        </c:forEach>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </c:otherwise>
+                            </c:choose>
+
+                            <!-- No Results Message -->
+                            <div id="noResults" class="text-center py-5" style="display: none;">
+                                <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                                <h4 class="text-muted">No passengers found</h4>
+                                <p class="text-muted">Try adjusting your search criteria</p>
                             </div>
                         </div>
                     </div>
+                </div>
 
-                    <%@ include file="/views/partials/footer.jsp" %>
+                <!-- Delete Confirmation Modal -->
+                <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel"
+                    aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header bg-danger text-white">
+                                <h5 class="modal-title" id="deleteModalLabel">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>Confirm Delete
+                                </h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                                    aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="text-center mb-3">
+                                    <i class="fas fa-user-times fa-3x text-danger mb-3"></i>
+                                </div>
+                                <p class="text-center mb-3">Are you sure you want to delete passenger <strong
+                                        id="userNameToDelete" class="text-danger"></strong>?</p>
+                                <div class="alert alert-warning" role="alert">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                    <strong>Warning:</strong> This action cannot be undone. The passenger account will
+                                    be
+                                    permanently removed from the system.
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                    <i class="fas fa-times me-1"></i>Cancel
+                                </button>
+                                <a href="#" id="confirmDeleteBtn" class="btn btn-danger">
+                                    <i class="fas fa-trash me-1"></i>Delete Passenger
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-                        <script>
-                            function confirmDelete(userId, userName) {
-                                document.getElementById('userNameToDelete').textContent = userName;
-                                document.getElementById('confirmDeleteBtn').href =
-                                    '${pageContext.request.contextPath}/admin/user/delete?id=' + userId;
-                                new bootstrap.Modal(document.getElementById('deleteModal')).show();
+                <!-- User Detail Modal -->
+                <div class="modal fade" id="userDetailModal" tabindex="-1" aria-labelledby="userDetailModalLabel"
+                    aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header bg-primary text-white">
+                                <h5 class="modal-title" id="userDetailModalLabel">
+                                    <i class="fas fa-user me-2"></i>Passenger Details
+                                </h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                                    aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <i class="fas fa-hashtag text-primary me-3" style="width: 20px;"></i>
+                                            <div>
+                                                <small class="text-muted d-block">User ID</small>
+                                                <strong id="detailUserId"></strong>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <i class="fas fa-user text-primary me-3" style="width: 20px;"></i>
+                                            <div>
+                                                <small class="text-muted d-block">Full Name</small>
+                                                <strong id="detailFullName"></strong>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <i class="fas fa-user-circle text-info me-3" style="width: 20px;"></i>
+                                            <div>
+                                                <small class="text-muted d-block">Username</small>
+                                                <strong id="detailUsername"></strong>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <i class="fas fa-envelope text-info me-3" style="width: 20px;"></i>
+                                            <div>
+                                                <small class="text-muted d-block">Email</small>
+                                                <strong id="detailEmail"></strong>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <i class="fas fa-phone text-warning me-3" style="width: 20px;"></i>
+                                            <div>
+                                                <small class="text-muted d-block">Phone</small>
+                                                <strong id="detailPhone"></strong>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <i class="fas fa-user-tag text-success me-3" style="width: 20px;"></i>
+                                            <div>
+                                                <small class="text-muted d-block">Role</small>
+                                                <span id="detailRole"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <i class="fas fa-check-circle text-success me-3" style="width: 20px;"></i>
+                                            <div>
+                                                <small class="text-muted d-block">Status</small>
+                                                <span id="detailStatus"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <i class="fas fa-calendar text-info me-3" style="width: 20px;"></i>
+                                            <div>
+                                                <small class="text-muted d-block">Created Date</small>
+                                                <strong id="detailCreatedDate"></strong>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                    <i class="fas fa-times me-1"></i>Close
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <%@ include file="/views/partials/footer.jsp" %>
+                    <script>
+                        document.addEventListener('DOMContentLoaded', function () {
+                            var userDetailModal = document.getElementById('userDetailModal');
+                            if (userDetailModal) {
+                                userDetailModal.addEventListener('show.bs.modal', function (event) {
+                                    var button = event.relatedTarget;
+                                    document.getElementById('detailUserId').textContent = button.getAttribute('data-userid');
+                                    document.getElementById('detailFullName').textContent = button.getAttribute('data-fullname');
+                                    document.getElementById('detailUsername').textContent = button.getAttribute('data-username');
+                                    document.getElementById('detailEmail').textContent = button.getAttribute('data-email');
+                                    document.getElementById('detailPhone').textContent = button.getAttribute('data-phone');
+                                    var role = button.getAttribute('data-role');
+                                    var roleText = role === 'USER' ? 'PASSENGER' : role;
+                                    var roleClass = role === 'ADMIN' ? 'role-admin' : role === 'DRIVER' ? 'role-driver' : 'role-user';
+                                    document.getElementById('detailRole').innerHTML = '<span class="role-badge ' + roleClass + '">' + roleText + '</span>';
+                                    var status = button.getAttribute('data-status');
+                                    document.getElementById('detailStatus').innerHTML =
+                                        status === 'ACTIVE'
+                                            ? '<span class="badge bg-success">Active</span>'
+                                            : '<span class="badge bg-danger">Inactive</span>';
+                                    document.getElementById('detailCreatedDate').textContent = button.getAttribute('data-createddate');
+                                });
+                            }
+                        });
+                    </script>
+                    <script>
+                        function confirmDelete(userId, el) {
+                            let userName = '';
+                            if (el && typeof el.getAttribute === 'function') {
+                                userName = el.getAttribute('data-username') || '';
+                            } else if (typeof el === 'string') {
+                                userName = el;
                             }
 
-                            function switchView(view) {
-                                const gridView = document.getElementById('usersGrid');
-                                const tableView = document.getElementById('usersTable');
-                                const buttons = document.querySelectorAll('.btn-group .btn');
-
-                                buttons.forEach(btn => btn.classList.remove('active'));
-                                event.target.classList.add('active');
-
-                                if (view === 'grid') {
-                                    gridView.classList.remove('d-none');
-                                    tableView.classList.add('d-none');
-                                } else {
-                                    gridView.classList.add('d-none');
-                                    tableView.classList.remove('d-none');
-                                }
-                            }
-                        </script>
+                            document.getElementById('userNameToDelete').textContent = userName;
+                            document.getElementById('confirmDeleteBtn').href =
+                                '${pageContext.request.contextPath}/admin/users/delete?id=' + userId;
+                            new bootstrap.Modal(document.getElementById('deleteModal')).show();
+                        }
+                    </script>
             </body>
 
             </html>

@@ -161,7 +161,7 @@ public class StationDAO {
         return cities;
     }
 
-    private Station mapResultSetToStation(ResultSet rs) throws SQLException {
+    Station mapResultSetToStation(ResultSet rs) throws SQLException {
         Station station = new Station();
 
         station.setStationId(UUIDUtils.getUUIDFromResultSet(rs, "station_id"));

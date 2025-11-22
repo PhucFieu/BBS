@@ -10,21 +10,21 @@ document.addEventListener("DOMContentLoaded", function () {
 
       if (stationName.length < 2) {
         e.preventDefault();
-        alert("Tên trạm phải có ít nhất 2 ký tự");
+        alert("Station name must be at least 2 characters");
         document.getElementById("stationName").focus();
         return false;
       }
 
       if (city.length < 2) {
         e.preventDefault();
-        alert("Tên thành phố phải có ít nhất 2 ký tự");
+        alert("City name must be at least 2 characters");
         document.getElementById("city").focus();
         return false;
       }
 
       if (address.length < 5) {
         e.preventDefault();
-        alert("Địa chỉ phải có ít nhất 5 ký tự");
+        alert("Address must be at least 5 characters");
         document.getElementById("address").focus();
         return false;
       }

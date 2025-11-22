@@ -1,13 +1,12 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
-    <%@ taglib prefix="c" uri="jakarta.tags.core" %>
+    <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
         <!DOCTYPE html>
         <html lang="en">
 
         <head>
-            <meta charset="UTF-8">
-            <title>Admin Dashboard - BusTicket System</title>
-            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-            <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+            <jsp:include page="/views/partials/head.jsp">
+                <jsp:param name="title" value="Admin Dashboard - Bus Booking System" />
+            </jsp:include>
         </head>
 
         <body>
@@ -19,7 +18,7 @@
                         <div class="col-lg-3 col-md-6 mb-3">
                             <div class="stats-card users">
                                 <div class="stats-number text-primary">${totalUsers}</div>
-                                <div class="stats-label">Total Users</div>
+                                <div class="stats-label">Total Passengers</div>
                                 <div class="mt-2"><i class="fas fa-users fa-2x text-primary opacity-50"></i></div>
                             </div>
                         </div>

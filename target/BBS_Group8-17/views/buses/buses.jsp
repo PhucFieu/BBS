@@ -1,5 +1,5 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
-    <%@ taglib prefix="c" uri="jakarta.tags.core" %>
+    <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
         <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
             <!DOCTYPE html>
             <html lang="en">
@@ -84,10 +84,10 @@
                                 </div>
                                 <div class="col-md-6 d-flex align-items-end">
                                     <button type="button" class="btn btn-outline-primary me-2" onclick="filterBuses()">
-                                        <i class="fas fa-filter me-1"></i>Lọc
+                                        <i class="fas fa-filter me-1"></i>Filter
                                     </button>
                                     <button type="button" class="btn btn-outline-secondary" onclick="resetFilter()">
-                                        <i class="fas fa-refresh me-1"></i>Làm mới
+                                        <i class="fas fa-refresh me-1"></i>Reset
                                     </button>
                                 </div>
                             </div>
@@ -98,8 +98,8 @@
                             <c:when test="${empty buses}">
                                 <div class="text-center py-5">
                                     <i class="fas fa-bus fa-3x text-muted mb-3"></i>
-                                    <h5 class="text-muted">Không có xe nào</h5>
-                                    <p class="text-muted">Hãy thêm xe đầu tiên để bắt đầu</p>
+                                    <h5 class="text-muted">No buses available</h5>
+                                    <p class="text-muted">Add the first bus to get started</p>
                                 </div>
                             </c:when>
                             <c:otherwise>
@@ -117,31 +117,29 @@
                                                         </h6>
                                                         <c:choose>
                                                             <c:when test="${bus.status eq 'ACTIVE'}">
-                                                                <span class="badge bg-success status-badge">Hoạt
-                                                                    động</span>
+                                                                <span class="badge bg-success status-badge">Active</span>
                                                             </c:when>
                                                             <c:otherwise>
-                                                                <span class="badge bg-secondary status-badge">Không hoạt
-                                                                    động</span>
+                                                                <span class="badge bg-secondary status-badge">Inactive</span>
                                                             </c:otherwise>
                                                         </c:choose>
                                                     </div>
                                                 </div>
                                                 <div class="card-body">
                                                     <div class="mb-3">
-                                                        <strong>Loại xe:</strong> ${bus.busType}
+                                                        <strong>Bus Type:</strong> ${bus.busType}
                                                     </div>
                                                     <div class="mb-3">
-                                                        <strong>Biển số:</strong> ${bus.licensePlate}
+                                                        <strong>License Plate:</strong> ${bus.licensePlate}
                                                     </div>
                                                     <div class="mb-3">
-                                                        <strong>Tổng ghế:</strong> ${bus.totalSeats} ghế
+                                                        <strong>Total Seats:</strong> ${bus.totalSeats}
                                                     </div>
                                                 </div>
                                                 <div class="card-footer bg-transparent">
                                                     <div class="d-flex justify-content-between">
                                                         <a href="javascript:void(0);"
-                                                            class="btn btn-sm btn-info btn-action" title="Xem chi tiết"
+                                                            class="btn btn-sm btn-info btn-action" title="View details"
                                                             data-bs-toggle="modal" data-bs-target="#busDetailModal"
                                                             data-busid="${bus.busId}" data-busnumber="${bus.busNumber}"
                                                             data-bustype="${bus.busType}"
@@ -153,12 +151,13 @@
                                                             <i class="fas fa-eye"></i>
                                                         </a>
                                                         <a href="${pageContext.request.contextPath}/buses/edit?id=${bus.busId}"
-                                                            class="btn btn-sm btn-warning btn-action" title="Sửa">
+                                                            class="btn btn-sm btn-warning btn-action" title="Edit">
                                                             <i class="fas fa-edit"></i>
                                                         </a>
                                                         <button type="button" class="btn btn-sm btn-danger btn-action"
-                                                            onclick="confirmDelete(${bus.busId}, '${bus.busNumber}')"
-                                                            title="Xóa">
+                                                            data-busnumber="${bus.busNumber}"
+                                                            onclick="confirmDelete(${bus.busId}, this)"
+                                                            title="Delete">
                                                             <i class="fas fa-trash"></i>
                                                         </button>
                                                     </div>
@@ -174,12 +173,12 @@
                                         <thead class="table-dark">
                                             <tr>
                                                 <th>ID</th>
-                                                <th>Số xe</th>
-                                                <th>Loại xe</th>
-                                                <th>Biển số</th>
-                                                <th>Tổng ghế</th>
-                                                <th>Trạng thái</th>
-                                                <th>Thao tác</th>
+                                                <th>Bus Number</th>
+                                                <th>Bus Type</th>
+                                                <th>License Plate</th>
+                                                <th>Total Seats</th>
+                                                <th>Status</th>
+                                                <th>Actions</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -190,21 +189,21 @@
                                                     <td>${bus.busType}</td>
                                                     <td>${bus.licensePlate}</td>
                                                     <td>
-                                                        <span class="text-primary">${bus.totalSeats}</span> ghế
+                                                        <span class="text-primary">${bus.totalSeats}</span>
                                                     </td>
                                                     <td>
                                                         <c:choose>
                                                             <c:when test="${bus.status eq 'ACTIVE'}">
-                                                                <span class="badge bg-success">Hoạt động</span>
+                                                                <span class="badge bg-success">Active</span>
                                                             </c:when>
                                                             <c:otherwise>
-                                                                <span class="badge bg-secondary">Không hoạt động</span>
+                                                                <span class="badge bg-secondary">Inactive</span>
                                                             </c:otherwise>
                                                         </c:choose>
                                                     </td>
                                                     <td>
                                                         <a href="javascript:void(0);"
-                                                            class="btn btn-sm btn-info btn-action" title="Xem chi tiết"
+                                                            class="btn btn-sm btn-info btn-action" title="View details"
                                                             data-bs-toggle="modal" data-bs-target="#busDetailModal"
                                                             data-busid="${bus.busId}" data-busnumber="${bus.busNumber}"
                                                             data-bustype="${bus.busType}"
@@ -214,12 +213,13 @@
                                                             <i class="fas fa-eye"></i>
                                                         </a>
                                                         <a href="${pageContext.request.contextPath}/buses/edit?id=${bus.busId}"
-                                                            class="btn btn-sm btn-warning btn-action" title="Sửa">
+                                                            class="btn btn-sm btn-warning btn-action" title="Edit">
                                                             <i class="fas fa-edit"></i>
                                                         </a>
                                                         <button type="button" class="btn btn-sm btn-danger btn-action"
-                                                            onclick="confirmDelete(${bus.busId}, '${bus.busNumber}')"
-                                                            title="Xóa">
+                                                            data-busnumber="${bus.busNumber}"
+                                                            onclick="confirmDelete(${bus.busId}, this)"
+                                                            title="Delete">
                                                             <i class="fas fa-trash"></i>
                                                         </button>
                                                     </td>
@@ -272,36 +272,43 @@
                         <div class="modal-dialog">
                             <div class="modal-content">
                                 <div class="modal-header bg-primary text-white">
-                                    <h5 class="modal-title" id="busDetailModalLabel"><i class="fas fa-bus me-2"></i>Chi
-                                        tiết Xe</h5>
+                                    <h5 class="modal-title" id="busDetailModalLabel"><i class="fas fa-bus me-2"></i>Bus Details</h5>
                                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                 </div>
                                 <div class="modal-body">
                                     <dl class="row">
-                                        <dt class="col-5">Mã xe:</dt>
+                                        <dt class="col-5">Bus ID:</dt>
                                         <dd class="col-7" id="detailBusId"></dd>
-                                        <dt class="col-5">Số xe:</dt>
+                                        <dt class="col-5">Bus Number:</dt>
                                         <dd class="col-7" id="detailBusNumber"></dd>
-                                        <dt class="col-5">Loại xe:</dt>
+                                        <dt class="col-5">Bus Type:</dt>
                                         <dd class="col-7" id="detailBusType"></dd>
-                                        <dt class="col-5">Tổng số ghế:</dt>
+                                        <dt class="col-5">Total Seats:</dt>
                                         <dd class="col-7" id="detailTotalSeats"></dd>
-                                        <dt class="col-5">Biển số:</dt>
+                                        <dt class="col-5">License Plate:</dt>
                                         <dd class="col-7" id="detailLicensePlate"></dd>
-                                        <dt class="col-5">Trạng thái:</dt>
+                                        <dt class="col-5">Status:</dt>
                                         <dd class="col-7" id="detailStatus"></dd>
                                     </dl>
                                 </div>
                                 <div class="modal-footer">
                                     <button type="button" class="btn btn-secondary"
-                                        data-bs-dismiss="modal">Đóng</button>
+                                        data-bs-dismiss="modal">Close</button>
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     <script>
-                        function confirmDelete(busId, busNumber) {
+                        function confirmDelete(busId, el) {
+                            // Support calling with (busId, busNumber) for backward-compatibility
+                            let busNumber = '';
+                            if (el && typeof el.getAttribute === 'function') {
+                                busNumber = el.getAttribute('data-busnumber') || '';
+                            } else if (typeof el === 'string') {
+                                busNumber = el;
+                            }
+
                             document.getElementById('busNumberToDelete').textContent = busNumber;
                             document.getElementById('confirmDeleteBtn').href =
                                 '${pageContext.request.contextPath}/buses/delete?id=' + busId;
@@ -358,20 +365,20 @@
                                 document.getElementById('detailBusId').textContent = button.getAttribute('data-busid');
                                 document.getElementById('detailBusNumber').textContent = button.getAttribute('data-busnumber');
                                 document.getElementById('detailBusType').textContent = button.getAttribute('data-bustype');
-                                document.getElementById('detailTotalSeats').textContent = button.getAttribute('data-totalseats') + ' ghế';
+                                document.getElementById('detailTotalSeats').textContent = button.getAttribute('data-totalseats');
                                 document.getElementById('detailLicensePlate').textContent = button.getAttribute('data-licenseplate');
                                 var status = button.getAttribute('data-status');
                                 document.getElementById('detailStatus').innerHTML =
                                     status === 'ACTIVE'
-                                        ? '<span class="badge bg-success">Hoạt động</span>'
+                                        ? '<span class="badge bg-success">Active</span>'
                                         : status === 'INACTIVE'
-                                            ? '<span class="badge bg-secondary">Không hoạt động</span>'
-                                            : '<span class="badge bg-warning">Bảo trì</span>';
+                                            ? '<span class="badge bg-secondary">Inactive</span>'
+                                            : '<span class="badge bg-warning">Maintenance</span>';
                             });
                         });
                     </script>
 
-                    <script src="${pageContext.request.contextPath}/assets/js/validation.js"></script>
+                    <%@ include file="/views/partials/footer.jsp" %>
             </body>
 
             </html>

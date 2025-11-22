@@ -9,22 +9,149 @@
             <title>My Trips - Driver Dashboard</title>
             <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
             <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-            <link href="${pageContext.request.contextPath}/assets/css/style.css" rel="stylesheet">
             <style>
-                .trip-card {
-                    transition: transform 0.2s ease-in-out;
+                /* ===== GLOBAL STYLES ===== */
+                :root {
+                    --primary-color: #66bb6a;
+                    --secondary-color: #81c784;
+                    --success-color: #4caf50;
+                    --danger-color: #dc3545;
+                    --warning-color: #ffc107;
+                    --info-color: #66bb6a;
+                    --light-color: #e8f5e9;
+                    --dark-color: #2e7d32;
+                    --white: #ffffff;
+                    --gray-100: #e8f5e9;
+                    --gray-200: #c8e6c9;
+                    --gray-300: #a5d6a7;
+                    --gray-400: #81c784;
+                    --gray-500: #66bb6a;
+                    --gray-600: #4caf50;
+                    --gray-700: #388e3c;
+                    --gray-800: #2e7d32;
+                    --gray-900: #1b5e20;
+                    --shadow-sm: 0 0.125rem 0.25rem rgba(102, 187, 106, 0.15);
+                    --shadow: 0 0.5rem 1rem rgba(102, 187, 106, 0.2);
+                    --shadow-lg: 0 1rem 3rem rgba(102, 187, 106, 0.25);
+                    --border-radius: 0.375rem;
+                    --border-radius-lg: 0.5rem;
+                    --border-radius-xl: 0.75rem;
+                    --transition: all 0.3s ease;
                 }
 
-                .trip-card:hover {
-                    transform: translateY(-2px);
+                body {
+                    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+                    line-height: 1.6;
+                    color: var(--gray-800);
+                    background-color: #f1f8f4;
+                    min-height: 100vh;
                 }
 
-                .status-badge {
-                    font-size: 0.8em;
+                .navbar {
+                    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%) !important;
+                    box-shadow: var(--shadow);
+                    padding: 1rem 0;
                 }
 
+                .navbar-brand {
+                    font-weight: 700;
+                    font-size: 1.5rem;
+                    color: var(--white) !important;
+                    text-decoration: none;
+                    transition: var(--transition);
+                }
+
+                .navbar-brand:hover {
+                    color: var(--gray-200) !important;
+                    transform: translateY(-1px);
+                }
+
+                .navbar-nav .nav-link {
+                    color: var(--white) !important;
+                    font-weight: 500;
+                    padding: 0.5rem 1rem !important;
+                    border-radius: var(--border-radius);
+                    transition: var(--transition);
+                    margin: 0 0.25rem;
+                }
+
+                .navbar-nav .nav-link:hover {
+                    background-color: rgba(255, 255, 255, 0.1);
+                    color: var(--white) !important;
+                    transform: translateY(-1px);
+                }
+
+                .dropdown-menu {
+                    border: none;
+                    box-shadow: var(--shadow-lg);
+                    border-radius: var(--border-radius-lg);
+                    padding: 0.5rem 0;
+                    background-color: var(--white);
+                    margin-top: 0.5rem;
+                }
+
+                .dropdown-item {
+                    padding: 0.75rem 1.5rem;
+                    transition: var(--transition);
+                    color: var(--gray-700);
+                    text-decoration: none;
+                    display: block;
+                }
+
+                .dropdown-item:hover {
+                    background-color: var(--gray-100);
+                    color: var(--primary-color);
+                    text-decoration: none;
+                }
+
+                footer {
+                    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+                    color: var(--white);
+                    padding: 2rem 0;
+                    margin-top: auto;
+                }
+
+                footer a {
+                    color: var(--gray-300);
+                    text-decoration: none;
+                    transition: var(--transition);
+                }
+
+                footer a:hover {
+                    color: var(--white);
+                }
+
+                ::-webkit-scrollbar {
+                    width: 8px;
+                }
+
+                ::-webkit-scrollbar-track {
+                    background: var(--gray-200);
+                }
+
+                ::-webkit-scrollbar-thumb {
+                    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+                    border-radius: 4px;
+                }
+
+                ::-webkit-scrollbar-thumb:hover {
+                    background: linear-gradient(135deg, #4caf50 0%, #66bb6a 100%);
+                }
+
+                @media (max-width: 768px) {
+                    .container {
+                        padding: 0 1rem;
+                    }
+                    .card-body {
+                        padding: 1rem;
+                    }
+                    .btn {
+                        padding: 0.5rem 1rem;
+                        font-size: 0.875rem;
+                    }
+                }
                 .header-section {
-                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    background: linear-gradient(135deg, #66bb6a 0%, #81c784 100%);
                     border-radius: 15px;
                     padding: 2rem;
                     margin-bottom: 2rem;
@@ -36,6 +163,26 @@
                     border-radius: 10px;
                     padding: 1.5rem;
                     margin-top: 1rem;
+                }
+
+                .table-container {
+                    background: white;
+                    border-radius: 10px;
+                    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                    overflow: hidden;
+                }
+
+                .status-badge {
+                    font-size: 0.85em;
+                    padding: 0.4em 0.8em;
+                }
+
+                .btn-action {
+                    margin: 0 2px;
+                }
+
+                .table-responsive {
+                    border-radius: 10px;
                 }
             </style>
         </head>
@@ -110,99 +257,314 @@
                             </div>
                         </c:if>
 
-                        <!-- Trips Grid -->
-                        <div class="row" id="tripsContainer">
-                            <c:forEach var="trip" items="${trips}">
-                                <div class="col-lg-4 col-md-6 mb-4 trip-item" data-status="${trip.status}"
-                                    data-date="${trip.departureDate}" data-route="${trip.routeName}">
-                                    <div class="card trip-card h-100 shadow-sm">
-                                        <div class="card-header bg-primary text-white">
-                                            <div class="d-flex justify-content-between align-items-center">
-                                                <h6 class="mb-0">
-                                                    <i class="fas fa-route me-2"></i>${trip.routeName}
-                                                </h6>
-                                                <span class="badge status-badge 
-                                            <c:choose>
-                                                <c:when test=" ${trip.status=='SCHEDULED' }">bg-success
-                                                    </c:when>
-                                                    <c:when test="${trip.status == 'DEPARTED'}">bg-warning
-                                                    </c:when>
-                                                    <c:when test="${trip.status == 'ARRIVED'}">bg-info
-                                                    </c:when>
-                                                    <c:when test="${trip.status == 'CANCELLED'}">bg-danger
-                                                    </c:when>
-                                                    <c:otherwise>bg-secondary
-                                                    </c:otherwise>
-                                                    </c:choose>">
-                                                    ${trip.status}
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <div class="card-body">
-                                            <div class="row mb-3">
-                                                <div class="col-6">
-                                                    <small class="text-muted">Departure</small>
-                                                    <div class="fw-bold">${trip.departureDate}</div>
-                                                    <div class="text-primary">
-                                                        <i class="fas fa-clock me-1"></i>${trip.departureTime}
-                                                    </div>
-                                                </div>
-                                                <div class="col-6">
-                                                    <small class="text-muted">Arrival</small>
-                                                    <div class="fw-bold text-success">
-                                                        <i class="fas fa-clock me-1"></i>${trip.estimatedArrivalTime}
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div class="mb-3">
-                                                <div class="d-flex justify-content-between">
-                                                    <span class="text-muted">Bus:</span>
-                                                    <span class="fw-bold">${trip.busNumber}</span>
-                                                </div>
-                                                <div class="d-flex justify-content-between">
-                                                    <span class="text-muted">Available Seats:</span>
-                                                    <span class="fw-bold text-info">${trip.availableSeats}</span>
-                                                </div>
-                                            </div>
-
-                                            <div class="mb-3">
-                                                <div class="d-flex justify-content-between">
-                                                    <span class="text-muted">Route:</span>
-                                                    <span class="fw-bold">${trip.departureCity} →
-                                                        ${trip.destinationCity}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="card-footer bg-light">
-                                            <div class="btn-group w-100" role="group">
-                                                <a href="${pageContext.request.contextPath}/driver/passengers?scheduleId=${trip.scheduleId}"
-                                                    class="btn btn-outline-info btn-sm">
-                                                    <i class="fas fa-users me-1"></i>Passengers
-                                                </a>
+                        <!-- Trips Table -->
+                        <div class="table-container">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0" id="tripsTable">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th><i class="fas fa-route me-1"></i>Route</th>
+                                            <th><i class="fas fa-calendar me-1"></i>Departure Date</th>
+                                            <th><i class="fas fa-clock me-1"></i>Departure Time</th>
+                                            <th><i class="fas fa-clock me-1"></i>Arrival Time</th>
+                                            <th><i class="fas fa-bus me-1"></i>Bus Number</th>
+                                            <th><i class="fas fa-chair me-1"></i>Available Seats</th>
+                                            <th><i class="fas fa-info-circle me-1"></i>Status</th>
+                                            <th><i class="fas fa-cog me-1"></i>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <c:choose>
+                                            <c:when test="${not empty trips}">
+                                                <c:forEach var="trip" items="${trips}">
+                                                    <tr class="trip-item" data-status="${trip.status}"
+                                                        data-date="${trip.departureDate}"
+                                                        data-route="${trip.routeName}">
+                                                        <td>
+                                                            <strong>${trip.routeName}</strong><br>
+                                                            <small class="text-muted">
+                                                                <i class="fas fa-map-marker-alt me-1"></i>
+                                                                ${trip.departureCity} → ${trip.destinationCity}
+                                                            </small>
+                                                        </td>
+                                                        <td>${trip.departureDate}</td>
+                                                        <td>
+                                                            <i class="fas fa-clock text-primary me-1"></i>
+                                                            ${trip.departureTime}
+                                                        </td>
+                                                        <td>
+                                                            <i class="fas fa-clock text-success me-1"></i>
+                                                            ${trip.estimatedArrivalTime}
+                                                        </td>
+                                                        <td>
+                                                            <span class="badge bg-secondary">
+                                                                <i class="fas fa-bus me-1"></i>${trip.busNumber}
+                                                            </span>
+                                                        </td>
+                                                        <td>
+                                                            <span class="badge bg-info">
+                                                                <i class="fas fa-chair me-1"></i>${trip.availableSeats}
+                                                            </span>
+                                                        </td>
+                                                        <td>
+                                                            <span class="badge status-badge 
+                                                                <c:choose>
+                                                                    <c:when test=" ${trip.status=='SCHEDULED'
+                                                                }">bg-success
+                                            </c:when>
+                                            <c:when test="${trip.status == 'DEPARTED'}">bg-warning text-dark</c:when>
+                                            <c:when test="${trip.status == 'ARRIVED'}">bg-info</c:when>
+                                            <c:when test="${trip.status == 'CANCELLED'}">bg-danger</c:when>
+                                            <c:otherwise>bg-secondary</c:otherwise>
+                                        </c:choose>">
+                                        ${trip.status}
+                                        </span>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group" role="group">
+                                                <button type="button" class="btn btn-sm btn-info btn-action"
+                                                    title="View Passengers" data-schedule-id="${trip.scheduleId}"
+                                                    data-route="${trip.routeName}"
+                                                    data-direction="${trip.departureCity} → ${trip.destinationCity}"
+                                                    data-departure="${trip.departureDate}"
+                                                    data-departure-time="${trip.departureTime}"
+                                                    data-arrival="${trip.estimatedArrivalTime}"
+                                                    data-bus="${trip.busNumber}" onclick="showTripDetails(this)">
+                                                    <i class="fas fa-users"></i>
+                                                </button>
                                                 <a href="${pageContext.request.contextPath}/driver/update-status?scheduleId=${trip.scheduleId}"
-                                                    class="btn btn-outline-warning btn-sm">
-                                                    <i class="fas fa-edit me-1"></i>Update Status
+                                                    class="btn btn-sm btn-warning btn-action" title="Update Status">
+                                                    <i class="fas fa-edit"></i>
                                                 </a>
                                             </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </c:forEach>
+                                        </td>
+                                        </tr>
+                                        </c:forEach>
+                                        </c:when>
+                                        <c:otherwise>
+                                            <tr>
+                                                <td colspan="8" class="text-center py-5">
+                                                    <i class="fas fa-route fa-3x text-muted mb-3"></i>
+                                                    <h4 class="text-muted">No trips assigned</h4>
+                                                    <p class="text-muted">You don't have any assigned trips yet</p>
+                                                </td>
+                                            </tr>
+                                        </c:otherwise>
+                                        </c:choose>
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
 
                         <!-- No Results Message -->
                         <div id="noResults" class="text-center py-5" style="display: none;">
                             <i class="fas fa-route fa-3x text-muted mb-3"></i>
-                            <h4 class="text-muted">No trips assigned</h4>
-                            <p class="text-muted">You don't have any assigned trips yet</p>
+                            <h4 class="text-muted">No trips found</h4>
+                            <p class="text-muted">Try adjusting your filters</p>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+            <!-- View Passengers Modal -->
+            <div class="modal fade" id="tripDetailsModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="tripDetailsTitle">View Passengers</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div id="tripDetailsLoading" class="text-center py-4">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-3 mb-0 text-muted">Loading passenger details...</p>
+                            </div>
+
+                            <div id="tripDetailsError" class="alert alert-danger d-none" role="alert"></div>
+
+                            <div id="tripDetailsEmpty" class="text-center py-4 d-none">
+                                <i class="fas fa-users fa-2x text-muted mb-3"></i>
+                                <p class="mb-0 text-muted">No passengers have booked this trip yet.</p>
+                            </div>
+
+                            <div id="tripDetailsTable" class="table-responsive d-none">
+                                <table class="table table-striped align-middle mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Passenger</th>
+                                            <th>Seat</th>
+                                            <th>Boarding</th>
+                                            <th>Drop-off</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tripDetailsBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <%@ include file="/views/partials/footer.jsp" %>
             <script>
+                const contextPath = '${pageContext.request.contextPath}';
+                let tripDetailsModal;
+
+                document.addEventListener('DOMContentLoaded', function () {
+                    const modalElement = document.getElementById('tripDetailsModal');
+                    if (modalElement) {
+                        tripDetailsModal = new bootstrap.Modal(modalElement);
+                        modalElement.addEventListener('hidden.bs.modal', resetTripDetailsModal);
+                    }
+                });
+
+                function resetTripDetailsModal() {
+                    document.getElementById('tripDetailsLoading').classList.remove('d-none');
+                    document.getElementById('tripDetailsError').classList.add('d-none');
+                    document.getElementById('tripDetailsEmpty').classList.add('d-none');
+                    document.getElementById('tripDetailsTable').classList.add('d-none');
+                    document.getElementById('tripDetailsBody').innerHTML = '';
+                }
+
+                async function showTripDetails(button) {
+                    if (!tripDetailsModal) {
+                        return;
+                    }
+
+                    resetTripDetailsModal();
+
+                    const scheduleId = button.getAttribute('data-schedule-id');
+                    const routeName = button.getAttribute('data-route') || '';
+
+                    // Set modal title - show route name if available
+                    if (routeName) {
+                        document.getElementById('tripDetailsTitle').textContent = 'View Passengers - ' + routeName;
+                    } else {
+                        document.getElementById('tripDetailsTitle').textContent = 'View Passengers';
+                    }
+
+                    tripDetailsModal.show();
+
+                    if (!scheduleId) {
+                        showTripDetailsError('Missing schedule information.');
+                        document.getElementById('tripDetailsLoading').classList.add('d-none');
+                        return;
+                    }
+
+                    try {
+                        const response = await fetch(contextPath + '/driver/trip-details?scheduleId=' + encodeURIComponent(scheduleId), {
+                            headers: {
+                                'Accept': 'application/json'
+                            }
+                        });
+
+                        if (!response.ok) {
+                            throw new Error('Failed to load passenger details.');
+                        }
+
+                        const data = await response.json();
+                        if (data.success && Array.isArray(data.passengers) && data.passengers.length > 0) {
+                            populateTripDetailsTable(data.passengers);
+                        } else {
+                            showTripDetailsEmpty();
+                        }
+                    } catch (error) {
+                        showTripDetailsError(error.message || 'Unable to load passenger details.');
+                    } finally {
+                        document.getElementById('tripDetailsLoading').classList.add('d-none');
+                    }
+                }
+
+                function populateTripDetailsTable(passengers) {
+                    const tableContainer = document.getElementById('tripDetailsTable');
+                    const tbody = document.getElementById('tripDetailsBody');
+
+                    passengers.forEach((passenger, index) => {
+                        const row = document.createElement('tr');
+
+                        const indexCell = document.createElement('td');
+                        indexCell.textContent = index + 1;
+                        row.appendChild(indexCell);
+
+                        const passengerCell = document.createElement('td');
+                        const nameStrong = document.createElement('strong');
+                        nameStrong.textContent = passenger.fullName || 'Unknown passenger';
+                        passengerCell.appendChild(nameStrong);
+
+                        if (passenger.username) {
+                            const usernameLine = document.createElement('div');
+                            usernameLine.className = 'text-muted small';
+                            usernameLine.textContent = passenger.username;
+                            passengerCell.appendChild(usernameLine);
+                        }
+
+                        if (passenger.ticketNumber) {
+                            const ticketLine = document.createElement('div');
+                            ticketLine.className = 'text-muted small';
+                            ticketLine.textContent = 'Ticket ' + passenger.ticketNumber;
+                            passengerCell.appendChild(ticketLine);
+                        }
+
+                        row.appendChild(passengerCell);
+
+                        const seatCell = document.createElement('td');
+                        const seatBadge = document.createElement('span');
+                        seatBadge.className = 'badge bg-primary';
+                        seatBadge.textContent = passenger.seatNumber != null ? passenger.seatNumber : 'N/A';
+                        seatCell.appendChild(seatBadge);
+                        row.appendChild(seatCell);
+
+                        const boardingCell = document.createElement('td');
+                        fillStationCell(boardingCell, passenger.boardingStation, passenger.boardingCity);
+                        row.appendChild(boardingCell);
+
+                        const alightingCell = document.createElement('td');
+                        fillStationCell(alightingCell, passenger.alightingStation, passenger.alightingCity);
+                        row.appendChild(alightingCell);
+
+                        tbody.appendChild(row);
+                    });
+
+                    tableContainer.classList.remove('d-none');
+                }
+
+                function fillStationCell(cell, stationName, city) {
+                    cell.innerHTML = '';
+                    if (stationName) {
+                        const nameEl = document.createElement('strong');
+                        nameEl.textContent = stationName;
+                        cell.appendChild(nameEl);
+                    }
+                    if (city) {
+                        const cityEl = document.createElement('div');
+                        cityEl.className = 'text-muted small';
+                        cityEl.textContent = city;
+                        cell.appendChild(cityEl);
+                    }
+                    if (!stationName && !city) {
+                        const placeholder = document.createElement('span');
+                        placeholder.className = 'text-muted';
+                        placeholder.textContent = 'Not set';
+                        cell.appendChild(placeholder);
+                    }
+                }
+
+                function showTripDetailsError(message) {
+                    const errorAlert = document.getElementById('tripDetailsError');
+                    errorAlert.textContent = message;
+                    errorAlert.classList.remove('d-none');
+                }
+
+                function showTripDetailsEmpty() {
+                    document.getElementById('tripDetailsEmpty').classList.remove('d-none');
+                }
+
                 function filterTrips() {
                     const searchTerm = document.getElementById('searchInput').value.toLowerCase();
                     const statusFilter = document.getElementById('statusFilter').value;
@@ -212,7 +574,7 @@
                     let visibleCount = 0;
 
                     tripItems.forEach(item => {
-                        const route = item.dataset.route.toLowerCase();
+                        const route = item.dataset.route ? item.dataset.route.toLowerCase() : '';
                         const status = item.dataset.status;
                         const date = item.dataset.date;
 
@@ -221,19 +583,21 @@
                         const matchesDate = !dateFilter || date === dateFilter;
 
                         if (matchesSearch && matchesStatus && matchesDate) {
-                            item.style.display = 'block';
+                            item.style.display = '';
                             visibleCount++;
                         } else {
                             item.style.display = 'none';
                         }
                     });
 
-                    // Show/hide no results message
                     const noResults = document.getElementById('noResults');
-                    if (visibleCount === 0) {
+                    const tableBody = document.querySelector('#tripsTable tbody');
+                    if (visibleCount === 0 && tripItems.length > 0) {
                         noResults.style.display = 'block';
+                        tableBody.style.display = 'none';
                     } else {
                         noResults.style.display = 'none';
+                        tableBody.style.display = '';
                     }
                 }
 

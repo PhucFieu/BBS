@@ -9,10 +9,149 @@
             <title>Update Trip Status - Driver Dashboard</title>
             <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
             <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-            <link href="${pageContext.request.contextPath}/assets/css/style.css" rel="stylesheet">
             <style>
+                /* ===== GLOBAL STYLES ===== */
+                :root {
+                    --primary-color: #66bb6a;
+                    --secondary-color: #81c784;
+                    --success-color: #4caf50;
+                    --danger-color: #dc3545;
+                    --warning-color: #ffc107;
+                    --info-color: #66bb6a;
+                    --light-color: #e8f5e9;
+                    --dark-color: #2e7d32;
+                    --white: #ffffff;
+                    --gray-100: #e8f5e9;
+                    --gray-200: #c8e6c9;
+                    --gray-300: #a5d6a7;
+                    --gray-400: #81c784;
+                    --gray-500: #66bb6a;
+                    --gray-600: #4caf50;
+                    --gray-700: #388e3c;
+                    --gray-800: #2e7d32;
+                    --gray-900: #1b5e20;
+                    --shadow-sm: 0 0.125rem 0.25rem rgba(102, 187, 106, 0.15);
+                    --shadow: 0 0.5rem 1rem rgba(102, 187, 106, 0.2);
+                    --shadow-lg: 0 1rem 3rem rgba(102, 187, 106, 0.25);
+                    --border-radius: 0.375rem;
+                    --border-radius-lg: 0.5rem;
+                    --border-radius-xl: 0.75rem;
+                    --transition: all 0.3s ease;
+                }
+
+                body {
+                    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+                    line-height: 1.6;
+                    color: var(--gray-800);
+                    background-color: #f1f8f4;
+                    min-height: 100vh;
+                }
+
+                .navbar {
+                    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%) !important;
+                    box-shadow: var(--shadow);
+                    padding: 1rem 0;
+                }
+
+                .navbar-brand {
+                    font-weight: 700;
+                    font-size: 1.5rem;
+                    color: var(--white) !important;
+                    text-decoration: none;
+                    transition: var(--transition);
+                }
+
+                .navbar-brand:hover {
+                    color: var(--gray-200) !important;
+                    transform: translateY(-1px);
+                }
+
+                .navbar-nav .nav-link {
+                    color: var(--white) !important;
+                    font-weight: 500;
+                    padding: 0.5rem 1rem !important;
+                    border-radius: var(--border-radius);
+                    transition: var(--transition);
+                    margin: 0 0.25rem;
+                }
+
+                .navbar-nav .nav-link:hover {
+                    background-color: rgba(255, 255, 255, 0.1);
+                    color: var(--white) !important;
+                    transform: translateY(-1px);
+                }
+
+                .dropdown-menu {
+                    border: none;
+                    box-shadow: var(--shadow-lg);
+                    border-radius: var(--border-radius-lg);
+                    padding: 0.5rem 0;
+                    background-color: var(--white);
+                    margin-top: 0.5rem;
+                }
+
+                .dropdown-item {
+                    padding: 0.75rem 1.5rem;
+                    transition: var(--transition);
+                    color: var(--gray-700);
+                    text-decoration: none;
+                    display: block;
+                }
+
+                .dropdown-item:hover {
+                    background-color: var(--gray-100);
+                    color: var(--primary-color);
+                    text-decoration: none;
+                }
+
+                footer {
+                    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+                    color: var(--white);
+                    padding: 2rem 0;
+                    margin-top: auto;
+                }
+
+                footer a {
+                    color: var(--gray-300);
+                    text-decoration: none;
+                    transition: var(--transition);
+                }
+
+                footer a:hover {
+                    color: var(--white);
+                }
+
+                ::-webkit-scrollbar {
+                    width: 8px;
+                }
+
+                ::-webkit-scrollbar-track {
+                    background: var(--gray-200);
+                }
+
+                ::-webkit-scrollbar-thumb {
+                    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+                    border-radius: 4px;
+                }
+
+                ::-webkit-scrollbar-thumb:hover {
+                    background: linear-gradient(135deg, #4caf50 0%, #66bb6a 100%);
+                }
+
+                @media (max-width: 768px) {
+                    .container {
+                        padding: 0 1rem;
+                    }
+                    .card-body {
+                        padding: 1rem;
+                    }
+                    .btn {
+                        padding: 0.5rem 1rem;
+                        font-size: 0.875rem;
+                    }
+                }
                 .form-container {
-                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    background: linear-gradient(135deg, #66bb6a 0%, #81c784 100%);
                     border-radius: 15px;
                     padding: 2rem;
                     margin-bottom: 2rem;
@@ -27,7 +166,7 @@
                 }
 
                 .form-header {
-                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    background: linear-gradient(135deg, #66bb6a 0%, #81c784 100%);
                     color: white;
                     padding: 2rem;
                     text-align: center;
@@ -39,14 +178,14 @@
 
                 .trip-info {
                     background: #f8f9fa;
-                    border-left: 4px solid #667eea;
+                    border-left: 4px solid #66bb6a;
                     border-radius: 0 10px 10px 0;
                     padding: 1rem;
                     margin-bottom: 1.5rem;
                 }
 
                 .btn-submit {
-                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    background: linear-gradient(135deg, #66bb6a 0%, #81c784 100%);
                     border: none;
                     border-radius: 10px;
                     padding: 0.75rem 2rem;
@@ -56,7 +195,7 @@
 
                 .btn-submit:hover {
                     transform: translateY(-2px);
-                    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+                    box-shadow: 0 5px 15px rgba(102, 187, 106, 0.4);
                 }
 
                 .btn-cancel {
@@ -234,70 +373,70 @@
                 </div>
             </div>
 
-            <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-            <script>
-                document.addEventListener('DOMContentLoaded', function () {
-                    const form = document.getElementById('statusForm');
-                    const statusSelect = document.getElementById('status');
-                    const notesTextarea = document.getElementById('notes');
-                    const stopStationGroup = document.getElementById('stopStationGroup');
-                    const stopStationSelect = document.getElementById('stopStationId');
+            <%@ include file="/views/partials/footer.jsp" %>
+                <script>
+                    document.addEventListener('DOMContentLoaded', function () {
+                        const form = document.getElementById('statusForm');
+                        const statusSelect = document.getElementById('status');
+                        const notesTextarea = document.getElementById('notes');
+                        const stopStationGroup = document.getElementById('stopStationGroup');
+                        const stopStationSelect = document.getElementById('stopStationId');
 
-                    // Form submission
-                    form.addEventListener('submit', function (e) {
-                        if (!statusSelect.value) {
-                            e.preventDefault();
-                            alert('Please select a status');
-                            return false;
+                        // Form submission
+                        form.addEventListener('submit', function (e) {
+                            if (!statusSelect.value) {
+                                e.preventDefault();
+                                alert('Please select a status');
+                                return false;
+                            }
+
+                            if (statusSelect.value === 'STOP_AT_STATION' && !stopStationSelect.value) {
+                                e.preventDefault();
+                                alert('Please choose the station you are stopping at');
+                                return false;
+                            }
+                        });
+
+                        // Auto-fill notes based on status
+                        function updateStopStationVisibility() {
+                            const status = statusSelect.value;
+                            if (status === 'STOP_AT_STATION') {
+                                stopStationGroup.style.display = '';
+                            } else {
+                                stopStationGroup.style.display = 'none';
+                                stopStationSelect.value = '';
+                            }
                         }
 
-                        if (statusSelect.value === 'STOP_AT_STATION' && !stopStationSelect.value) {
-                            e.preventDefault();
-                            alert('Please choose the station you are stopping at');
-                            return false;
-                        }
-                    });
+                        statusSelect.addEventListener('change', function () {
+                            const status = this.value;
+                            let note = '';
 
-                    // Auto-fill notes based on status
-                    function updateStopStationVisibility() {
-                        const status = statusSelect.value;
-                        if (status === 'STOP_AT_STATION') {
-                            stopStationGroup.style.display = '';
-                        } else {
-                            stopStationGroup.style.display = 'none';
-                            stopStationSelect.value = '';
-                        }
-                    }
+                            switch (status) {
+                                case 'DEPARTED':
+                                    note = 'Bus has departed from the station. All passengers are on board.';
+                                    break;
+                                case 'STOP_AT_STATION':
+                                    note = 'Bus is stopped at a station on the route.';
+                                    break;
+                                case 'ARRIVED':
+                                    note = 'Bus has arrived at the destination. All passengers have disembarked.';
+                                    break;
+                                case 'CANCELLED':
+                                    note = 'Trip has been cancelled. Please provide reason for cancellation.';
+                                    break;
+                            }
 
-                    statusSelect.addEventListener('change', function () {
-                        const status = this.value;
-                        let note = '';
+                            if (note && !notesTextarea.value) {
+                                notesTextarea.value = note;
+                            }
+                            updateStopStationVisibility();
+                        });
 
-                        switch (status) {
-                            case 'DEPARTED':
-                                note = 'Bus has departed from the station. All passengers are on board.';
-                                break;
-                            case 'STOP_AT_STATION':
-                                note = 'Bus is stopped at a station on the route.';
-                                break;
-                            case 'ARRIVED':
-                                note = 'Bus has arrived at the destination. All passengers have disembarked.';
-                                break;
-                            case 'CANCELLED':
-                                note = 'Trip has been cancelled. Please provide reason for cancellation.';
-                                break;
-                        }
-
-                        if (note && !notesTextarea.value) {
-                            notesTextarea.value = note;
-                        }
+                        // initialize visibility on load
                         updateStopStationVisibility();
                     });
-
-                    // initialize visibility on load
-                    updateStopStationVisibility();
-                });
-            </script>
+                </script>
         </body>
 
         </html>

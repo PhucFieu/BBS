@@ -1,17 +1,11 @@
-<%-- 
-    Document   : dashboard
-    Created on : Oct 11, 2025, 12:53:01 PM
-    Author     : Phúc
---%>
-
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
-    <%@ taglib prefix="c" uri="jakarta.tags.core" %>
+    <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
         <!DOCTYPE html>
         <html lang="en">
 
         <head>
             <jsp:include page="/views/partials/head.jsp">
-                <jsp:param name="title" value="Admin Dashboard - BusTicket System" />
+                <jsp:param name="title" value="Admin Dashboard - Bus Booking System" />
             </jsp:include>
             <style>
                 .stats-card {
@@ -78,11 +72,28 @@
             <%@ include file="/views/partials/admin-header.jsp" %>
 
                 <div class="container mt-4">
+                    <!-- Success/Error Messages -->
+                    <c:if test="${param.success != null}">
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <i class="fas fa-check-circle me-2"></i>
+                            ${param.success}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    </c:if>
+
+                    <c:if test="${param.error != null}">
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            ${param.error}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    </c:if>
+
                     <!-- Dashboard Header -->
                     <div class="row mb-4">
                         <div class="col-12">
                             <h2><i class="fas fa-tachometer-alt me-2"></i>Admin Dashboard</h2>
-                            <p class="text-muted">Tổng quan hệ thống và thống kê</p>
+                            <p class="text-muted">System overview and statistics</p>
                         </div>
                     </div>
 
@@ -91,68 +102,29 @@
                         <div class="col-lg-3 col-md-6 mb-3">
                             <div class="stats-card">
                                 <div class="stats-number text-primary">${totalUsers}</div>
-                                <div class="stats-label">Tổng người dùng</div>
+                                <div class="stats-label">Total Passengers</div>
                                 <div class="mt-2"><i class="fas fa-users fa-2x text-primary opacity-50"></i></div>
                             </div>
                         </div>
                         <div class="col-lg-3 col-md-6 mb-3">
                             <div class="stats-card">
                                 <div class="stats-number text-success">${totalRoutes}</div>
-                                <div class="stats-label">Tuyến xe hoạt động</div>
+                                <div class="stats-label">Active Routes</div>
                                 <div class="mt-2"><i class="fas fa-route fa-2x text-success opacity-50"></i></div>
                             </div>
                         </div>
                         <div class="col-lg-3 col-md-6 mb-3">
                             <div class="stats-card">
                                 <div class="stats-number text-warning">${totalBuses}</div>
-                                <div class="stats-label">Xe khả dụng</div>
+                                <div class="stats-label">Available Buses</div>
                                 <div class="mt-2"><i class="fas fa-bus fa-2x text-warning opacity-50"></i></div>
                             </div>
                         </div>
                         <div class="col-lg-3 col-md-6 mb-3">
                             <div class="stats-card">
                                 <div class="stats-number text-danger">${totalTickets}</div>
-                                <div class="stats-label">Tổng vé</div>
+                                <div class="stats-label">Total Tickets</div>
                                 <div class="mt-2"><i class="fas fa-ticket-alt fa-2x text-danger opacity-50"></i></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Quick Actions -->
-                    <div class="row mb-4">
-                        <div class="col-12">
-                            <div class="card">
-                                <div class="card-header">
-                                    <h5 class="mb-0"><i class="fas fa-bolt me-2"></i>Thao tác nhanh</h5>
-                                </div>
-                                <div class="card-body">
-                                    <div class="row g-3">
-                                        <div class="col-md-3">
-                                            <a href="${pageContext.request.contextPath}/admin/users"
-                                                class="btn btn-outline-primary w-100">
-                                                <i class="fas fa-users me-2"></i>Quản lý người dùng
-                                            </a>
-                                        </div>
-                                        <div class="col-md-3">
-                                            <a href="${pageContext.request.contextPath}/routes"
-                                                class="btn btn-outline-success w-100">
-                                                <i class="fas fa-route me-2"></i>Quản lý tuyến xe
-                                            </a>
-                                        </div>
-                                        <div class="col-md-3">
-                                            <a href="${pageContext.request.contextPath}/buses"
-                                                class="btn btn-outline-warning w-100">
-                                                <i class="fas fa-bus me-2"></i>Quản lý xe
-                                            </a>
-                                        </div>
-                                        <div class="col-md-3">
-                                            <a href="${pageContext.request.contextPath}/tickets"
-                                                class="btn btn-outline-info w-100">
-                                                <i class="fas fa-ticket-alt me-2"></i>Quản lý vé
-                                            </a>
-                                        </div>
-                                    </div>
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -161,7 +133,7 @@
                     <div class="row">
                         <div class="col-md-6">
                             <div class="recent-activity">
-                                <h5><i class="fas fa-user-plus me-2"></i>Người dùng mới</h5>
+                                <h5><i class="fas fa-user-plus me-2"></i>New Users</h5>
                                 <c:choose>
                                     <c:when test="${not empty recentUsers}">
                                         <c:forEach var="user" items="${recentUsers}">
@@ -177,14 +149,14 @@
                                         </c:forEach>
                                     </c:when>
                                     <c:otherwise>
-                                        <p class="text-muted">Không có người dùng mới</p>
+                                        <p class="text-muted">No new users</p>
                                     </c:otherwise>
                                 </c:choose>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="recent-activity">
-                                <h5><i class="fas fa-ticket-alt me-2"></i>Vé mới</h5>
+                                <h5><i class="fas fa-ticket-alt me-2"></i>New Tickets</h5>
                                 <c:choose>
                                     <c:when test="${not empty recentTickets}">
                                         <c:forEach var="ticket" items="${recentTickets}">
@@ -201,7 +173,7 @@
                                         </c:forEach>
                                     </c:when>
                                     <c:otherwise>
-                                        <p class="text-muted">Không có vé mới</p>
+                                        <p class="text-muted">No new tickets</p>
                                     </c:otherwise>
                                 </c:choose>
                             </div>
