@@ -666,23 +666,28 @@
                                             <div id="stationSelection" class="station-selection"
                                                 style="${not empty selectedSchedule ? '' : 'display: none;'}">
                                                 <h4 class="mb-4">
-                                                    <i class="fas fa-map-marker-alt me-2"></i>Select Boarding and Drop-off Bus Stations
+                                                    <i class="fas fa-map-marker-alt me-2"></i>Select Boarding and
+                                                    Drop-off Bus Stations
                                                 </h4>
-                                                
+
                                                 <div class="alert alert-info mb-4">
                                                     <i class="fas fa-info-circle me-2"></i>
-                                                    <strong>Note:</strong> Please select a schedule first to load available stations. 
-                                                    The drop-off station must come after the boarding station on the route.
+                                                    <strong>Note:</strong> Please select a schedule first to load
+                                                    available stations.
+                                                    The drop-off station must come after the boarding station on the
+                                                    route.
                                                 </div>
 
                                                 <!-- Loading indicator -->
-                                                <div id="stationLoadingIndicator" class="text-center py-3" style="display: none;">
+                                                <div id="stationLoadingIndicator" class="text-center py-3"
+                                                    style="display: none;">
                                                     <i class="fas fa-spinner fa-spin me-2"></i>
                                                     <span>Loading stations...</span>
                                                 </div>
 
                                                 <!-- Error message -->
-                                                <div id="stationError" class="alert alert-danger" style="display: none;">
+                                                <div id="stationError" class="alert alert-danger"
+                                                    style="display: none;">
                                                     <i class="fas fa-exclamation-circle me-2"></i>
                                                     <span id="stationErrorMessage"></span>
                                                 </div>
@@ -715,12 +720,14 @@
                                                         </small>
                                                     </div>
                                                 </div>
-                                                <div id="stationTimeline" class="station-timeline" style="display: none;">
+                                                <div id="stationTimeline" class="station-timeline"
+                                                    style="display: none;">
                                                     <div class="d-flex align-items-center gap-2 mb-3">
                                                         <i class="fas fa-route text-success fa-lg"></i>
                                                         <div>
                                                             <strong>Route stop overview</strong>
-                                                            <div class="text-muted small">Highlighted section represents your selected journey</div>
+                                                            <div class="text-muted small">Highlighted section represents
+                                                                your selected journey</div>
                                                         </div>
                                                     </div>
                                                     <div id="stationTimelineTrack" class="timeline-track"></div>
@@ -902,7 +909,7 @@
                                         const option = document.createElement('option');
                                         option.value = station.stationId;
                                         option.setAttribute('data-order', sequenceNumber || '0');
-                                        
+
                                         let label = station.stationName || 'Station';
                                         if (station.city) {
                                             label += ' - ' + station.city;
@@ -913,7 +920,7 @@
                                         if (sequenceNumber) {
                                             label += ' [Stop ' + sequenceNumber + ']';
                                         }
-                                        
+
                                         option.textContent = label;
                                         return option;
                                     }
@@ -936,7 +943,7 @@
                                             const sequenceNumber = station.sequenceNumber || 0;
                                             const boardingOption = createStationOption(station, sequenceNumber);
                                             const alightingOption = createStationOption(station, sequenceNumber);
-                                            
+
                                             boardingSelect.appendChild(boardingOption);
                                             alightingSelect.appendChild(alightingOption);
                                         });
@@ -944,6 +951,39 @@
                                         hideStationLoading();
                                         hideStationError();
                                         currentStations = stations || [];
+
+                                        // Auto-select first station as boarding and last station as drop-off
+                                        if (stations.length >= 2) {
+                                            const firstStation = stations[0];
+                                            const lastStation = stations[stations.length - 1];
+
+                                            // Select first station as boarding
+                                            boardingSelect.value = firstStation.stationId;
+
+                                            // Trigger boarding change to filter alighting options
+                                            const boardingOrder = parseInt(boardingSelect.selectedOptions[0]?.getAttribute('data-order') || '0');
+
+                                            // Disable alighting options that come before or at boarding station
+                                            Array.from(alightingSelect.options).forEach(option => {
+                                                if (option.value && option.getAttribute('data-order')) {
+                                                    const alightingOrder = parseInt(option.getAttribute('data-order'));
+                                                    if (alightingOrder <= boardingOrder) {
+                                                        option.disabled = true;
+                                                        option.style.display = 'none';
+                                                    } else {
+                                                        option.disabled = false;
+                                                        option.style.display = '';
+                                                    }
+                                                }
+                                            });
+
+                                            // Select last station as drop-off
+                                            alightingSelect.value = lastStation.stationId;
+
+                                            // Show seat selection since both stations are selected
+                                            validateAndShowSeatSelection();
+                                        }
+
                                         renderStationTimeline();
                                     }
 
@@ -1079,12 +1119,22 @@
                                             this.classList.add('selected');
                                             selectedScheduleId = this.dataset.scheduleId;
 
+                                            // Move station selection to appear right after this schedule card
+                                            const stationSelectionEl = document.getElementById('stationSelection');
+                                            const seatSelectionEl = document.getElementById('seatSelection');
+
+                                            // Insert station selection right after this card
+                                            this.insertAdjacentElement('afterend', stationSelectionEl);
+
+                                            // Insert seat selection right after station selection
+                                            stationSelectionEl.insertAdjacentElement('afterend', seatSelectionEl);
+
                                             // Show station selection
-                                            document.getElementById('stationSelection').style.display = 'block';
-                                            
+                                            stationSelectionEl.style.display = 'block';
+
                                             // Reset station selection
                                             resetStationSelection();
-                                            
+
                                             // Load stations for this schedule
                                             if (selectedScheduleId) {
                                                 loadScheduleStations(selectedScheduleId);
@@ -1093,9 +1143,14 @@
                                             }
 
                                             // Hide seat selection until stations are selected
-                                            document.getElementById('seatSelection').classList.remove('active');
+                                            seatSelectionEl.classList.remove('active');
                                             document.getElementById('btnBook').disabled = true;
                                             selectedSeat = null;
+
+                                            // Scroll to the station selection section
+                                            setTimeout(() => {
+                                                stationSelectionEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                                            }, 100);
                                         });
                                     });
 
@@ -1105,7 +1160,18 @@
                                         if (preselectedCard) {
                                             preselectedCard.classList.add('selected');
                                             selectedScheduleId = preselectedScheduleId;
-                                            document.getElementById('stationSelection').style.display = 'block';
+
+                                            // Move station selection to appear right after this schedule card
+                                            const stationSelectionEl = document.getElementById('stationSelection');
+                                            const seatSelectionEl = document.getElementById('seatSelection');
+
+                                            // Insert station selection right after this card
+                                            preselectedCard.insertAdjacentElement('afterend', stationSelectionEl);
+
+                                            // Insert seat selection right after station selection
+                                            stationSelectionEl.insertAdjacentElement('afterend', seatSelectionEl);
+
+                                            stationSelectionEl.style.display = 'block';
                                             resetStationSelection();
                                             loadScheduleStations(preselectedScheduleId);
                                         }
@@ -1116,7 +1182,7 @@
                                      */
                                     boardingSelect.addEventListener('change', function () {
                                         const boardingOrder = this.selectedOptions[0]?.getAttribute('data-order');
-                                        
+
                                         if (boardingOrder) {
                                             const boardingOrderInt = parseInt(boardingOrder);
 
