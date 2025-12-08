@@ -176,6 +176,9 @@ public class AuthController extends HttpServlet {
             String redirectUrl = request.getContextPath() + "/";
             if (user.getRole().equals("ADMIN")) {
                 redirectUrl += "admin/dashboard";
+            } else if (user.getRole().equals("STAFF")) {
+                // STAFF role
+                redirectUrl = request.getContextPath() + "/staff/dashboard";
             } else if (util.AuthUtils.isDriver(request.getSession(false))) {
                 // DRIVER role
                 redirectUrl = request.getContextPath() + "/driver/trips";
@@ -221,6 +224,13 @@ public class AuthController extends HttpServlet {
             return;
         }
 
+        if (password.length() < 8) {
+            response.sendRedirect(request.getContextPath() + "/auth/register?"
+                    + URLUtils.createParameter("error",
+                            "Error: Password must be at least 8 characters"));
+            return;
+        }
+
         if (!password.equals(confirmPassword)) {
             response.sendRedirect(request.getContextPath() + "/auth/register?"
                     + URLUtils.createParameter("error", "Error: Passwords do not match"));
@@ -231,6 +241,17 @@ public class AuthController extends HttpServlet {
             response.sendRedirect(request.getContextPath() + "/auth/register?"
                     + URLUtils.createParameter("error",
                             "Missing information: Full name cannot be empty"));
+            return;
+        }
+
+        // Validate fullname: only letters and spaces allowed (no numbers)
+        // \\p{L} matches any Unicode letter (including Vietnamese characters with diacritics)
+        // \\s matches whitespace characters
+        fullName = fullName.trim();
+        if (!fullName.matches("^[\\p{L}\\s]+$")) {
+            response.sendRedirect(request.getContextPath() + "/auth/register?"
+                    + URLUtils.createParameter("error",
+                            "Error: Full name can only contain letters and spaces. Numbers are not allowed"));
             return;
         }
 
@@ -316,9 +337,33 @@ public class AuthController extends HttpServlet {
         user.setAddress(address);
         user.setGender(gender);
 
-        // Parse date of birth
+        // Parse date of birth and validate minimum age (16 years old)
         try {
-            user.setDateOfBirth(java.time.LocalDate.parse(dateOfBirthStr));
+            java.time.LocalDate dateOfBirth = java.time.LocalDate.parse(dateOfBirthStr);
+            java.time.LocalDate today = java.time.LocalDate.now();
+
+            // Calculate age using Period for accurate age calculation
+            java.time.Period period = java.time.Period.between(dateOfBirth, today);
+            int age = period.getYears();
+
+            // Also check if the date is in the future
+            if (dateOfBirth.isAfter(today)) {
+                response.sendRedirect(request.getContextPath() + "/auth/register?"
+                        + URLUtils.createParameter("error",
+                                "Error: Date of birth cannot be in the future"));
+                return;
+            }
+
+            // Validate minimum age (16 years old)
+            if (age < 16) {
+                response.sendRedirect(request.getContextPath() + "/auth/register?"
+                        + URLUtils.createParameter("error",
+                                "Error: You must be at least 16 years old to register. Your age is "
+                                        + age + " years."));
+                return;
+            }
+
+            user.setDateOfBirth(dateOfBirth);
         } catch (Exception e) {
             response.sendRedirect(request.getContextPath() + "/auth/register?"
                     + URLUtils.createParameter("error", "Error: Invalid date of birth format"));
@@ -368,6 +413,13 @@ public class AuthController extends HttpServlet {
             return;
         }
 
+        if (newPassword.length() < 8) {
+            response.sendRedirect(request.getContextPath() + "/auth/change-password?"
+                    + URLUtils.createParameter("error",
+                            "Error: New password must be at least 8 characters"));
+            return;
+        }
+
         if (!newPassword.equals(confirmPassword)) {
             response.sendRedirect(request.getContextPath() + "/auth/change-password?"
                     + URLUtils.createParameter("error", "New passwords do not match"));
@@ -412,6 +464,17 @@ public class AuthController extends HttpServlet {
         if (fullName == null || fullName.trim().isEmpty()) {
             response.sendRedirect(request.getContextPath() + "/auth/profile?"
                     + URLUtils.createParameter("error", "Full name is required"));
+            return;
+        }
+
+        // Validate fullname: only letters and spaces allowed (no numbers)
+        // \\p{L} matches any Unicode letter (including Vietnamese characters with diacritics)
+        // \\s matches whitespace characters
+        fullName = fullName.trim();
+        if (!fullName.matches("^[\\p{L}\\s]+$")) {
+            response.sendRedirect(request.getContextPath() + "/auth/profile?"
+                    + URLUtils.createParameter("error",
+                            "Error: Full name can only contain letters and spaces. Numbers are not allowed"));
             return;
         }
 
