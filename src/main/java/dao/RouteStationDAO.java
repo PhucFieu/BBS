@@ -21,9 +21,10 @@ public class RouteStationDAO {
      */
     public List<RouteStation> getStationsByRoute(UUID routeId) throws SQLException {
         List<RouteStation> routeStations = new ArrayList<>();
-        String sql = "SELECT rs.*, s.station_name, s.city, s.address " +
+        String sql = "SELECT rs.*, s.station_name, s.address, s.city_id, c.city_name, c.city_number " +
                 "FROM RouteStations rs " +
                 "JOIN Stations s ON rs.station_id = s.station_id " +
+                "LEFT JOIN Cities c ON s.city_id = c.city_id " +
                 "WHERE rs.route_id = ? AND s.status = 'ACTIVE' " +
                 "ORDER BY rs.sequence_number";
 
@@ -176,9 +177,10 @@ public class RouteStationDAO {
      * Get route station by route and station IDs
      */
     public RouteStation getRouteStation(UUID routeId, UUID stationId) throws SQLException {
-        String sql = "SELECT rs.*, s.station_name, s.city, s.address " +
+        String sql = "SELECT rs.*, s.station_name, s.address, s.city_id, c.city_name, c.city_number " +
                 "FROM RouteStations rs " +
                 "JOIN Stations s ON rs.station_id = s.station_id " +
+                "LEFT JOIN Cities c ON s.city_id = c.city_id " +
                 "WHERE rs.route_id = ? AND rs.station_id = ?";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
@@ -218,7 +220,24 @@ public class RouteStationDAO {
             Station station = new Station();
             station.setStationId(routeStation.getStationId());
             station.setStationName(rs.getString("station_name"));
-            station.setCity(rs.getString("city"));
+            // Map city_id if present
+            try {
+                java.util.UUID cityId = UUIDUtils.getUUIDFromResultSet(rs, "city_id");
+                if (cityId != null) {
+                    station.setCityId(cityId);
+                }
+            } catch (SQLException e) {
+                // city_id column might not exist in some queries
+            }
+            // Map city name for backward compatibility
+            try {
+                String cityName = rs.getString("city_name");
+                if (cityName != null) {
+                    station.setCity(cityName);
+                }
+            } catch (SQLException e) {
+                // No city_name column, ignore
+            }
             station.setAddress(rs.getString("address"));
             routeStation.setStation(station);
         } catch (SQLException e) {

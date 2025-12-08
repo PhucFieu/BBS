@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import model.City;
 import model.Routes;
 import util.DBConnection;
 import util.UUIDUtils;
@@ -16,7 +17,19 @@ import util.UUIDUtils;
 public class RouteDAO {
     public List<Routes> getAllRoutes() throws SQLException {
         List<Routes> routes = new ArrayList<>();
-        String sql = "SELECT * FROM Routes WHERE status = 'ACTIVE' ORDER BY route_name";
+        String sql =
+                "SELECT r.*, dc.city_name as departure_city_name, dc.city_number as departure_city_number, "
+                        +
+                        "destc.city_name as destination_city_name, destc.city_number as destination_city_number, "
+                        +
+                        "ds.station_name as departure_station_name, dests.station_name as destination_station_name "
+                        +
+                        "FROM Routes r " +
+                        "LEFT JOIN Cities dc ON r.departure_city_id = dc.city_id " +
+                        "LEFT JOIN Cities destc ON r.destination_city_id = destc.city_id " +
+                        "LEFT JOIN Stations ds ON r.departure_station_id = ds.station_id " +
+                        "LEFT JOIN Stations dests ON r.destination_station_id = dests.station_id " +
+                        "WHERE r.status = 'ACTIVE' ORDER BY r.route_name";
 
         try (Connection conn = DBConnection.getInstance().getConnection()) {
             try (PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -35,7 +48,19 @@ public class RouteDAO {
 
     public List<Routes> getAllRoutesAnyStatus() throws SQLException {
         List<Routes> routes = new ArrayList<>();
-        String sql = "SELECT * FROM Routes ORDER BY status DESC, route_name";
+        String sql =
+                "SELECT r.*, dc.city_name as departure_city_name, dc.city_number as departure_city_number, "
+                        +
+                        "destc.city_name as destination_city_name, destc.city_number as destination_city_number, "
+                        +
+                        "ds.station_name as departure_station_name, dests.station_name as destination_station_name "
+                        +
+                        "FROM Routes r " +
+                        "LEFT JOIN Cities dc ON r.departure_city_id = dc.city_id " +
+                        "LEFT JOIN Cities destc ON r.destination_city_id = destc.city_id " +
+                        "LEFT JOIN Stations ds ON r.departure_station_id = ds.station_id " +
+                        "LEFT JOIN Stations dests ON r.destination_station_id = dests.station_id " +
+                        "ORDER BY r.status DESC, r.route_name";
 
         try (Connection conn = DBConnection.getInstance().getConnection()) {
             try (PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -53,7 +78,19 @@ public class RouteDAO {
     }
 
     public Routes getRouteById(UUID routeId) throws SQLException {
-        String sql = "SELECT * FROM Routes WHERE route_id = ? AND status = 'ACTIVE'";
+        String sql =
+                "SELECT r.*, dc.city_name as departure_city_name, dc.city_number as departure_city_number, "
+                        +
+                        "destc.city_name as destination_city_name, destc.city_number as destination_city_number, "
+                        +
+                        "ds.station_name as departure_station_name, dests.station_name as destination_station_name "
+                        +
+                        "FROM Routes r " +
+                        "LEFT JOIN Cities dc ON r.departure_city_id = dc.city_id " +
+                        "LEFT JOIN Cities destc ON r.destination_city_id = destc.city_id " +
+                        "LEFT JOIN Stations ds ON r.departure_station_id = ds.station_id " +
+                        "LEFT JOIN Stations dests ON r.destination_station_id = dests.station_id " +
+                        "WHERE r.route_id = ? AND r.status = 'ACTIVE'";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -69,7 +106,19 @@ public class RouteDAO {
     }
 
     public Routes getRouteByIdAnyStatus(UUID routeId) throws SQLException {
-        String sql = "SELECT * FROM Routes WHERE route_id = ?";
+        String sql =
+                "SELECT r.*, dc.city_name as departure_city_name, dc.city_number as departure_city_number, "
+                        +
+                        "destc.city_name as destination_city_name, destc.city_number as destination_city_number, "
+                        +
+                        "ds.station_name as departure_station_name, dests.station_name as destination_station_name "
+                        +
+                        "FROM Routes r " +
+                        "LEFT JOIN Cities dc ON r.departure_city_id = dc.city_id " +
+                        "LEFT JOIN Cities destc ON r.destination_city_id = destc.city_id " +
+                        "LEFT JOIN Stations ds ON r.departure_station_id = ds.station_id " +
+                        "LEFT JOIN Stations dests ON r.destination_station_id = dests.station_id " +
+                        "WHERE r.route_id = ?";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -87,26 +136,83 @@ public class RouteDAO {
     public List<Routes> searchRoutes(String departureCity, String destinationCity)
             throws SQLException {
         List<Routes> routes = new ArrayList<>();
-        String sql = "SELECT * FROM Routes WHERE status = 'ACTIVE'";
+        String sql =
+                "SELECT r.*, dc.city_name as departure_city_name, dc.city_number as departure_city_number, "
+                        +
+                        "destc.city_name as destination_city_name, destc.city_number as destination_city_number "
+                        +
+                        "FROM Routes r " +
+                        "LEFT JOIN Cities dc ON r.departure_city_id = dc.city_id " +
+                        "LEFT JOIN Cities destc ON r.destination_city_id = destc.city_id " +
+                        "WHERE r.status = 'ACTIVE'";
 
         if (departureCity != null && !departureCity.trim().isEmpty()) {
-            sql += " AND departure_city LIKE ?";
+            sql += " AND (dc.city_name LIKE ? OR LOWER(dc.city_name) LIKE ?)";
         }
         if (destinationCity != null && !destinationCity.trim().isEmpty()) {
-            sql += " AND destination_city LIKE ?";
+            sql += " AND (destc.city_name LIKE ? OR LOWER(destc.city_name) LIKE ?)";
         }
 
-        sql += " ORDER BY route_name";
+        sql += " ORDER BY r.route_name";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             int paramIndex = 1;
             if (departureCity != null && !departureCity.trim().isEmpty()) {
-                stmt.setString(paramIndex++, "%" + departureCity + "%");
+                String searchPattern = "%" + departureCity + "%";
+                stmt.setString(paramIndex++, searchPattern);
+                stmt.setString(paramIndex++, searchPattern.toLowerCase());
             }
             if (destinationCity != null && !destinationCity.trim().isEmpty()) {
-                stmt.setString(paramIndex++, "%" + destinationCity + "%");
+                String searchPattern = "%" + destinationCity + "%";
+                stmt.setString(paramIndex++, searchPattern);
+                stmt.setString(paramIndex++, searchPattern.toLowerCase());
+            }
+
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                Routes route = mapResultSetToRoute(rs);
+                routes.add(route);
+            }
+        }
+        return routes;
+    }
+
+    /**
+     * Search routes by City IDs (case-insensitive city name search)
+     */
+    public List<Routes> searchRoutesByCityIds(UUID departureCityId, UUID destinationCityId)
+            throws SQLException {
+        List<Routes> routes = new ArrayList<>();
+        String sql =
+                "SELECT r.*, dc.city_name as departure_city_name, dc.city_number as departure_city_number, "
+                        +
+                        "destc.city_name as destination_city_name, destc.city_number as destination_city_number "
+                        +
+                        "FROM Routes r " +
+                        "LEFT JOIN Cities dc ON r.departure_city_id = dc.city_id " +
+                        "LEFT JOIN Cities destc ON r.destination_city_id = destc.city_id " +
+                        "WHERE r.status = 'ACTIVE'";
+
+        if (departureCityId != null) {
+            sql += " AND r.departure_city_id = ?";
+        }
+        if (destinationCityId != null) {
+            sql += " AND r.destination_city_id = ?";
+        }
+
+        sql += " ORDER BY r.route_name";
+
+        try (Connection conn = DBConnection.getInstance().getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            int paramIndex = 1;
+            if (departureCityId != null) {
+                stmt.setObject(paramIndex++, departureCityId);
+            }
+            if (destinationCityId != null) {
+                stmt.setObject(paramIndex++, destinationCityId);
             }
 
             ResultSet rs = stmt.executeQuery();
@@ -119,40 +225,52 @@ public class RouteDAO {
     }
 
     public boolean addRoute(Routes route) throws SQLException {
+        if (route.getDepartureCityId() == null || route.getDestinationCityId() == null) {
+            throw new SQLException("Departure and destination city IDs are required");
+        }
+
         String sql =
-                "INSERT INTO Routes (route_id, route_name, departure_city, destination_city, distance, duration_hours, base_price, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+                "INSERT INTO Routes (route_id, route_name, departure_city_id, destination_city_id, departure_station_id, destination_station_id, distance, duration_hours, base_price, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setObject(1, route.getRouteId());
             stmt.setString(2, route.getRouteName());
-            stmt.setString(3, route.getDepartureCity());
-            stmt.setString(4, route.getDestinationCity());
-            stmt.setBigDecimal(5, route.getDistance());
-            stmt.setInt(6, route.getDurationHours());
-            stmt.setBigDecimal(7, route.getBasePrice());
-            stmt.setString(8, route.getStatus());
+            stmt.setObject(3, route.getDepartureCityId());
+            stmt.setObject(4, route.getDestinationCityId());
+            stmt.setObject(5, route.getDepartureStationId());
+            stmt.setObject(6, route.getDestinationStationId());
+            stmt.setBigDecimal(7, route.getDistance());
+            stmt.setInt(8, route.getDurationHours());
+            stmt.setBigDecimal(9, route.getBasePrice());
+            stmt.setString(10, route.getStatus());
 
             return stmt.executeUpdate() > 0;
         }
     }
 
     public boolean updateRoute(Routes route) throws SQLException {
+        if (route.getDepartureCityId() == null || route.getDestinationCityId() == null) {
+            throw new SQLException("Departure and destination city IDs are required");
+        }
+
         String sql =
-                "UPDATE Routes SET route_name = ?, departure_city = ?, destination_city = ?, distance = ?, duration_hours = ?, base_price = ?, status = ?, updated_date = GETDATE() WHERE route_id = ?";
+                "UPDATE Routes SET route_name = ?, departure_city_id = ?, destination_city_id = ?, departure_station_id = ?, destination_station_id = ?, distance = ?, duration_hours = ?, base_price = ?, status = ?, updated_date = GETDATE() WHERE route_id = ?";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setString(1, route.getRouteName());
-            stmt.setString(2, route.getDepartureCity());
-            stmt.setString(3, route.getDestinationCity());
-            stmt.setBigDecimal(4, route.getDistance());
-            stmt.setInt(5, route.getDurationHours());
-            stmt.setBigDecimal(6, route.getBasePrice());
-            stmt.setString(7, route.getStatus());
-            stmt.setObject(8, route.getRouteId());
+            stmt.setObject(2, route.getDepartureCityId());
+            stmt.setObject(3, route.getDestinationCityId());
+            stmt.setObject(4, route.getDepartureStationId());
+            stmt.setObject(5, route.getDestinationStationId());
+            stmt.setBigDecimal(6, route.getDistance());
+            stmt.setInt(7, route.getDurationHours());
+            stmt.setBigDecimal(8, route.getBasePrice());
+            stmt.setString(9, route.getStatus());
+            stmt.setObject(10, route.getRouteId());
 
             return stmt.executeUpdate() > 0;
         }
@@ -186,7 +304,15 @@ public class RouteDAO {
 
     public List<Routes> getPopularRoutes() throws SQLException {
         List<Routes> routes = new ArrayList<>();
-        String sql = "SELECT TOP 5 * FROM Routes WHERE status = 'ACTIVE' ORDER BY route_name";
+        String sql =
+                "SELECT TOP 5 r.*, dc.city_name as departure_city_name, dc.city_number as departure_city_number, "
+                        +
+                        "destc.city_name as destination_city_name, destc.city_number as destination_city_number "
+                        +
+                        "FROM Routes r " +
+                        "LEFT JOIN Cities dc ON r.departure_city_id = dc.city_id " +
+                        "LEFT JOIN Cities destc ON r.destination_city_id = destc.city_id " +
+                        "WHERE r.status = 'ACTIVE' ORDER BY r.route_name";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql);
@@ -238,16 +364,193 @@ public class RouteDAO {
         return false;
     }
 
+    /**
+     * Check if a route name already exists (case-insensitive)
+     * 
+     * @param routeName The route name to check
+     * @return true if the route name exists, false otherwise
+     */
+    public boolean isRouteNameExists(String routeName) throws SQLException {
+        // Use LOWER and LTRIM/RTRIM for consistent comparison (SQL Server compatible)
+        String sql =
+                "SELECT COUNT(*) FROM Routes WHERE LOWER(LTRIM(RTRIM(route_name))) = LOWER(LTRIM(RTRIM(?))) AND status = 'ACTIVE'";
+
+        try (Connection conn = DBConnection.getInstance().getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, routeName);
+            ResultSet rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                return rs.getInt(1) > 0;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Check if a route name already exists excluding a specific route ID (for update)
+     * 
+     * @param routeName The route name to check
+     * @param excludeRouteId The route ID to exclude from the check
+     * @return true if the route name exists for another route, false otherwise
+     */
+    public boolean isRouteNameExistsExcludingId(String routeName, UUID excludeRouteId)
+            throws SQLException {
+        // Use LOWER and LTRIM/RTRIM for consistent comparison (SQL Server compatible)
+        String sql =
+                "SELECT COUNT(*) FROM Routes WHERE LOWER(LTRIM(RTRIM(route_name))) = LOWER(LTRIM(RTRIM(?))) AND route_id != ? AND status = 'ACTIVE'";
+
+        try (Connection conn = DBConnection.getInstance().getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, routeName);
+            stmt.setObject(2, excludeRouteId);
+            ResultSet rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                return rs.getInt(1) > 0;
+            }
+        }
+        return false;
+    }
+
     private Routes mapResultSetToRoute(ResultSet rs) throws SQLException {
         Routes route = new Routes();
         route.setRouteId(UUIDUtils.getUUIDFromResultSet(rs, "route_id"));
         route.setRouteName(rs.getString("route_name"));
-        route.setDepartureCity(rs.getString("departure_city"));
-        route.setDestinationCity(rs.getString("destination_city"));
+
+        // Map city IDs
+        try {
+            UUID departureCityId = UUIDUtils.getUUIDFromResultSet(rs, "departure_city_id");
+            if (departureCityId != null) {
+                route.setDepartureCityId(departureCityId);
+            }
+        } catch (SQLException e) {
+            // Column might not exist, try old column
+        }
+
+        try {
+            UUID destinationCityId = UUIDUtils.getUUIDFromResultSet(rs, "destination_city_id");
+            if (destinationCityId != null) {
+                route.setDestinationCityId(destinationCityId);
+            }
+        } catch (SQLException e) {
+            // Column might not exist, try old column
+        }
+
+        // Map city names (for backward compatibility and display)
+        try {
+            String departureCityName = rs.getString("departure_city_name");
+            if (departureCityName != null) {
+                route.setDepartureCity(departureCityName); // Deprecated but kept for compatibility
+
+                // Create City object if city ID is available
+                if (route.getDepartureCityId() != null) {
+                    City depCity = new City();
+                    depCity.setCityId(route.getDepartureCityId());
+                    depCity.setCityName(departureCityName);
+                    try {
+                        depCity.setCityNumber(rs.getInt("departure_city_number"));
+                    } catch (SQLException e) {
+                        // Ignore if column doesn't exist
+                    }
+                    route.setDepartureCityObj(depCity);
+                }
+            }
+        } catch (SQLException e) {
+            // Try old departure_city column
+            try {
+                String depCity = rs.getString("departure_city");
+                if (depCity != null) {
+                    route.setDepartureCity(depCity);
+                }
+            } catch (SQLException e2) {
+                // Ignore
+            }
+        }
+
+        try {
+            String destinationCityName = rs.getString("destination_city_name");
+            if (destinationCityName != null) {
+                route.setDestinationCity(destinationCityName); // Deprecated but kept for
+                                                               // compatibility
+
+                // Create City object if city ID is available
+                if (route.getDestinationCityId() != null) {
+                    City destCity = new City();
+                    destCity.setCityId(route.getDestinationCityId());
+                    destCity.setCityName(destinationCityName);
+                    try {
+                        destCity.setCityNumber(rs.getInt("destination_city_number"));
+                    } catch (SQLException e) {
+                        // Ignore if column doesn't exist
+                    }
+                    route.setDestinationCityObj(destCity);
+                }
+            }
+        } catch (SQLException e) {
+            // Try old destination_city column
+            try {
+                String destCity = rs.getString("destination_city");
+                if (destCity != null) {
+                    route.setDestinationCity(destCity);
+                }
+            } catch (SQLException e2) {
+                // Ignore
+            }
+        }
+
         route.setDistance(rs.getBigDecimal("distance"));
         route.setDurationHours(rs.getInt("duration_hours"));
         route.setBasePrice(rs.getBigDecimal("base_price"));
         route.setStatus(rs.getString("status"));
+
+        // Map terminal station IDs
+        try {
+            UUID departureStationId = UUIDUtils.getUUIDFromResultSet(rs, "departure_station_id");
+            if (departureStationId != null) {
+                route.setDepartureStationId(departureStationId);
+
+                // Create Station object if station name is available
+                try {
+                    String depStationName = rs.getString("departure_station_name");
+                    if (depStationName != null) {
+                        model.Station depStation = new model.Station();
+                        depStation.setStationId(departureStationId);
+                        depStation.setStationName(depStationName);
+                        route.setDepartureStationObj(depStation);
+                    }
+                } catch (SQLException e) {
+                    // Ignore if column doesn't exist
+                }
+            }
+        } catch (SQLException e) {
+            // Column might not exist
+        }
+
+        try {
+            UUID destinationStationId =
+                    UUIDUtils.getUUIDFromResultSet(rs, "destination_station_id");
+            if (destinationStationId != null) {
+                route.setDestinationStationId(destinationStationId);
+
+                // Create Station object if station name is available
+                try {
+                    String destStationName = rs.getString("destination_station_name");
+                    if (destStationName != null) {
+                        model.Station destStation = new model.Station();
+                        destStation.setStationId(destinationStationId);
+                        destStation.setStationName(destStationName);
+                        route.setDestinationStationObj(destStation);
+                    }
+                } catch (SQLException e) {
+                    // Ignore if column doesn't exist
+                }
+            }
+        } catch (SQLException e) {
+            // Column might not exist
+        }
 
         java.sql.Timestamp createdDate = rs.getTimestamp("created_date");
         if (createdDate != null) {
