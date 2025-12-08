@@ -40,6 +40,11 @@ import model.Tickets;
 import model.User;
 import util.URLUtils;
 
+/**
+ *
+ * @author LamDNB-CE192005
+ */
+
 @WebServlet(urlPatterns = {"/tickets/*", "/admin/tickets/*"})
 public class TicketController extends HttpServlet {
 
