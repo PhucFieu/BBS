@@ -50,10 +50,15 @@ public class Tickets {
     private String alightingStationName;
     private String boardingCity;
     private String alightingCity;
-
-    // Station times (from ScheduleStops.arrival_time)
-    private LocalTime boardingArrivalTime;
-    private LocalTime alightingArrivalTime;
+    
+    // Walk-in customer information (for tickets created by staff)
+    private String customerName;
+    private String customerPhone;
+    private String customerEmail;
+    private String notes;
+    private UUID createdByStaffId;
+    private LocalDateTime checkedInAt;
+    private UUID checkedInByStaffId;
 
     // Constructors
     public Tickets() {
@@ -88,18 +93,6 @@ public class Tickets {
     public java.sql.Time getDepartureTimeSql() {
         return departureTime != null
                 ? java.sql.Time.valueOf(departureTime)
-                : null;
-    }
-
-    public java.sql.Time getBoardingArrivalTimeSql() {
-        return boardingArrivalTime != null
-                ? java.sql.Time.valueOf(boardingArrivalTime)
-                : null;
-    }
-
-    public java.sql.Time getAlightingArrivalTimeSql() {
-        return alightingArrivalTime != null
-                ? java.sql.Time.valueOf(alightingArrivalTime)
                 : null;
     }
 
@@ -353,28 +346,93 @@ public class Tickets {
         this.alightingCity = alightingCity;
     }
 
-    public LocalTime getBoardingArrivalTime() {
-        return boardingArrivalTime;
-    }
-
-    public void setBoardingArrivalTime(LocalTime boardingArrivalTime) {
-        this.boardingArrivalTime = boardingArrivalTime;
-    }
-
-    public LocalTime getAlightingArrivalTime() {
-        return alightingArrivalTime;
-    }
-
-    public void setAlightingArrivalTime(LocalTime alightingArrivalTime) {
-        this.alightingArrivalTime = alightingArrivalTime;
-    }
-
     /**
      * Check if this ticket can be rated
      * Can rate if: COMPLETED and PAID
      */
     public boolean getCanRate() {
         return "COMPLETED".equals(status) && "PAID".equals(paymentStatus);
+    }
+
+    // Walk-in customer getters and setters
+    public String getCustomerName() {
+        return customerName;
+    }
+
+    public void setCustomerName(String customerName) {
+        this.customerName = customerName;
+    }
+
+    public String getCustomerPhone() {
+        return customerPhone;
+    }
+
+    public void setCustomerPhone(String customerPhone) {
+        this.customerPhone = customerPhone;
+    }
+
+    public String getCustomerEmail() {
+        return customerEmail;
+    }
+
+    public void setCustomerEmail(String customerEmail) {
+        this.customerEmail = customerEmail;
+    }
+
+    public String getNotes() {
+        return notes;
+    }
+
+    public void setNotes(String notes) {
+        this.notes = notes;
+    }
+
+    public UUID getCreatedByStaffId() {
+        return createdByStaffId;
+    }
+
+    public void setCreatedByStaffId(UUID createdByStaffId) {
+        this.createdByStaffId = createdByStaffId;
+    }
+
+    public LocalDateTime getCheckedInAt() {
+        return checkedInAt;
+    }
+
+    public void setCheckedInAt(LocalDateTime checkedInAt) {
+        this.checkedInAt = checkedInAt;
+    }
+
+    public UUID getCheckedInByStaffId() {
+        return checkedInByStaffId;
+    }
+
+    public void setCheckedInByStaffId(UUID checkedInByStaffId) {
+        this.checkedInByStaffId = checkedInByStaffId;
+    }
+
+    /**
+     * Check if this ticket is checked in
+     */
+    public boolean isCheckedIn() {
+        return "CHECKED_IN".equals(status);
+    }
+
+    /**
+     * Get display name for customer (use customerName if available, otherwise userName)
+     */
+    public String getDisplayCustomerName() {
+        if (customerName != null && !customerName.trim().isEmpty()) {
+            return customerName;
+        }
+        return userName;
+    }
+
+    /**
+     * Check if this is a walk-in ticket (created by staff for a customer)
+     */
+    public boolean isWalkInTicket() {
+        return createdByStaffId != null;
     }
 
     @Override
