@@ -4,7 +4,6 @@ import dao.BusDAO;
 import dao.DriverDAO;
 import dao.RouteDAO;
 import dao.ScheduleDAO;
-import dao.ScheduleStopDAO;
 import dao.StationDAO;
 import dao.TicketDAO;
 import dao.UserDAO;
@@ -21,7 +20,6 @@ public abstract class AdminBaseController {
     protected BusDAO busDAO;
     protected StationDAO stationDAO;
     protected ScheduleDAO scheduleDAO;
-    protected ScheduleStopDAO scheduleStopDAO;
     protected TicketDAO ticketDAO;
     protected DriverDAO driverDAO;
 
@@ -34,7 +32,6 @@ public abstract class AdminBaseController {
         busDAO = new BusDAO();
         stationDAO = new StationDAO();
         scheduleDAO = new ScheduleDAO();
-        scheduleStopDAO = new ScheduleStopDAO();
         ticketDAO = new TicketDAO();
         driverDAO = new DriverDAO();
     }

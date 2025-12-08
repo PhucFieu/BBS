@@ -29,7 +29,7 @@ public class AuthUtils {
      */
     public static boolean hasRole(HttpSession session, String role) {
         User user = getCurrentUser(session);
-        return user != null && role.equals(user.getRole());
+        return user != null && user.getRole() != null && role != null && role.equalsIgnoreCase(user.getRole());
     }
 
     /**
@@ -43,7 +43,8 @@ public class AuthUtils {
      * Kiểm tra xem user có phải là DRIVER hay không
      */
     public static boolean isDriver(HttpSession session) {
-        return hasRole(session, "DRIVER");
+        // Chấp nhận cả các biến thể role khác nhau như "Drive"
+        return hasRole(session, "DRIVER") || hasRole(session, "DRIVE") || hasRole(session, "Drive");
     }
 
     /**
@@ -54,10 +55,17 @@ public class AuthUtils {
     }
 
     /**
+     * Kiểm tra xem user có phải là STAFF hay không
+     */
+    public static boolean isStaff(HttpSession session) {
+        return hasRole(session, "STAFF");
+    }
+
+    /**
      * Kiểm tra xem user có quyền truy cập vào admin area hay không
      */
     public static boolean canAccessAdmin(HttpSession session) {
-        return isAdmin(session) || isDriver(session);
+        return isAdmin(session) || isDriver(session) || isStaff(session);
     }
 
     /**
@@ -144,5 +152,40 @@ public class AuthUtils {
      */
     public static boolean canManageRatings(HttpSession session) {
         return isAdmin(session);
+    }
+
+    /**
+     * Kiểm tra xem user có quyền quản lý tickets cho khách hay không (Staff)
+     */
+    public static boolean canManageTicketsForCustomers(HttpSession session) {
+        return isAdmin(session) || isStaff(session);
+    }
+
+    /**
+     * Kiểm tra xem user có quyền check-in khách hay không
+     */
+    public static boolean canCheckInPassengers(HttpSession session) {
+        return isAdmin(session) || isStaff(session);
+    }
+
+    /**
+     * Kiểm tra xem user có quyền xem danh sách khách hay không
+     */
+    public static boolean canViewPassengerList(HttpSession session) {
+        return isAdmin(session) || isStaff(session) || isDriver(session);
+    }
+
+    /**
+     * Kiểm tra xem user có quyền hủy vé hay không
+     */
+    public static boolean canCancelTickets(HttpSession session) {
+        return isAdmin(session) || isStaff(session);
+    }
+
+    /**
+     * Kiểm tra xem user có quyền sửa vé hay không
+     */
+    public static boolean canModifyTickets(HttpSession session) {
+        return isAdmin(session) || isStaff(session);
     }
 }
