@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -15,6 +17,7 @@ import com.google.gson.Gson;
 import dao.DriverDAO;
 import dao.RatingDAO;
 import dao.ScheduleDAO;
+import dao.StationDAO;
 import dao.TicketDAO;
 import dao.UserDAO;
 import jakarta.servlet.ServletException;
@@ -34,6 +37,7 @@ public class DriverController extends HttpServlet {
     private ScheduleDAO scheduleDAO;
     private TicketDAO ticketDAO;
     private UserDAO userDAO;
+    private StationDAO stationDAO;
     private final Gson gson = new Gson();
 
     @Override
@@ -42,6 +46,7 @@ public class DriverController extends HttpServlet {
         scheduleDAO = new ScheduleDAO();
         ticketDAO = new TicketDAO();
         userDAO = new UserDAO();
+        stationDAO = new StationDAO();
     }
 
     @Override
@@ -328,7 +333,18 @@ public class DriverController extends HttpServlet {
 
             for (Tickets ticket : passengers) {
                 Map<String, Object> passengerInfo = new HashMap<>();
-                passengerInfo.put("fullName", ticket.getUserName());
+                // Use customer name if available (for staff-booked tickets), otherwise use user
+                // name
+                String displayName = (ticket.getCustomerName() != null
+                        && !ticket.getCustomerName().trim().isEmpty())
+                                ? ticket.getCustomerName()
+                                : ticket.getUserName();
+                String displayPhone = (ticket.getCustomerPhone() != null
+                        && !ticket.getCustomerPhone().trim().isEmpty())
+                                ? ticket.getCustomerPhone()
+                                : "";
+                passengerInfo.put("fullName", displayName);
+                passengerInfo.put("phone", displayPhone);
                 passengerInfo.put("username", ticket.getUsername());
                 passengerInfo.put("seatNumber", ticket.getSeatNumber());
                 passengerInfo.put("ticketNumber", ticket.getTicketNumber());
@@ -382,13 +398,8 @@ public class DriverController extends HttpServlet {
                 return;
             }
 
-            // Load route stops for station selection when stopping
-            dao.RouteStopDAO routeStopDAO = new dao.RouteStopDAO();
-            java.util.List<model.RouteStop> routeStops =
-                    routeStopDAO.getRouteStopsByRoute(schedule.getRouteId());
-
             request.setAttribute("schedule", schedule);
-            request.setAttribute("routeStops", routeStops);
+            request.setAttribute("stations", stationDAO.getAllStations());
             request.getRequestDispatcher("/views/driver/update-status.jsp").forward(request,
                     response);
 
@@ -416,7 +427,8 @@ public class DriverController extends HttpServlet {
         }
         if (newStatus == null || newStatus.trim().isEmpty()) {
             response.sendRedirect(request.getContextPath()
-                    + "/driver/update-status?scheduleId=" + scheduleIdStr + "&error=Missing information: Please select a status");
+                    + "/driver/update-status?scheduleId=" + scheduleIdStr
+                    + "&error=Missing information: Please select a status");
             return;
         }
 
@@ -455,18 +467,23 @@ public class DriverController extends HttpServlet {
             if (success) {
                 response.sendRedirect(
                         request.getContextPath()
-                                + "/driver/trips?message=Trip status updated successfully! The trip status has been changed to " + newStatus);
+                                + "/driver/trips?message=Trip status updated successfully! The trip status has been changed to "
+                                + newStatus);
             } else {
                 response.sendRedirect(request.getContextPath()
-                        + "/driver/update-status?scheduleId=" + scheduleIdStr + "&error=Error: Failed to update trip status. Please try again or contact administrator");
+                        + "/driver/update-status?scheduleId=" + scheduleIdStr
+                        + "&error=Error: Failed to update trip status. Please try again or contact administrator");
             }
 
         } catch (IllegalArgumentException e) {
             response.sendRedirect(
-                    request.getContextPath() + "/driver/trips?error=Error: Invalid schedule ID format. Please check again");
+                    request.getContextPath()
+                            + "/driver/trips?error=Error: Invalid schedule ID format. Please check again");
         } catch (Exception e) {
             response.sendRedirect(
-                    request.getContextPath() + "/driver/trips?error=Error: An unexpected error occurred while updating trip status. " + e.getMessage());
+                    request.getContextPath()
+                            + "/driver/trips?error=Error: An unexpected error occurred while updating trip status. "
+                            + e.getMessage());
         }
     }
 
@@ -483,7 +500,8 @@ public class DriverController extends HttpServlet {
     // Admin-specific handlers
     private void adminShowDrivers(HttpServletRequest request, HttpServletResponse response)
             throws SQLException, ServletException, IOException {
-        List<Driver> drivers = driverDAO.getAllDrivers();
+        String statusFilter = resolveStatusFilter(request.getParameter("status"));
+        List<Driver> drivers = driverDAO.getAllDriversForAdmin(statusFilter);
         RatingDAO ratingDAO = new RatingDAO();
         java.util.Map<java.util.UUID, java.lang.Double> driverAvgMap = new java.util.HashMap<>();
         java.util.Map<java.util.UUID, java.lang.Integer> driverTotalMap = new java.util.HashMap<>();
@@ -502,6 +520,8 @@ public class DriverController extends HttpServlet {
             driverTotalMap.put(d.getDriverId(), total);
         }
         request.setAttribute("drivers", drivers);
+        request.setAttribute("selectedStatus", statusFilter);
+        request.setAttribute("searchTerm", null);
         request.setAttribute("driverAvgMap", driverAvgMap);
         request.setAttribute("driverTotalMap", driverTotalMap);
         request.getRequestDispatcher("/views/admin/drivers.jsp").forward(request, response);
@@ -517,23 +537,33 @@ public class DriverController extends HttpServlet {
         String driverIdStr = request.getParameter("id");
         if (driverIdStr == null || driverIdStr.trim().isEmpty()) {
             response.sendRedirect(
-                    request.getContextPath() + "/admin/drivers?error=Missing information: Driver ID is required");
+                    request.getContextPath()
+                            + "/admin/drivers?error="
+                            + URLEncoder.encode("Missing information: Driver ID is required",
+                                    StandardCharsets.UTF_8));
             return;
         }
         try {
             UUID driverId = UUID.fromString(driverIdStr);
-            Driver driver = driverDAO.getDriverById(driverId);
+            Driver driver = driverDAO.getDriverByIdForAdmin(driverId);
             if (driver != null) {
                 request.setAttribute("driver", driver);
                 request.getRequestDispatcher("/views/admin/driver-form.jsp").forward(request,
                         response);
             } else {
                 response.sendRedirect(
-                        request.getContextPath() + "/admin/drivers?error=Error: Driver not found with the given ID");
+                        request.getContextPath()
+                                + "/admin/drivers?error="
+                                + URLEncoder.encode("Error: Driver not found with the given ID",
+                                        StandardCharsets.UTF_8));
             }
         } catch (IllegalArgumentException e) {
             response.sendRedirect(
-                    request.getContextPath() + "/admin/drivers?error=Error: Invalid driver ID format. Please check again");
+                    request.getContextPath()
+                            + "/admin/drivers?error="
+                            + URLEncoder.encode(
+                                    "Error: Invalid driver ID format. Please check again",
+                                    StandardCharsets.UTF_8));
         }
     }
 
@@ -542,7 +572,10 @@ public class DriverController extends HttpServlet {
         String driverIdStr = request.getParameter("id");
         if (driverIdStr == null || driverIdStr.trim().isEmpty()) {
             response.sendRedirect(
-                    request.getContextPath() + "/admin/drivers?error=Missing information: Driver ID is required");
+                    request.getContextPath()
+                            + "/admin/drivers?error="
+                            + URLEncoder.encode("Missing information: Driver ID is required",
+                                    StandardCharsets.UTF_8));
             return;
         }
         try {
@@ -550,19 +583,28 @@ public class DriverController extends HttpServlet {
             Driver driver = driverDAO.getDriverById(driverId);
             if (driver == null) {
                 response.sendRedirect(
-                        request.getContextPath() + "/admin/drivers?error=Error: Driver not found with the given ID");
+                        request.getContextPath()
+                                + "/admin/drivers?error="
+                                + URLEncoder.encode("Error: Driver not found with the given ID",
+                                        StandardCharsets.UTF_8));
                 return;
             }
             boolean hasActiveSchedules = scheduleDAO.hasDriverActiveSchedules(driverId);
             if (hasActiveSchedules) {
                 response.sendRedirect(request.getContextPath()
-                        + "/admin/drivers?error=Error: Cannot delete driver. Driver is currently assigned to active schedules. Please reassign or cancel the schedules first.");
+                        + "/admin/drivers?error="
+                        + URLEncoder.encode(
+                                "Error: Cannot delete driver. Driver is currently assigned to active schedules. Please reassign or cancel the schedules first.",
+                                StandardCharsets.UTF_8));
                 return;
             }
             boolean hasPendingTickets = ticketDAO.hasDriverPendingTickets(driverId);
             if (hasPendingTickets) {
                 response.sendRedirect(request.getContextPath()
-                        + "/admin/drivers?error=Error: Cannot delete driver. Driver has pending tickets. Please resolve all pending tickets first.");
+                        + "/admin/drivers?error="
+                        + URLEncoder.encode(
+                                "Error: Cannot delete driver. Driver has pending tickets. Please resolve all pending tickets first.",
+                                StandardCharsets.UTF_8));
                 return;
             }
             boolean driverDeleted = driverDAO.deleteDriver(driverId);
@@ -570,31 +612,70 @@ public class DriverController extends HttpServlet {
                 boolean userDeactivated = userDAO.deactivateUser(driver.getUserId());
                 if (userDeactivated) {
                     response.sendRedirect(request.getContextPath()
-                            + "/admin/drivers?message=Driver and account deactivated successfully! Driver has been removed from the system");
+                            + "/admin/drivers?message="
+                            + URLEncoder.encode(
+                                    "Driver and account deactivated successfully! Driver has been removed from the system",
+                                    StandardCharsets.UTF_8));
                 } else {
                     response.sendRedirect(request.getContextPath()
-                            + "/admin/drivers?warning=Driver deactivated successfully, but user account may still be active. Please check the user account status.");
+                            + "/admin/drivers?warning="
+                            + URLEncoder.encode(
+                                    "Driver deactivated successfully, but user account may still be active. Please check the user account status.",
+                                    StandardCharsets.UTF_8));
                 }
             } else {
                 response.sendRedirect(
-                        request.getContextPath() + "/admin/drivers?error=Error: Failed to delete driver. Please try again or contact administrator");
+                        request.getContextPath()
+                                + "/admin/drivers?error="
+                                + URLEncoder.encode(
+                                        "Error: Failed to delete driver. Please try again or contact administrator",
+                                        StandardCharsets.UTF_8));
             }
         } catch (IllegalArgumentException e) {
             response.sendRedirect(
-                    request.getContextPath() + "/admin/drivers?error=Error: Invalid driver ID format. Please check again");
+                    request.getContextPath()
+                            + "/admin/drivers?error="
+                            + URLEncoder.encode(
+                                    "Error: Invalid driver ID format. Please check again",
+                                    StandardCharsets.UTF_8));
         } catch (Exception e) {
             response.sendRedirect(request.getContextPath()
-                    + "/admin/drivers?error=Error: An unexpected error occurred while deleting the driver. " + e.getMessage());
+                    + "/admin/drivers?error="
+                    + URLEncoder.encode(
+                            "Error: An unexpected error occurred while deleting the driver. "
+                                    + e.getMessage(),
+                            StandardCharsets.UTF_8));
         }
     }
 
     private void adminSearchDrivers(HttpServletRequest request, HttpServletResponse response)
             throws SQLException, ServletException, IOException {
         String searchTerm = request.getParameter("search");
+        String statusFilter = resolveStatusFilter(request.getParameter("status"));
         List<Driver> drivers = (searchTerm != null && !searchTerm.trim().isEmpty())
-                ? driverDAO.searchDrivers(searchTerm)
-                : driverDAO.getAllDrivers();
+                ? driverDAO.searchDriversForAdmin(searchTerm, statusFilter)
+                : driverDAO.getAllDriversForAdmin(statusFilter);
+        RatingDAO ratingDAO = new RatingDAO();
+        java.util.Map<java.util.UUID, java.lang.Double> driverAvgMap = new java.util.HashMap<>();
+        java.util.Map<java.util.UUID, java.lang.Integer> driverTotalMap = new java.util.HashMap<>();
+        for (Driver d : drivers) {
+            double avg = 0.0;
+            int total = 0;
+            try {
+                avg = ratingDAO.getAverageRatingByDriver(d.getDriverId());
+            } catch (SQLException ignored) {
+            }
+            try {
+                total = ratingDAO.getTotalRatingsByDriver(d.getDriverId());
+            } catch (SQLException ignored) {
+            }
+            driverAvgMap.put(d.getDriverId(), avg);
+            driverTotalMap.put(d.getDriverId(), total);
+        }
         request.setAttribute("drivers", drivers);
+        request.setAttribute("selectedStatus", statusFilter);
+        request.setAttribute("driverAvgMap", driverAvgMap);
+        request.setAttribute("driverTotalMap", driverTotalMap);
         request.setAttribute("searchTerm", searchTerm);
         request.getRequestDispatcher("/views/admin/drivers.jsp").forward(request, response);
     }
@@ -603,8 +684,11 @@ public class DriverController extends HttpServlet {
             throws SQLException, ServletException, IOException {
         String scheduleIdStr = request.getParameter("scheduleId");
         if (scheduleIdStr == null || scheduleIdStr.trim().isEmpty()) {
+            String errorMsg = URLEncoder.encode(
+                    "Missing information: Please select a schedule from the schedules list to assign a driver",
+                    StandardCharsets.UTF_8);
             response.sendRedirect(
-                    request.getContextPath() + "/admin/schedules?error=Missing information: Schedule ID is required");
+                    request.getContextPath() + "/admin/schedules?error=" + errorMsg);
             return;
         }
         try {
@@ -612,17 +696,36 @@ public class DriverController extends HttpServlet {
             Schedule schedule = scheduleDAO.getScheduleById(scheduleId);
             if (schedule == null) {
                 response.sendRedirect(
-                        request.getContextPath() + "/admin/schedules?error=Error: Schedule not found with the given ID");
+                        request.getContextPath()
+                                + "/admin/schedules?error=Error: Schedule not found with the given ID");
                 return;
             }
             List<Driver> drivers = driverDAO.getAllDrivers();
+            double requiredGapHours = calculateRequiredGapHours(schedule);
+            double scheduleDurationHours = Math.max(0, requiredGapHours - 8.0);
+
+            // Check minimum gap between each driver's last schedule end and this schedule start
+            Map<UUID, Double> driverMinGap = new HashMap<>();
+            for (Driver driver : drivers) {
+                double minGap = scheduleDAO.calculateMinGapBeforeNewSchedule(
+                        driver.getDriverId(),
+                        schedule.getDepartureDate(),
+                        schedule.getDepartureTime(),
+                        scheduleId);
+                driverMinGap.put(driver.getDriverId(), minGap);
+            }
+
             request.setAttribute("schedule", schedule);
             request.setAttribute("drivers", drivers);
+            request.setAttribute("driverMinGap", driverMinGap);
+            request.setAttribute("requiredGapHours", requiredGapHours);
+            request.setAttribute("scheduleDurationHours", scheduleDurationHours);
             request.getRequestDispatcher("/views/admin/assign-driver.jsp").forward(request,
                     response);
         } catch (IllegalArgumentException e) {
             response.sendRedirect(
-                    request.getContextPath() + "/admin/schedules?error=Error: Invalid schedule ID format. Please check again");
+                    request.getContextPath()
+                            + "/admin/schedules?error=Error: Invalid schedule ID format. Please check again");
         }
     }
 
@@ -640,31 +743,49 @@ public class DriverController extends HttpServlet {
         if (username == null || username.trim().isEmpty()) {
             response.sendRedirect(
                     request.getContextPath()
-                            + "/admin/drivers/add?error=Missing information: Username is required");
+                            + "/admin/drivers/add?error="
+                            + URLEncoder.encode("Missing information: Username is required",
+                                    StandardCharsets.UTF_8));
             return;
         }
         if (password == null || password.trim().isEmpty()) {
             response.sendRedirect(
                     request.getContextPath()
-                            + "/admin/drivers/add?error=Missing information: Password is required");
+                            + "/admin/drivers/add?error="
+                            + URLEncoder.encode("Missing information: Password is required",
+                                    StandardCharsets.UTF_8));
+            return;
+        }
+        if (password.length() < 8) {
+            response.sendRedirect(
+                    request.getContextPath()
+                            + "/admin/drivers/add?error="
+                            + URLEncoder.encode("Error: Password must be at least 8 characters",
+                                    StandardCharsets.UTF_8));
             return;
         }
         if (fullName == null || fullName.trim().isEmpty()) {
             response.sendRedirect(
                     request.getContextPath()
-                            + "/admin/drivers/add?error=Missing information: Full name is required");
+                            + "/admin/drivers/add?error="
+                            + URLEncoder.encode("Missing information: Full name is required",
+                                    StandardCharsets.UTF_8));
             return;
         }
         if (licenseNumber == null || licenseNumber.trim().isEmpty()) {
             response.sendRedirect(
                     request.getContextPath()
-                            + "/admin/drivers/add?error=Missing information: License number is required");
+                            + "/admin/drivers/add?error="
+                            + URLEncoder.encode("Missing information: License number is required",
+                                    StandardCharsets.UTF_8));
             return;
         }
         if (experienceYearsStr == null || experienceYearsStr.trim().isEmpty()) {
             response.sendRedirect(
                     request.getContextPath()
-                            + "/admin/drivers/add?error=Missing information: Experience years is required");
+                            + "/admin/drivers/add?error="
+                            + URLEncoder.encode("Missing information: Experience years is required",
+                                    StandardCharsets.UTF_8));
             return;
         }
 
@@ -673,6 +794,17 @@ public class DriverController extends HttpServlet {
         password = password.trim();
         fullName = fullName.trim();
         licenseNumber = licenseNumber.trim();
+
+        // Validate license number format: 12 digits only
+        if (!licenseNumber.matches("^[0-9]{12}$")) {
+            response.sendRedirect(
+                    request.getContextPath()
+                            + "/admin/drivers/add?error="
+                            + URLEncoder.encode(
+                                    "Error: Invalid license number format. License number must be exactly 12 digits",
+                                    StandardCharsets.UTF_8));
+            return;
+        }
 
         // Normalize email and phone (can be empty, but not just whitespace)
         if (email != null) {
@@ -692,14 +824,21 @@ public class DriverController extends HttpServlet {
         // Validate email format only if provided
         if (email != null && !email.isEmpty() && !email.matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
             response.sendRedirect(request.getContextPath()
-                    + "/admin/drivers/add?error=Error: Invalid email format. Please enter a valid email address");
+                    + "/admin/drivers/add?error="
+                    + URLEncoder.encode(
+                            "Error: Invalid email format. Please enter a valid email address",
+                            StandardCharsets.UTF_8));
             return;
         }
 
         // Validate phone number format only if provided
-        if (phoneNumber != null && !phoneNumber.isEmpty() && !phoneNumber.matches("^(0[3|5|7|8|9])[0-9]{8}$")) {
+        if (phoneNumber != null && !phoneNumber.isEmpty()
+                && !phoneNumber.matches("^(0[3|5|7|8|9])[0-9]{8}$")) {
             response.sendRedirect(request.getContextPath()
-                    + "/admin/drivers/add?error=Error: Invalid phone number format. Please use Vietnamese format (e.g., 0907450814)");
+                    + "/admin/drivers/add?error="
+                    + URLEncoder.encode(
+                            "Error: Invalid phone number format. Please use Vietnamese format (e.g., 0907450814)",
+                            StandardCharsets.UTF_8));
             return;
         }
 
@@ -708,7 +847,10 @@ public class DriverController extends HttpServlet {
 
             if (experienceYears < 0) {
                 response.sendRedirect(request.getContextPath()
-                        + "/admin/drivers/add?error=Error: Experience years must be a positive number (0 or greater)");
+                        + "/admin/drivers/add?error="
+                        + URLEncoder.encode(
+                                "Error: Experience years must be a positive number (0 or greater)",
+                                StandardCharsets.UTF_8));
                 return;
             }
 
@@ -716,7 +858,10 @@ public class DriverController extends HttpServlet {
             model.User existingUser = userDAO.getUserByUsername(username);
             if (existingUser != null) {
                 response.sendRedirect(request.getContextPath()
-                        + "/admin/drivers/add?error=Error: Username already exists. Please choose a different username");
+                        + "/admin/drivers/add?error="
+                        + URLEncoder.encode(
+                                "Error: Username already exists. Please choose a different username",
+                                StandardCharsets.UTF_8));
                 return;
             }
 
@@ -726,7 +871,10 @@ public class DriverController extends HttpServlet {
                 if (existingUser != null) {
                     response.sendRedirect(
                             request.getContextPath()
-                                    + "/admin/drivers/add?error=Error: Email is already in use. Please use a different email");
+                                    + "/admin/drivers/add?error="
+                                    + URLEncoder.encode(
+                                            "Error: Email is already in use. Please use a different email",
+                                            StandardCharsets.UTF_8));
                     return;
                 }
             }
@@ -736,16 +884,21 @@ public class DriverController extends HttpServlet {
                 existingUser = userDAO.getUserByPhone(phoneNumber);
                 if (existingUser != null) {
                     response.sendRedirect(request.getContextPath()
-                            + "/admin/drivers/add?error=Error: Phone number is already in use. Please use a different phone number");
+                            + "/admin/drivers/add?error="
+                            + URLEncoder.encode(
+                                    "Error: Phone number is already in use. Please use a different phone number",
+                                    StandardCharsets.UTF_8));
                     return;
                 }
             }
 
             // Check license number uniqueness
-            Driver existingDriver = driverDAO.getDriverByLicenseNumber(licenseNumber);
-            if (existingDriver != null) {
+            if (driverDAO.isLicenseNumberExists(licenseNumber, null)) {
                 response.sendRedirect(request.getContextPath()
-                        + "/admin/drivers/add?error=Error: License number is already in use. Please use a different license number");
+                        + "/admin/drivers/add?error="
+                        + URLEncoder.encode(
+                                "Error: License number is already in use. Please use a different license number",
+                                StandardCharsets.UTF_8));
                 return;
             }
 
@@ -771,7 +924,10 @@ public class DriverController extends HttpServlet {
                 boolean userSuccess = userDAO.addUser(user);
                 if (!userSuccess) {
                     response.sendRedirect(request.getContextPath()
-                            + "/admin/drivers/add?error=Error: Failed to create user account. Please try again or contact administrator");
+                            + "/admin/drivers/add?error="
+                            + URLEncoder.encode(
+                                    "Error: Failed to create user account. Please try again or contact administrator",
+                                    StandardCharsets.UTF_8));
                     return;
                 }
             } catch (SQLException e) {
@@ -790,7 +946,8 @@ public class DriverController extends HttpServlet {
                 if (e.getMessage().contains("UNIQUE KEY constraint")) {
                     if (e.getMessage().contains("username")
                             || e.getMessage().contains("UQ__Users__")) {
-                        errorMsg = "Error: Username already exists. Please choose a different username.";
+                        errorMsg =
+                                "Error: Username already exists. Please choose a different username.";
                     } else if (e.getMessage().contains("email")) {
                         errorMsg = "Error: Email already exists. Please use a different email.";
                     } else if (e.getMessage().contains("phone")) {
@@ -814,101 +971,275 @@ public class DriverController extends HttpServlet {
             driver.setStatus("ACTIVE");
             boolean driverSuccess = driverDAO.addDriver(driver);
             if (driverSuccess) {
+                String message = "Driver created successfully! Driver " + fullName
+                        + " has been added to the system";
                 response.sendRedirect(request.getContextPath()
-                        + "/admin/drivers?message=Driver created successfully! Driver " + fullName + " has been added to the system");
+                        + "/admin/drivers?message="
+                        + URLEncoder.encode(message, StandardCharsets.UTF_8));
             } else {
                 userDAO.deleteUser(user.getUserId());
                 response.sendRedirect(request.getContextPath()
-                        + "/admin/drivers/add?error=Error: Failed to create driver profile. Please try again or contact administrator");
+                        + "/admin/drivers/add?error="
+                        + URLEncoder.encode(
+                                "Error: Failed to create driver profile. Please try again or contact administrator",
+                                StandardCharsets.UTF_8));
             }
         } catch (NumberFormatException e) {
             response.sendRedirect(
-                    request.getContextPath() + "/admin/drivers/add?error=Error: Invalid experience years format. Please enter a valid number");
+                    request.getContextPath()
+                            + "/admin/drivers/add?error="
+                            + URLEncoder.encode(
+                                    "Error: Invalid experience years format. Please enter a valid number",
+                                    StandardCharsets.UTF_8));
         } catch (Exception e) {
             response.sendRedirect(
-                    request.getContextPath() + "/admin/drivers/add?error=Error: An unexpected error occurred. " + e.getMessage());
+                    request.getContextPath()
+                            + "/admin/drivers/add?error="
+                            + URLEncoder.encode(
+                                    "Error: An unexpected error occurred. " + e.getMessage(),
+                                    StandardCharsets.UTF_8));
         }
     }
 
     private void adminUpdateDriver(HttpServletRequest request, HttpServletResponse response)
             throws SQLException, IOException {
         String driverIdStr = request.getParameter("driverId");
+        String username = request.getParameter("username");
         String fullName = request.getParameter("fullName");
         String email = request.getParameter("email");
         String phoneNumber = request.getParameter("phoneNumber");
         String licenseNumber = request.getParameter("licenseNumber");
         String experienceYearsStr = request.getParameter("experienceYears");
+        String status = request.getParameter("status");
         // Validate input with specific error messages
         if (driverIdStr == null || driverIdStr.trim().isEmpty()) {
             response.sendRedirect(
-                    request.getContextPath() + "/admin/drivers?error=Missing information: Driver ID is required");
+                    request.getContextPath()
+                            + "/admin/drivers?error="
+                            + URLEncoder.encode("Missing information: Driver ID is required",
+                                    StandardCharsets.UTF_8));
+            return;
+        }
+        if (username == null || username.trim().isEmpty()) {
+            response.sendRedirect(
+                    request.getContextPath() + "/admin/drivers/edit?id=" + driverIdStr
+                            + "&error="
+                            + URLEncoder.encode("Missing information: Username is required",
+                                    StandardCharsets.UTF_8));
             return;
         }
         if (fullName == null || fullName.trim().isEmpty()) {
             response.sendRedirect(
-                    request.getContextPath() + "/admin/drivers/edit?id=" + driverIdStr + "&error=Missing information: Full name is required");
+                    request.getContextPath() + "/admin/drivers/edit?id=" + driverIdStr
+                            + "&error="
+                            + URLEncoder.encode("Missing information: Full name is required",
+                                    StandardCharsets.UTF_8));
             return;
         }
         if (email == null || email.trim().isEmpty()) {
             response.sendRedirect(
-                    request.getContextPath() + "/admin/drivers/edit?id=" + driverIdStr + "&error=Missing information: Email is required");
+                    request.getContextPath() + "/admin/drivers/edit?id=" + driverIdStr
+                            + "&error="
+                            + URLEncoder.encode("Missing information: Email is required",
+                                    StandardCharsets.UTF_8));
             return;
         }
         if (phoneNumber == null || phoneNumber.trim().isEmpty()) {
             response.sendRedirect(
-                    request.getContextPath() + "/admin/drivers/edit?id=" + driverIdStr + "&error=Missing information: Phone number is required");
+                    request.getContextPath() + "/admin/drivers/edit?id=" + driverIdStr
+                            + "&error="
+                            + URLEncoder.encode("Missing information: Phone number is required",
+                                    StandardCharsets.UTF_8));
             return;
         }
         if (licenseNumber == null || licenseNumber.trim().isEmpty()) {
             response.sendRedirect(
-                    request.getContextPath() + "/admin/drivers/edit?id=" + driverIdStr + "&error=Missing information: License number is required");
+                    request.getContextPath() + "/admin/drivers/edit?id=" + driverIdStr
+                            + "&error="
+                            + URLEncoder.encode("Missing information: License number is required",
+                                    StandardCharsets.UTF_8));
             return;
         }
         if (experienceYearsStr == null || experienceYearsStr.trim().isEmpty()) {
             response.sendRedirect(
-                    request.getContextPath() + "/admin/drivers/edit?id=" + driverIdStr + "&error=Missing information: Experience years is required");
+                    request.getContextPath() + "/admin/drivers/edit?id=" + driverIdStr
+                            + "&error="
+                            + URLEncoder.encode("Missing information: Experience years is required",
+                                    StandardCharsets.UTF_8));
+            return;
+        }
+        if (status == null || status.trim().isEmpty()) {
+            response.sendRedirect(
+                    request.getContextPath() + "/admin/drivers/edit?id=" + driverIdStr
+                            + "&error="
+                            + URLEncoder.encode("Missing information: Status is required",
+                                    StandardCharsets.UTF_8));
+            return;
+        }
+        if (!status.equals("ACTIVE") && !status.equals("INACTIVE")) {
+            response.sendRedirect(
+                    request.getContextPath() + "/admin/drivers/edit?id=" + driverIdStr
+                            + "&error="
+                            + URLEncoder.encode(
+                                    "Error: Invalid status. Status must be ACTIVE or INACTIVE",
+                                    StandardCharsets.UTF_8));
             return;
         }
         if (!phoneNumber.matches("^(0[3|5|7|8|9])[0-9]{8}$")) {
             response.sendRedirect(request.getContextPath()
-                    + "/admin/drivers/edit?id=" + driverIdStr + "&error=Error: Invalid phone number format. Please use Vietnamese format (e.g., 0907450814)");
+                    + "/admin/drivers/edit?id=" + driverIdStr
+                    + "&error="
+                    + URLEncoder.encode(
+                            "Error: Invalid phone number format. Please use Vietnamese format (e.g., 0907450814)",
+                            StandardCharsets.UTF_8));
             return;
         }
+
+        // Validate email format
+        if (!email.matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
+            response.sendRedirect(request.getContextPath()
+                    + "/admin/drivers/edit?id=" + driverIdStr
+                    + "&error="
+                    + URLEncoder.encode(
+                            "Error: Invalid email format. Please enter a valid email address",
+                            StandardCharsets.UTF_8));
+            return;
+        }
+
+        // Validate license number format: 12 digits only
+        licenseNumber = licenseNumber.trim();
+        if (!licenseNumber.matches("^[0-9]{12}$")) {
+            response.sendRedirect(request.getContextPath()
+                    + "/admin/drivers/edit?id=" + driverIdStr
+                    + "&error="
+                    + URLEncoder.encode(
+                            "Error: Invalid license number format. License number must be exactly 12 digits",
+                            StandardCharsets.UTF_8));
+            return;
+        }
+
         try {
             UUID driverId = UUID.fromString(driverIdStr);
             int experienceYears = Integer.parseInt(experienceYearsStr);
-            Driver existingDriver = driverDAO.getDriverById(driverId);
+
+            Driver existingDriver = driverDAO.getDriverByIdForAdmin(driverId);
             if (existingDriver == null) {
                 response.sendRedirect(
-                        request.getContextPath() + "/admin/drivers?error=Error: Driver not found with the given ID");
+                        request.getContextPath()
+                                + "/admin/drivers?error="
+                                + URLEncoder.encode("Error: Driver not found with the given ID",
+                                        StandardCharsets.UTF_8));
+                return;
+            }
+
+            // Get the current user to check for username uniqueness
+            model.User currentUser = userDAO.getUserById(existingDriver.getUserId());
+            if (currentUser == null) {
+                response.sendRedirect(
+                        request.getContextPath()
+                                + "/admin/drivers?error="
+                                + URLEncoder.encode("Error: User account not found for this driver",
+                                        StandardCharsets.UTF_8));
+                return;
+            }
+
+            // Trim username
+            username = username.trim();
+
+            // Check username uniqueness (exclude current user)
+            model.User existingUserByUsername = userDAO.getUserByUsername(username);
+            if (existingUserByUsername != null
+                    && !existingUserByUsername.getUserId().equals(currentUser.getUserId())) {
+                response.sendRedirect(request.getContextPath()
+                        + "/admin/drivers/edit?id=" + driverIdStr
+                        + "&error="
+                        + URLEncoder.encode(
+                                "Error: Username already exists. Please choose a different username",
+                                StandardCharsets.UTF_8));
+                return;
+            }
+
+            // Check email uniqueness (exclude current user)
+            model.User existingUserByEmail = userDAO.getUserByEmail(email);
+            if (existingUserByEmail != null
+                    && !existingUserByEmail.getUserId().equals(currentUser.getUserId())) {
+                response.sendRedirect(
+                        request.getContextPath() + "/admin/drivers/edit?id=" + driverIdStr
+                                + "&error="
+                                + URLEncoder.encode(
+                                        "Error: Email is already in use. Please use a different email",
+                                        StandardCharsets.UTF_8));
+                return;
+            }
+
+            // Check phone uniqueness (exclude current user)
+            model.User existingUserByPhone = userDAO.getUserByPhone(phoneNumber);
+            if (existingUserByPhone != null
+                    && !existingUserByPhone.getUserId().equals(currentUser.getUserId())) {
+                response.sendRedirect(request.getContextPath()
+                        + "/admin/drivers/edit?id=" + driverIdStr
+                        + "&error="
+                        + URLEncoder.encode(
+                                "Error: Phone number is already in use. Please use a different phone number",
+                                StandardCharsets.UTF_8));
+                return;
+            }
+
+            // Check license number uniqueness
+            if (driverDAO.isLicenseNumberExists(licenseNumber, driverId)) {
+                response.sendRedirect(
+                        request.getContextPath() + "/admin/drivers/edit?id=" + driverIdStr
+                                + "&error="
+                                + URLEncoder.encode(
+                                        "Error: License number is already in use. Please use a different license number",
+                                        StandardCharsets.UTF_8));
                 return;
             }
             existingDriver.setLicenseNumber(licenseNumber);
             existingDriver.setExperienceYears(experienceYears);
+            existingDriver.setStatus(status);
             boolean driverSuccess = driverDAO.updateDriver(existingDriver);
             if (driverSuccess) {
                 model.User user = userDAO.getUserById(existingDriver.getUserId());
                 if (user != null) {
+                    user.setUsername(username);
                     user.setFullName(fullName);
                     user.setEmail(email);
                     user.setPhoneNumber(phoneNumber);
                     userDAO.updateUser(user);
                 }
+                String message = "Driver updated successfully! Driver " + fullName
+                        + " information has been saved";
                 response.sendRedirect(request.getContextPath()
-                        + "/admin/drivers?message=Driver updated successfully! Driver " + fullName + " information has been saved");
+                        + "/admin/drivers?message="
+                        + URLEncoder.encode(message, StandardCharsets.UTF_8));
             } else {
                 response.sendRedirect(
-                        request.getContextPath() + "/admin/drivers/edit?id=" + driverIdStr + "&error=Error: Failed to update driver. Please try again or contact administrator");
+                        request.getContextPath() + "/admin/drivers/edit?id=" + driverIdStr
+                                + "&error="
+                                + URLEncoder.encode(
+                                        "Error: Failed to update driver. Please try again or contact administrator",
+                                        StandardCharsets.UTF_8));
             }
         } catch (NumberFormatException e) {
             response.sendRedirect(
-                    request.getContextPath() + "/admin/drivers/edit?id=" + driverIdStr + "&error=Error: Invalid experience years format. Please enter a valid number");
+                    request.getContextPath() + "/admin/drivers/edit?id=" + driverIdStr
+                            + "&error="
+                            + URLEncoder.encode(
+                                    "Error: Invalid experience years format. Please enter a valid number",
+                                    StandardCharsets.UTF_8));
         } catch (IllegalArgumentException e) {
             response.sendRedirect(
-                    request.getContextPath() + "/admin/drivers?error=Error: Invalid driver ID format");
+                    request.getContextPath()
+                            + "/admin/drivers?error=" + URLEncoder.encode(
+                                    "Error: Invalid driver ID format", StandardCharsets.UTF_8));
         } catch (Exception e) {
             response.sendRedirect(
-                    request.getContextPath() + "/admin/drivers/edit?id=" + driverIdStr + "&error=Error: An unexpected error occurred. " + e.getMessage());
+                    request.getContextPath() + "/admin/drivers/edit?id=" + driverIdStr
+                            + "&error="
+                            + URLEncoder.encode(
+                                    "Error: An unexpected error occurred. " + e.getMessage(),
+                                    StandardCharsets.UTF_8));
         }
     }
 
@@ -923,7 +1254,8 @@ public class DriverController extends HttpServlet {
         }
         if (driverIdStr == null || driverIdStr.trim().isEmpty()) {
             response.sendRedirect(request.getContextPath()
-                    + "/admin/drivers/assign?scheduleId=" + scheduleIdStr + "&error=Missing information: Please select a driver");
+                    + "/admin/drivers/assign?scheduleId=" + scheduleIdStr
+                    + "&error=Missing information: Please select a driver");
             return;
         }
         try {
@@ -934,6 +1266,61 @@ public class DriverController extends HttpServlet {
             if (schedule == null) {
                 response.sendRedirect(
                         request.getContextPath() + "/admin/schedules?error=Schedule not found");
+                return;
+            }
+
+            // Check if driver can be assigned (8-hour rule: gap between schedule end and new
+            // schedule start)
+            double requiredGapHours = calculateRequiredGapHours(schedule);
+            Schedule violatingSchedule = scheduleDAO.checkDriverScheduleTimeGap(
+                    driverId, schedule.getDepartureDate(), schedule.getDepartureTime(), scheduleId,
+                    requiredGapHours);
+            if (violatingSchedule != null) {
+                Driver driver = driverDAO.getDriverById(driverId);
+                String driverName = driver != null && driver.getFullName() != null
+                        ? driver.getFullName()
+                        : "this driver";
+
+                // Calculate the gap to show in error message
+                java.time.LocalDateTime violatingScheduleEnd = java.time.LocalDateTime.of(
+                        violatingSchedule.getDepartureDate(),
+                        violatingSchedule.getEstimatedArrivalTime());
+                // Handle case where arrival time might be next day
+                if (violatingSchedule.getEstimatedArrivalTime()
+                        .isBefore(violatingSchedule.getDepartureTime()) ||
+                        violatingSchedule.getEstimatedArrivalTime()
+                                .equals(violatingSchedule.getDepartureTime())) {
+                    violatingScheduleEnd = violatingScheduleEnd.plusDays(1);
+                }
+                java.time.LocalDateTime newScheduleStart = java.time.LocalDateTime.of(
+                        schedule.getDepartureDate(), schedule.getDepartureTime());
+                java.time.Duration gap =
+                        java.time.Duration.between(violatingScheduleEnd, newScheduleStart);
+                double gapHours = gap.toMinutes() / 60.0;
+                double newTripDurationHours = Math.max(0, requiredGapHours - 8.0);
+
+                String violatingScheduleDescription = String.format("%s (%s %s - %s)",
+                        violatingSchedule.getRouteName() != null
+                                ? violatingSchedule.getRouteName()
+                                : "another schedule",
+                        violatingSchedule.getDepartureDate(),
+                        violatingSchedule.getDepartureTime(),
+                        violatingSchedule.getEstimatedArrivalTime());
+
+                String errorMessage = String.format(
+                        "Cannot assign driver %s to this schedule. There must be at least %.1f hours (trip duration %.1f h + 8 h rest) between schedules. "
+                                + "The driver's previous schedule %s ends at %s, and this schedule starts at %s "
+                                + "(gap: %.1f hours).",
+                        driverName, requiredGapHours, newTripDurationHours,
+                        violatingScheduleDescription,
+                        violatingScheduleEnd.toString().replace("T", " "),
+                        newScheduleStart.toString().replace("T", " "),
+                        gapHours);
+
+                response.sendRedirect(
+                        request.getContextPath() + "/admin/drivers/assign?scheduleId=" + scheduleId
+                                + "&error="
+                                + URLEncoder.encode(errorMessage, StandardCharsets.UTF_8));
                 return;
             }
 
@@ -968,19 +1355,64 @@ public class DriverController extends HttpServlet {
             boolean success = scheduleDAO.assignDriverToSchedule(scheduleId, driverId, true);
             if (success) {
                 Driver driver = driverDAO.getDriverById(driverId);
-                String driverName = driver != null && driver.getFullName() != null ? driver.getFullName() : "Driver";
+                String driverName =
+                        driver != null && driver.getFullName() != null ? driver.getFullName()
+                                : "Driver";
+                String message = "Driver assigned successfully! " + driverName
+                        + " has been assigned to this schedule";
                 response.sendRedirect(request.getContextPath()
-                        + "/admin/schedules?message=Driver assigned successfully! " + driverName + " has been assigned to this schedule");
+                        + "/admin/schedules?message="
+                        + URLEncoder.encode(message, StandardCharsets.UTF_8));
             } else {
                 response.sendRedirect(request.getContextPath()
-                        + "/admin/drivers/assign?scheduleId=" + scheduleIdStr + "&error=Error: Failed to assign driver. Please try again or contact administrator");
+                        + "/admin/drivers/assign?scheduleId=" + scheduleIdStr
+                        + "&error=Error: Failed to assign driver. Please try again or contact administrator");
             }
         } catch (IllegalArgumentException e) {
             response.sendRedirect(
-                    request.getContextPath() + "/admin/schedules?error=Error: Invalid ID format. Please check schedule ID and driver ID");
+                    request.getContextPath()
+                            + "/admin/schedules?error=Error: Invalid ID format. Please check schedule ID and driver ID");
         } catch (Exception e) {
             response.sendRedirect(
-                    request.getContextPath() + "/admin/schedules?error=Error: An unexpected error occurred while assigning driver. " + e.getMessage());
+                    request.getContextPath()
+                            + "/admin/schedules?error=Error: An unexpected error occurred while assigning driver. "
+                            + e.getMessage());
         }
+    }
+
+    private String resolveStatusFilter(String rawStatus) {
+        if (rawStatus == null || rawStatus.trim().isEmpty()) {
+            return "ACTIVE";
+        }
+        String normalized = rawStatus.trim().toUpperCase();
+        if ("ACTIVE".equals(normalized) || "INACTIVE".equals(normalized)
+                || "ALL".equals(normalized)) {
+            return normalized;
+        }
+        return "ACTIVE";
+    }
+
+    private double calculateRequiredGapHours(Schedule schedule) {
+        return calculateScheduleDurationHours(schedule) + 8.0;
+    }
+
+    private double calculateScheduleDurationHours(Schedule schedule) {
+        if (schedule == null || schedule.getDepartureDate() == null
+                || schedule.getDepartureTime() == null
+                || schedule.getEstimatedArrivalTime() == null) {
+            return 0.0;
+        }
+        LocalDateTime departure = LocalDateTime.of(
+                schedule.getDepartureDate(), schedule.getDepartureTime());
+        LocalDateTime arrival = LocalDateTime.of(
+                schedule.getDepartureDate(), schedule.getEstimatedArrivalTime());
+        if (!schedule.getEstimatedArrivalTime().isAfter(schedule.getDepartureTime())) {
+            arrival = arrival.plusDays(1);
+        }
+        Duration duration = Duration.between(departure, arrival);
+        if (duration.isNegative()) {
+            return 0.0;
+        }
+        return duration.toMinutes() / 60.0;
     }
 }
