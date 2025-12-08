@@ -35,11 +35,70 @@ public class DriverDAO {
         return drivers;
     }
 
+    /**
+     * Get admin driver list with optional status filter. Defaults to ACTIVE only.
+     */
+    public List<Driver> getAllDriversForAdmin(String statusFilter) throws SQLException {
+        List<Driver> drivers = new ArrayList<>();
+        StringBuilder sql = new StringBuilder(
+                "SELECT d.*, u.username, u.full_name, u.phone_number, u.email " +
+                        "FROM Drivers d " +
+                        "JOIN Users u ON d.user_id = u.user_id " +
+                        "WHERE 1=1 ");
+        List<Object> parameters = new ArrayList<>();
+
+        String normalizedStatus = normalizeStatusFilter(statusFilter);
+        if (!"ALL".equals(normalizedStatus)) {
+            sql.append("AND d.status = ? ");
+            parameters.add(normalizedStatus);
+        }
+
+        sql.append("ORDER BY d.status DESC, u.full_name");
+
+        try (Connection conn = DBConnection.getInstance().getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql.toString())) {
+
+            for (int i = 0; i < parameters.size(); i++) {
+                stmt.setObject(i + 1, parameters.get(i));
+            }
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    Driver driver = mapResultSetToDriver(rs);
+                    drivers.add(driver);
+                }
+            }
+        }
+        return drivers;
+    }
+
     public Driver getDriverById(UUID driverId) throws SQLException {
         String sql = "SELECT d.*, u.username, u.full_name, u.phone_number, u.email " +
                 "FROM Drivers d " +
                 "JOIN Users u ON d.user_id = u.user_id " +
                 "WHERE d.driver_id = ? AND d.status = 'ACTIVE' AND u.status = 'ACTIVE'";
+
+        try (Connection conn = DBConnection.getInstance().getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setObject(1, driverId);
+            ResultSet rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                return mapResultSetToDriver(rs);
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Get driver by ID for admin (includes inactive drivers)
+     */
+    public Driver getDriverByIdForAdmin(UUID driverId) throws SQLException {
+        String sql = "SELECT d.*, u.username, u.full_name, u.phone_number, u.email " +
+                "FROM Drivers d " +
+                "JOIN Users u ON d.user_id = u.user_id " +
+                "WHERE d.driver_id = ?";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -118,8 +177,63 @@ public class DriverDAO {
         return drivers;
     }
 
+    /**
+     * Search drivers for admin with optional status filter.
+     */
+    public List<Driver> searchDriversForAdmin(String keyword, String statusFilter)
+            throws SQLException {
+        List<Driver> drivers = new ArrayList<>();
+        StringBuilder sql = new StringBuilder(
+                "SELECT d.*, u.username, u.full_name, u.phone_number, u.email " +
+                        "FROM Drivers d " +
+                        "JOIN Users u ON d.user_id = u.user_id " +
+                        "WHERE (u.full_name LIKE ? OR d.license_number LIKE ? OR u.phone_number LIKE ?) ");
+        List<Object> parameters = new ArrayList<>();
+
+        String searchPattern = "%" + keyword + "%";
+        parameters.add(searchPattern);
+        parameters.add(searchPattern);
+        parameters.add(searchPattern);
+
+        String normalizedStatus = normalizeStatusFilter(statusFilter);
+        if (!"ALL".equals(normalizedStatus)) {
+            sql.append("AND d.status = ? ");
+            parameters.add(normalizedStatus);
+        }
+
+        sql.append("ORDER BY d.status DESC, u.full_name");
+
+        try (Connection conn = DBConnection.getInstance().getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql.toString())) {
+
+            for (int i = 0; i < parameters.size(); i++) {
+                stmt.setObject(i + 1, parameters.get(i));
+            }
+
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                Driver driver = mapResultSetToDriver(rs);
+                drivers.add(driver);
+            }
+        }
+        return drivers;
+    }
+
+    private String normalizeStatusFilter(String statusFilter) {
+        if (statusFilter == null || statusFilter.trim().isEmpty()) {
+            return "ACTIVE";
+        }
+        String normalized = statusFilter.trim().toUpperCase();
+        if ("ACTIVE".equals(normalized) || "INACTIVE".equals(normalized)
+                || "ALL".equals(normalized)) {
+            return normalized;
+        }
+        return "ACTIVE";
+    }
+
     public boolean addDriver(Driver driver) throws SQLException {
-        String sql = "INSERT INTO Drivers (driver_id, user_id, license_number, experience_years, status) VALUES (?, ?, ?, ?, ?)";
+        String sql =
+                "INSERT INTO Drivers (driver_id, user_id, license_number, experience_years, status) VALUES (?, ?, ?, ?, ?)";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -135,7 +249,8 @@ public class DriverDAO {
     }
 
     public boolean updateDriver(Driver driver) throws SQLException {
-        String sql = "UPDATE Drivers SET license_number = ?, experience_years = ?, status = ?, updated_date = GETDATE() WHERE driver_id = ?";
+        String sql =
+                "UPDATE Drivers SET license_number = ?, experience_years = ?, status = ?, updated_date = GETDATE() WHERE driver_id = ?";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -161,7 +276,8 @@ public class DriverDAO {
         }
 
         // Perform soft delete (set status to INACTIVE)
-        String sql = "UPDATE Drivers SET status = 'INACTIVE', updated_date = GETDATE() WHERE driver_id = ?";
+        String sql =
+                "UPDATE Drivers SET status = 'INACTIVE', updated_date = GETDATE() WHERE driver_id = ?";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -247,6 +363,32 @@ public class DriverDAO {
             }
         }
         return drivers;
+    }
+
+    public boolean isLicenseNumberExists(String licenseNumber, UUID excludeDriverId)
+            throws SQLException {
+        StringBuilder sql = new StringBuilder(
+                "SELECT COUNT(*) FROM Drivers WHERE license_number = ?");
+
+        if (excludeDriverId != null) {
+            sql.append(" AND driver_id <> ?");
+        }
+
+        try (Connection conn = DBConnection.getInstance().getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql.toString())) {
+
+            stmt.setString(1, licenseNumber);
+            if (excludeDriverId != null) {
+                stmt.setObject(2, excludeDriverId);
+            }
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1) > 0;
+                }
+            }
+        }
+        return false;
     }
 
     private Driver mapResultSetToDriver(ResultSet rs) throws SQLException {
