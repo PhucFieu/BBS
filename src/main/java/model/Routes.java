@@ -16,8 +16,10 @@ import java.util.UUID;
 public class Routes {
     private UUID routeId; // route_id
     private String routeName; // route_name
-    private String departureCity; // departure_city
-    private String destinationCity; // destination_city
+    private UUID departureCityId; // departure_city_id - reference to City
+    private UUID destinationCityId; // destination_city_id - reference to City
+    private String departureCity; // departure_city - deprecated, kept for backward compatibility
+    private String destinationCity; // destination_city - deprecated, kept for backward compatibility
     private BigDecimal distance; // distance
     private int durationHours; // duration_hours
     private BigDecimal basePrice; // base_price
@@ -27,6 +29,18 @@ public class Routes {
 
     // Related schedules for search results
     private List<Schedule> schedules;
+    
+    // Related City objects
+    private City departureCityObj;
+    private City destinationCityObj;
+    
+    // Terminal station IDs (default stations for this route)
+    private UUID departureStationId;
+    private UUID destinationStationId;
+    
+    // Related Station objects
+    private Station departureStationObj;
+    private Station destinationStationObj;
 
     // Constructor mặc định
     public Routes() {
@@ -36,13 +50,28 @@ public class Routes {
         this.updatedDate = LocalDateTime.now();
     }
 
-    // Constructor với 6 tham số
+    // Constructor với 6 tham số (deprecated - use constructor with City IDs)
     public Routes(String routeName, String departureCity, String destinationCity,
             BigDecimal distance, int durationHours, BigDecimal basePrice) {
         this.routeId = UUID.randomUUID();
         this.routeName = routeName;
-        this.departureCity = departureCity;
-        this.destinationCity = destinationCity;
+        this.departureCity = departureCity; // Deprecated
+        this.destinationCity = destinationCity; // Deprecated
+        this.distance = distance;
+        this.durationHours = durationHours;
+        this.basePrice = basePrice;
+        this.status = "ACTIVE";
+        this.createdDate = LocalDateTime.now();
+        this.updatedDate = LocalDateTime.now();
+    }
+    
+    // Constructor với City IDs
+    public Routes(String routeName, UUID departureCityId, UUID destinationCityId,
+            BigDecimal distance, int durationHours, BigDecimal basePrice) {
+        this.routeId = UUID.randomUUID();
+        this.routeName = routeName;
+        this.departureCityId = departureCityId;
+        this.destinationCityId = destinationCityId;
         this.distance = distance;
         this.durationHours = durationHours;
         this.basePrice = basePrice;
@@ -84,20 +113,76 @@ public class Routes {
         this.routeName = routeName;
     }
 
+    public UUID getDepartureCityId() {
+        return departureCityId;
+    }
+
+    public void setDepartureCityId(UUID departureCityId) {
+        this.departureCityId = departureCityId;
+    }
+
+    public UUID getDestinationCityId() {
+        return destinationCityId;
+    }
+
+    public void setDestinationCityId(UUID destinationCityId) {
+        this.destinationCityId = destinationCityId;
+    }
+
+    /**
+     * @deprecated Use getDepartureCityId() and getDepartureCityObj() instead
+     */
+    @Deprecated
     public String getDepartureCity() {
         return departureCity;
     }
 
+    /**
+     * @deprecated Use setDepartureCityId() instead
+     */
+    @Deprecated
     public void setDepartureCity(String departureCity) {
         this.departureCity = departureCity;
     }
 
+    /**
+     * @deprecated Use getDestinationCityId() and getDestinationCityObj() instead
+     */
+    @Deprecated
     public String getDestinationCity() {
         return destinationCity;
     }
 
+    /**
+     * @deprecated Use setDestinationCityId() instead
+     */
+    @Deprecated
     public void setDestinationCity(String destinationCity) {
         this.destinationCity = destinationCity;
+    }
+    
+    public City getDepartureCityObj() {
+        return departureCityObj;
+    }
+
+    public void setDepartureCityObj(City departureCityObj) {
+        this.departureCityObj = departureCityObj;
+        if (departureCityObj != null) {
+            this.departureCityId = departureCityObj.getCityId();
+            this.departureCity = departureCityObj.getCityName(); // Keep backward compatibility
+        }
+    }
+
+    public City getDestinationCityObj() {
+        return destinationCityObj;
+    }
+
+    public void setDestinationCityObj(City destinationCityObj) {
+        this.destinationCityObj = destinationCityObj;
+        if (destinationCityObj != null) {
+            this.destinationCityId = destinationCityObj.getCityId();
+            this.destinationCity = destinationCityObj.getCityName(); // Keep backward compatibility
+        }
     }
 
     public BigDecimal getDistance() {
@@ -154,6 +239,45 @@ public class Routes {
 
     public void setSchedules(List<Schedule> schedules) {
         this.schedules = schedules;
+    }
+
+    // Terminal station getters and setters
+    public UUID getDepartureStationId() {
+        return departureStationId;
+    }
+
+    public void setDepartureStationId(UUID departureStationId) {
+        this.departureStationId = departureStationId;
+    }
+
+    public UUID getDestinationStationId() {
+        return destinationStationId;
+    }
+
+    public void setDestinationStationId(UUID destinationStationId) {
+        this.destinationStationId = destinationStationId;
+    }
+
+    public Station getDepartureStationObj() {
+        return departureStationObj;
+    }
+
+    public void setDepartureStationObj(Station departureStationObj) {
+        this.departureStationObj = departureStationObj;
+        if (departureStationObj != null) {
+            this.departureStationId = departureStationObj.getStationId();
+        }
+    }
+
+    public Station getDestinationStationObj() {
+        return destinationStationObj;
+    }
+
+    public void setDestinationStationObj(Station destinationStationObj) {
+        this.destinationStationObj = destinationStationObj;
+        if (destinationStationObj != null) {
+            this.destinationStationId = destinationStationObj.getStationId();
+        }
     }
 
     // Optional: toString
