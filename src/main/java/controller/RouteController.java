@@ -15,6 +15,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
+import dao.CityDAO;
 import dao.RouteDAO;
 import dao.RouteStationDAO;
 import dao.StationDAO;
@@ -24,24 +25,25 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import model.City;
 import model.Routes;
 import model.Station;
 import util.AuthUtils;
+import util.StringUtils;
 
 @WebServlet(urlPatterns = {"/routes/*", "/admin/routes/*"})
 public class RouteController extends HttpServlet {
     private RouteDAO routeDAO;
     private RouteStationDAO routeStationDAO;
     private StationDAO stationDAO;
+    private CityDAO cityDAO;
     private final Gson gson = new Gson();
 
     // Validation patterns
     // Distance: positive decimal number (e.g., 100.5, 250)
     private static final Pattern DISTANCE_PATTERN = Pattern.compile("^[0-9]+(\\.[0-9]{1,2})?$");
-    // Duration: positive decimal number (e.g., 0.5, 1, 2.5, 10) - format validation, value >= 0.5
-    // checked separately
-    private static final Pattern DURATION_PATTERN =
-            Pattern.compile("^([0-9]+(\\.[0-9]{1,2})?|0\\.[0-9]{1,2})$");
+    // Duration: positive whole hours (e.g., 1, 2, 10)
+    private static final Pattern DURATION_PATTERN = Pattern.compile("^[1-9][0-9]*$");
     // Base price: positive integer, minimum 1000 (e.g., 1000, 50000, 100000)
     private static final Pattern BASE_PRICE_PATTERN = Pattern.compile("^[1-9][0-9]{3,}$");
 
@@ -50,6 +52,7 @@ public class RouteController extends HttpServlet {
         routeDAO = new RouteDAO();
         routeStationDAO = new RouteStationDAO();
         stationDAO = new StationDAO();
+        cityDAO = new CityDAO();
     }
 
     @Override
@@ -290,9 +293,10 @@ public class RouteController extends HttpServlet {
 
     private void showAddForm(HttpServletRequest request, HttpServletResponse response)
             throws SQLException, ServletException, IOException {
-        // Load all active stations for selection
-        List<Station> stations = stationDAO.getAllStations();
-        request.setAttribute("stations", stations);
+        // Load all active cities for selection (new city-based route creation)
+        request.setAttribute("cities", cityDAO.getAllCities());
+        // Load all active stations for terminal station selection
+        request.setAttribute("stations", stationDAO.getAllStations());
         request.getRequestDispatcher("/views/routes/route-form.jsp").forward(request, response);
     }
 
@@ -310,11 +314,13 @@ public class RouteController extends HttpServlet {
 
             if (route != null) {
                 request.setAttribute("route", route);
-                // Load all active stations
-                List<Station> allStations = stationDAO.getAllStations();
-                request.setAttribute("stations", allStations);
-                // Load route stations
-                List<Station> routeStations = routeStationDAO.getStationsByRouteAsStations(routeId);
+                // Load all active cities for selection
+                request.setAttribute("cities", cityDAO.getAllCities());
+                // Load all active stations for terminal station selection
+                request.setAttribute("stations", stationDAO.getAllStations());
+                // Load route stations for intermediate station selection
+                List<Station> routeStations =
+                        routeStationDAO.getStationsByRouteAsStations(route.getRouteId());
                 request.setAttribute("routeStations", routeStations);
                 request.getRequestDispatcher("/views/routes/route-form.jsp").forward(request,
                         response);
@@ -332,13 +338,37 @@ public class RouteController extends HttpServlet {
             throws SQLException, IOException {
         // Get parameters from request
         String routeName = request.getParameter("routeName");
+        String basePriceStr = request.getParameter("basePrice");
+        String departureCityIdStr = request.getParameter("departureCityId");
+        String destinationCityIdStr = request.getParameter("destinationCityId");
         String distanceStr = request.getParameter("distance");
         String durationHoursStr = request.getParameter("durationHours");
-        String basePriceStr = request.getParameter("basePrice");
+        // Terminal station IDs (optional but recommended)
+        String departureStationIdStr = request.getParameter("departureStationId");
+        String destinationStationIdStr = request.getParameter("destinationStationId");
+        // Selected intermediate stations
+        String[] selectedStationIds = request.getParameterValues("selectedStationIds");
         // Validate input with specific error messages
-        if (routeName == null || routeName.trim().isEmpty()) {
+        if (StringUtils.isBlank(routeName)) {
             response.sendRedirect(request.getContextPath() + "/routes/add?error="
                     + encodeParam("Missing information: Route name is required"));
+            return;
+        }
+        // Normalize route name - remove extra spaces to prevent duplicates with different spacing
+        routeName = StringUtils.normalizeSpaces(routeName);
+        if (basePriceStr == null || basePriceStr.trim().isEmpty()) {
+            response.sendRedirect(request.getContextPath() + "/routes/add?error="
+                    + encodeParam("Missing information: Base price is required"));
+            return;
+        }
+        if (departureCityIdStr == null || departureCityIdStr.trim().isEmpty()) {
+            response.sendRedirect(request.getContextPath() + "/routes/add?error="
+                    + encodeParam("Missing information: Departure city is required"));
+            return;
+        }
+        if (destinationCityIdStr == null || destinationCityIdStr.trim().isEmpty()) {
+            response.sendRedirect(request.getContextPath() + "/routes/add?error="
+                    + encodeParam("Missing information: Destination city is required"));
             return;
         }
         if (distanceStr == null || distanceStr.trim().isEmpty()) {
@@ -348,28 +378,7 @@ public class RouteController extends HttpServlet {
         }
         if (durationHoursStr == null || durationHoursStr.trim().isEmpty()) {
             response.sendRedirect(request.getContextPath() + "/routes/add?error="
-                    + encodeParam("Missing information: Duration hours is required"));
-            return;
-        }
-        if (basePriceStr == null || basePriceStr.trim().isEmpty()) {
-            response.sendRedirect(request.getContextPath() + "/routes/add?error="
-                    + encodeParam("Missing information: Base price is required"));
-            return;
-        }
-
-        // Validate distance format
-        if (!DISTANCE_PATTERN.matcher(distanceStr.trim()).matches()) {
-            response.sendRedirect(request.getContextPath() + "/routes/add?error="
-                    + encodeParam(
-                            "Error: Invalid distance format. Distance must be a positive number (e.g., 100.5, 250)"));
-            return;
-        }
-
-        // Validate duration format
-        if (!DURATION_PATTERN.matcher(durationHoursStr.trim()).matches()) {
-            response.sendRedirect(request.getContextPath() + "/routes/add?error="
-                    + encodeParam(
-                            "Error: Invalid duration format. Duration must be a positive number, minimum 0.5 (e.g., 0.5, 1, 2.5)"));
+                    + encodeParam("Missing information: Duration is required"));
             return;
         }
 
@@ -382,27 +391,90 @@ public class RouteController extends HttpServlet {
         }
 
         try {
-            RouteStationRequestDTO stationRequest = buildStationRequest(request);
-            BigDecimal distance = new BigDecimal(distanceStr.trim());
-            double durationHoursDouble = Double.parseDouble(durationHoursStr.trim());
+            UUID departureCityId = UUID.fromString(departureCityIdStr.trim());
+            UUID destinationCityId = UUID.fromString(destinationCityIdStr.trim());
 
-            // Additional validation: distance must be > 0
-            if (distance.compareTo(BigDecimal.ZERO) <= 0) {
+            if (departureCityId.equals(destinationCityId)) {
                 response.sendRedirect(request.getContextPath() + "/routes/add?error="
-                        + encodeParam("Error: Distance must be greater than 0"));
+                        + encodeParam("Error: Departure and destination cities must be different"));
                 return;
             }
 
-            // Additional validation: duration must be >= 0.5
-            if (durationHoursDouble < 0.5) {
+            distanceStr = distanceStr.trim();
+            if (!DISTANCE_PATTERN.matcher(distanceStr).matches()) {
                 response.sendRedirect(request.getContextPath() + "/routes/add?error="
-                        + encodeParam("Error: Duration must be at least 0.5 hours"));
+                        + encodeParam(
+                                "Error: Invalid distance format. Use numbers with up to 2 decimals (e.g., 105 or 105.5)"));
+                return;
+            }
+            BigDecimal distance = new BigDecimal(distanceStr);
+            if (distance.compareTo(BigDecimal.ZERO) <= 0
+                    || distance.compareTo(new BigDecimal("5000")) > 0) {
+                response.sendRedirect(request.getContextPath() + "/routes/add?error="
+                        + encodeParam("Error: Distance must be between 1 and 5000 km"));
                 return;
             }
 
-            int durationHours = (int) Math.round(durationHoursDouble);
-            if (durationHours < 1) {
-                durationHours = 1; // Minimum 1 hour if less than 1
+            durationHoursStr = durationHoursStr.trim();
+            if (!DURATION_PATTERN.matcher(durationHoursStr).matches()) {
+                response.sendRedirect(request.getContextPath() + "/routes/add?error="
+                        + encodeParam(
+                                "Error: Invalid duration format. Enter whole hours (e.g., 2, 5, 12)"));
+                return;
+            }
+            int durationHours = Integer.parseInt(durationHoursStr);
+            if (durationHours < 1 || durationHours > 72) {
+                response.sendRedirect(request.getContextPath() + "/routes/add?error="
+                        + encodeParam("Error: Duration must be between 1 and 72 hours"));
+                return;
+            }
+
+            City departureCity = cityDAO.getCityById(departureCityId);
+            City destinationCity = cityDAO.getCityById(destinationCityId);
+            if (departureCity == null || destinationCity == null) {
+                response.sendRedirect(request.getContextPath() + "/routes/add?error="
+                        + encodeParam(
+                                "Error: Unable to resolve selected cities. Please try again."));
+                return;
+            }
+
+            // Check if cities in range have enough stations BEFORE creating the route
+            List<City> citiesInRange = cityDAO.getCitiesInRange(departureCity.getCityNumber(),
+                    destinationCity.getCityNumber());
+            List<UUID> cityIds = new ArrayList<>();
+            for (City c : citiesInRange) {
+                cityIds.add(c.getCityId());
+            }
+            List<Station> stationsInRange = stationDAO.getStationsByCityIds(cityIds);
+
+            if (stationsInRange == null || stationsInRange.size() < 2) {
+                // Build error message with cities that have no stations
+                StringBuilder citiesWithoutStations = new StringBuilder();
+                for (City c : citiesInRange) {
+                    List<Station> cityStations = stationDAO.getStationsByCityId(c.getCityId());
+                    if (cityStations == null || cityStations.isEmpty()) {
+                        if (citiesWithoutStations.length() > 0) {
+                            citiesWithoutStations.append(", ");
+                        }
+                        citiesWithoutStations.append(c.getCityName());
+                    }
+                }
+                String errorMsg = "Error: Cannot create route. ";
+                if (citiesWithoutStations.length() > 0) {
+                    errorMsg += "The following cities have no active stations: "
+                            + citiesWithoutStations.toString() + ". ";
+                }
+                errorMsg += "A route requires at least 2 active stations in the city range.";
+                response.sendRedirect(request.getContextPath() + "/routes/add?error="
+                        + encodeParam(errorMsg));
+                return;
+            }
+
+            int fromNum = departureCity.getCityNumber();
+            int toNum = destinationCity.getCityNumber();
+            int citySteps = Math.abs(toNum - fromNum);
+            if (citySteps == 0) {
+                citySteps = 1;
             }
 
             BigDecimal basePrice = new BigDecimal(basePriceStr.trim());
@@ -414,25 +486,63 @@ public class RouteController extends HttpServlet {
                 return;
             }
 
-            Station departureStation = stationRequest.getDepartureStation();
-            Station destinationStation = stationRequest.getDestinationStation();
-
-            if (departureStation == null || destinationStation == null) {
-                throw new IllegalArgumentException(
-                        "Unable to resolve terminal stations. Please reselect them.");
+            // Check if route name already exists (using normalized name)
+            if (routeDAO.isRouteNameExists(routeName)) {
+                response.sendRedirect(request.getContextPath() + "/routes/add?error="
+                        + encodeParam("Error: Route name \"" + routeName
+                                + "\" already exists. Please choose a different name."));
+                return;
             }
 
-            // Create new route
-            Routes route = new Routes(routeName.trim(), departureStation.getCity(),
-                    destinationStation.getCity(), distance, durationHours, basePrice);
+            // Parse terminal station IDs if provided
+            UUID departureStationId = null;
+            UUID destinationStationId = null;
+            if (departureStationIdStr != null && !departureStationIdStr.trim().isEmpty()) {
+                try {
+                    departureStationId = UUID.fromString(departureStationIdStr.trim());
+                } catch (IllegalArgumentException e) {
+                    // Invalid UUID, ignore
+                }
+            }
+            if (destinationStationIdStr != null && !destinationStationIdStr.trim().isEmpty()) {
+                try {
+                    destinationStationId = UUID.fromString(destinationStationIdStr.trim());
+                } catch (IllegalArgumentException e) {
+                    // Invalid UUID, ignore
+                }
+            }
+
+            // Create new route (routeName is already normalized)
+            Routes route = new Routes(routeName, departureCityId, destinationCityId,
+                    distance, durationHours, basePrice);
+            route.setDepartureStationId(departureStationId);
+            route.setDestinationStationId(destinationStationId);
 
             // Save to database
             boolean success = routeDAO.addRoute(route);
 
             if (success) {
-                // Handle station selection
-                routeStationDAO.updateRouteStations(route.getRouteId(),
-                        stationRequest.getOrderedStationIds());
+                // Use selected stations if provided, otherwise auto-generate from city range
+                List<UUID> orderedStationIds = new ArrayList<>();
+                if (selectedStationIds != null && selectedStationIds.length > 0) {
+                    // Use manually selected stations
+                    for (String stationIdStr : selectedStationIds) {
+                        if (stationIdStr != null && !stationIdStr.trim().isEmpty()) {
+                            try {
+                                orderedStationIds.add(UUID.fromString(stationIdStr.trim()));
+                            } catch (IllegalArgumentException e) {
+                                // Skip invalid UUID
+                            }
+                        }
+                    }
+                } else {
+                    // Auto-generate route stations based on all stations in the city range
+                    for (Station s : stationsInRange) {
+                        orderedStationIds.add(s.getStationId());
+                    }
+                }
+
+                routeStationDAO.updateRouteStations(route.getRouteId(), orderedStationIds);
 
                 response.sendRedirect(request.getContextPath()
                         + "/routes?message="
@@ -463,53 +573,57 @@ public class RouteController extends HttpServlet {
         // Get parameters from request
         String routeIdStr = request.getParameter("routeId");
         String routeName = request.getParameter("routeName");
+        String basePriceStr = request.getParameter("basePrice");
+        String departureCityIdStr = request.getParameter("departureCityId");
+        String destinationCityIdStr = request.getParameter("destinationCityId");
         String distanceStr = request.getParameter("distance");
         String durationHoursStr = request.getParameter("durationHours");
-        String basePriceStr = request.getParameter("basePrice");
+        // Terminal station IDs (optional but recommended)
+        String departureStationIdStr = request.getParameter("departureStationId");
+        String destinationStationIdStr = request.getParameter("destinationStationId");
+        // Selected intermediate stations
+        String[] selectedStationIds = request.getParameterValues("selectedStationIds");
         // Validate input with specific error messages
-        if (routeIdStr == null || routeIdStr.trim().isEmpty()) {
+        if (StringUtils.isBlank(routeIdStr)) {
             response.sendRedirect(request.getContextPath() + "/routes?error="
                     + encodeParam("Missing information: Route ID is required"));
             return;
         }
-        if (routeName == null || routeName.trim().isEmpty()) {
+        if (StringUtils.isBlank(routeName)) {
             response.sendRedirect(request.getContextPath() + "/routes/edit?id=" + routeIdStr
                     + "&error=" + encodeParam("Missing information: Route name is required"));
             return;
         }
-        if (distanceStr == null || distanceStr.trim().isEmpty()) {
-            response.sendRedirect(request.getContextPath() + "/routes/edit?id=" + routeIdStr
-                    + "&error=" + encodeParam("Missing information: Distance is required"));
-            return;
-        }
-        if (durationHoursStr == null || durationHoursStr.trim().isEmpty()) {
-            response.sendRedirect(request.getContextPath() + "/routes/edit?id=" + routeIdStr
-                    + "&error="
-                    + encodeParam("Missing information: Duration hours is required"));
-            return;
-        }
+        // Normalize route name - remove extra spaces to prevent duplicates with different spacing
+        routeName = StringUtils.normalizeSpaces(routeName);
         if (basePriceStr == null || basePriceStr.trim().isEmpty()) {
             response.sendRedirect(request.getContextPath() + "/routes/edit?id=" + routeIdStr
                     + "&error="
                     + encodeParam("Missing information: Base price is required"));
             return;
         }
-
-        // Validate distance format
-        if (!DISTANCE_PATTERN.matcher(distanceStr.trim()).matches()) {
+        if (departureCityIdStr == null || departureCityIdStr.trim().isEmpty()) {
             response.sendRedirect(request.getContextPath() + "/routes/edit?id=" + routeIdStr
                     + "&error="
-                    + encodeParam(
-                            "Error: Invalid distance format. Distance must be a positive number (e.g., 100.5, 250)"));
+                    + encodeParam("Missing information: Departure city is required"));
             return;
         }
-
-        // Validate duration format
-        if (!DURATION_PATTERN.matcher(durationHoursStr.trim()).matches()) {
+        if (destinationCityIdStr == null || destinationCityIdStr.trim().isEmpty()) {
             response.sendRedirect(request.getContextPath() + "/routes/edit?id=" + routeIdStr
                     + "&error="
-                    + encodeParam(
-                            "Error: Invalid duration format. Duration must be a positive number, minimum 0.5 (e.g., 0.5, 1, 2.5)"));
+                    + encodeParam("Missing information: Destination city is required"));
+            return;
+        }
+        if (distanceStr == null || distanceStr.trim().isEmpty()) {
+            response.sendRedirect(request.getContextPath() + "/routes/edit?id=" + routeIdStr
+                    + "&error="
+                    + encodeParam("Missing information: Distance is required"));
+            return;
+        }
+        if (durationHoursStr == null || durationHoursStr.trim().isEmpty()) {
+            response.sendRedirect(request.getContextPath() + "/routes/edit?id=" + routeIdStr
+                    + "&error="
+                    + encodeParam("Missing information: Duration is required"));
             return;
         }
 
@@ -524,28 +638,98 @@ public class RouteController extends HttpServlet {
 
         try {
             UUID routeId = UUID.fromString(routeIdStr);
-            BigDecimal distance = new BigDecimal(distanceStr.trim());
-            double durationHoursDouble = Double.parseDouble(durationHoursStr.trim());
+            UUID departureCityId = UUID.fromString(departureCityIdStr.trim());
+            UUID destinationCityId = UUID.fromString(destinationCityIdStr.trim());
 
-            // Additional validation: distance must be > 0
-            if (distance.compareTo(BigDecimal.ZERO) <= 0) {
+            if (departureCityId.equals(destinationCityId)) {
                 response.sendRedirect(
                         request.getContextPath() + "/routes/edit?id=" + routeIdStr + "&error="
-                                + encodeParam("Error: Distance must be greater than 0"));
+                                + encodeParam(
+                                        "Error: Departure and destination cities must be different"));
                 return;
             }
 
-            // Additional validation: duration must be >= 0.5
-            if (durationHoursDouble < 0.5) {
+            distanceStr = distanceStr.trim();
+            if (!DISTANCE_PATTERN.matcher(distanceStr).matches()) {
                 response.sendRedirect(
                         request.getContextPath() + "/routes/edit?id=" + routeIdStr + "&error="
-                                + encodeParam("Error: Duration must be at least 0.5 hours"));
+                                + encodeParam(
+                                        "Error: Invalid distance format. Use numbers with up to 2 decimals (e.g., 105 or 105.5)"));
+                return;
+            }
+            BigDecimal distance = new BigDecimal(distanceStr);
+            if (distance.compareTo(BigDecimal.ZERO) <= 0
+                    || distance.compareTo(new BigDecimal("5000")) > 0) {
+                response.sendRedirect(
+                        request.getContextPath() + "/routes/edit?id=" + routeIdStr + "&error="
+                                + encodeParam("Error: Distance must be between 1 and 5000 km"));
                 return;
             }
 
-            int durationHours = (int) Math.round(durationHoursDouble);
-            if (durationHours < 1) {
-                durationHours = 1; // Minimum 1 hour if less than 1
+            durationHoursStr = durationHoursStr.trim();
+            if (!DURATION_PATTERN.matcher(durationHoursStr).matches()) {
+                response.sendRedirect(
+                        request.getContextPath() + "/routes/edit?id=" + routeIdStr + "&error="
+                                + encodeParam(
+                                        "Error: Invalid duration format. Enter whole hours (e.g., 2, 5, 12)"));
+                return;
+            }
+            int durationHours = Integer.parseInt(durationHoursStr);
+            if (durationHours < 1 || durationHours > 72) {
+                response.sendRedirect(
+                        request.getContextPath() + "/routes/edit?id=" + routeIdStr + "&error="
+                                + encodeParam("Error: Duration must be between 1 and 72 hours"));
+                return;
+            }
+
+            City departureCity = cityDAO.getCityById(departureCityId);
+            City destinationCity = cityDAO.getCityById(destinationCityId);
+            if (departureCity == null || destinationCity == null) {
+                response.sendRedirect(
+                        request.getContextPath() + "/routes/edit?id=" + routeIdStr + "&error="
+                                + encodeParam(
+                                        "Error: Unable to resolve selected cities. Please try again."));
+                return;
+            }
+
+            // Check if cities in range have enough stations BEFORE updating the route
+            List<City> citiesInRange = cityDAO.getCitiesInRange(departureCity.getCityNumber(),
+                    destinationCity.getCityNumber());
+            List<UUID> cityIds = new ArrayList<>();
+            for (City c : citiesInRange) {
+                cityIds.add(c.getCityId());
+            }
+            List<Station> stationsInRange = stationDAO.getStationsByCityIds(cityIds);
+
+            if (stationsInRange == null || stationsInRange.size() < 2) {
+                // Build error message with cities that have no stations
+                StringBuilder citiesWithoutStations = new StringBuilder();
+                for (City c : citiesInRange) {
+                    List<Station> cityStations = stationDAO.getStationsByCityId(c.getCityId());
+                    if (cityStations == null || cityStations.isEmpty()) {
+                        if (citiesWithoutStations.length() > 0) {
+                            citiesWithoutStations.append(", ");
+                        }
+                        citiesWithoutStations.append(c.getCityName());
+                    }
+                }
+                String errorMsg = "Error: Cannot update route. ";
+                if (citiesWithoutStations.length() > 0) {
+                    errorMsg += "The following cities have no active stations: "
+                            + citiesWithoutStations.toString() + ". ";
+                }
+                errorMsg += "A route requires at least 2 active stations in the city range.";
+                response.sendRedirect(
+                        request.getContextPath() + "/routes/edit?id=" + routeIdStr + "&error="
+                                + encodeParam(errorMsg));
+                return;
+            }
+
+            int fromNum = departureCity.getCityNumber();
+            int toNum = destinationCity.getCityNumber();
+            int citySteps = Math.abs(toNum - fromNum);
+            if (citySteps == 0) {
+                citySteps = 1;
             }
 
             BigDecimal basePrice = new BigDecimal(basePriceStr.trim());
@@ -558,8 +742,6 @@ public class RouteController extends HttpServlet {
                 return;
             }
 
-            RouteStationRequestDTO stationRequest = buildStationRequest(request);
-
             Routes existingRoute = routeDAO.getRouteById(routeId);
             if (existingRoute == null) {
                 response.sendRedirect(request.getContextPath() + "/routes?error="
@@ -567,25 +749,65 @@ public class RouteController extends HttpServlet {
                 return;
             }
 
-            Station departureStation = stationRequest.getDepartureStation();
-            Station destinationStation = stationRequest.getDestinationStation();
-            if (departureStation == null || destinationStation == null) {
-                throw new IllegalArgumentException(
-                        "Unable to resolve terminal stations. Please reselect them.");
+            // Check if route name already exists (excluding current route, using normalized name)
+            if (routeDAO.isRouteNameExistsExcludingId(routeName, routeId)) {
+                response.sendRedirect(
+                        request.getContextPath() + "/routes/edit?id=" + routeIdStr + "&error="
+                                + encodeParam("Error: Route name \"" + routeName
+                                        + "\" already exists. Please choose a different name."));
+                return;
             }
 
-            // Create route object
-            Routes route = new Routes(routeName.trim(), departureStation.getCity(),
-                    destinationStation.getCity(), distance, durationHours, basePrice);
+            // Parse terminal station IDs if provided
+            UUID departureStationId = null;
+            UUID destinationStationId = null;
+            if (departureStationIdStr != null && !departureStationIdStr.trim().isEmpty()) {
+                try {
+                    departureStationId = UUID.fromString(departureStationIdStr.trim());
+                } catch (IllegalArgumentException e) {
+                    // Invalid UUID, ignore
+                }
+            }
+            if (destinationStationIdStr != null && !destinationStationIdStr.trim().isEmpty()) {
+                try {
+                    destinationStationId = UUID.fromString(destinationStationIdStr.trim());
+                } catch (IllegalArgumentException e) {
+                    // Invalid UUID, ignore
+                }
+            }
+
+            // Create route object (routeName is already normalized)
+            Routes route = new Routes(routeName, departureCityId, destinationCityId,
+                    distance, durationHours, basePrice);
             route.setRouteId(routeId);
+            route.setDepartureStationId(departureStationId);
+            route.setDestinationStationId(destinationStationId);
 
             // Update in database
             boolean success = routeDAO.updateRoute(route);
 
             if (success) {
-                // Handle station selection
-                routeStationDAO.updateRouteStations(routeId,
-                        stationRequest.getOrderedStationIds());
+                // Use selected stations if provided, otherwise auto-generate from city range
+                List<UUID> orderedStationIds = new ArrayList<>();
+                if (selectedStationIds != null && selectedStationIds.length > 0) {
+                    // Use manually selected stations
+                    for (String stationIdStr : selectedStationIds) {
+                        if (stationIdStr != null && !stationIdStr.trim().isEmpty()) {
+                            try {
+                                orderedStationIds.add(UUID.fromString(stationIdStr.trim()));
+                            } catch (IllegalArgumentException e) {
+                                // Skip invalid UUID
+                            }
+                        }
+                    }
+                } else {
+                    // Auto-generate route stations based on all stations in the city range
+                    for (Station s : stationsInRange) {
+                        orderedStationIds.add(s.getStationId());
+                    }
+                }
+
+                routeStationDAO.updateRouteStations(routeId, orderedStationIds);
 
                 response.sendRedirect(request.getContextPath()
                         + "/routes?message="
