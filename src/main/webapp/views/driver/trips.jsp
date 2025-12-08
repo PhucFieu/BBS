@@ -142,14 +142,17 @@
                     .container {
                         padding: 0 1rem;
                     }
+
                     .card-body {
                         padding: 1rem;
                     }
+
                     .btn {
                         padding: 0.5rem 1rem;
                         font-size: 0.875rem;
                     }
                 }
+
                 .header-section {
                     background: linear-gradient(135deg, #66bb6a 0%, #81c784 100%);
                     border-radius: 15px;
@@ -412,202 +415,202 @@
             </div>
 
             <%@ include file="/views/partials/footer.jsp" %>
-            <script>
-                const contextPath = '${pageContext.request.contextPath}';
-                let tripDetailsModal;
+                <script>
+                    const contextPath = '${pageContext.request.contextPath}';
+                    let tripDetailsModal;
 
-                document.addEventListener('DOMContentLoaded', function () {
-                    const modalElement = document.getElementById('tripDetailsModal');
-                    if (modalElement) {
-                        tripDetailsModal = new bootstrap.Modal(modalElement);
-                        modalElement.addEventListener('hidden.bs.modal', resetTripDetailsModal);
-                    }
-                });
+                    document.addEventListener('DOMContentLoaded', function () {
+                        const modalElement = document.getElementById('tripDetailsModal');
+                        if (modalElement) {
+                            tripDetailsModal = new bootstrap.Modal(modalElement);
+                            modalElement.addEventListener('hidden.bs.modal', resetTripDetailsModal);
+                        }
+                    });
 
-                function resetTripDetailsModal() {
-                    document.getElementById('tripDetailsLoading').classList.remove('d-none');
-                    document.getElementById('tripDetailsError').classList.add('d-none');
-                    document.getElementById('tripDetailsEmpty').classList.add('d-none');
-                    document.getElementById('tripDetailsTable').classList.add('d-none');
-                    document.getElementById('tripDetailsBody').innerHTML = '';
-                }
-
-                async function showTripDetails(button) {
-                    if (!tripDetailsModal) {
-                        return;
+                    function resetTripDetailsModal() {
+                        document.getElementById('tripDetailsLoading').classList.remove('d-none');
+                        document.getElementById('tripDetailsError').classList.add('d-none');
+                        document.getElementById('tripDetailsEmpty').classList.add('d-none');
+                        document.getElementById('tripDetailsTable').classList.add('d-none');
+                        document.getElementById('tripDetailsBody').innerHTML = '';
                     }
 
-                    resetTripDetailsModal();
+                    async function showTripDetails(button) {
+                        if (!tripDetailsModal) {
+                            return;
+                        }
 
-                    const scheduleId = button.getAttribute('data-schedule-id');
-                    const routeName = button.getAttribute('data-route') || '';
+                        resetTripDetailsModal();
 
-                    // Set modal title - show route name if available
-                    if (routeName) {
-                        document.getElementById('tripDetailsTitle').textContent = 'View Passengers - ' + routeName;
-                    } else {
-                        document.getElementById('tripDetailsTitle').textContent = 'View Passengers';
+                        const scheduleId = button.getAttribute('data-schedule-id');
+                        const routeName = button.getAttribute('data-route') || '';
+
+                        // Set modal title - show route name if available
+                        if (routeName) {
+                            document.getElementById('tripDetailsTitle').textContent = 'View Passengers - ' + routeName;
+                        } else {
+                            document.getElementById('tripDetailsTitle').textContent = 'View Passengers';
+                        }
+
+                        tripDetailsModal.show();
+
+                        if (!scheduleId) {
+                            showTripDetailsError('Missing schedule information.');
+                            document.getElementById('tripDetailsLoading').classList.add('d-none');
+                            return;
+                        }
+
+                        try {
+                            const response = await fetch(contextPath + '/driver/trip-details?scheduleId=' + encodeURIComponent(scheduleId), {
+                                headers: {
+                                    'Accept': 'application/json'
+                                }
+                            });
+
+                            if (!response.ok) {
+                                throw new Error('Failed to load passenger details.');
+                            }
+
+                            const data = await response.json();
+                            if (data.success && Array.isArray(data.passengers) && data.passengers.length > 0) {
+                                populateTripDetailsTable(data.passengers);
+                            } else {
+                                showTripDetailsEmpty();
+                            }
+                        } catch (error) {
+                            showTripDetailsError(error.message || 'Unable to load passenger details.');
+                        } finally {
+                            document.getElementById('tripDetailsLoading').classList.add('d-none');
+                        }
                     }
 
-                    tripDetailsModal.show();
+                    function populateTripDetailsTable(passengers) {
+                        const tableContainer = document.getElementById('tripDetailsTable');
+                        const tbody = document.getElementById('tripDetailsBody');
 
-                    if (!scheduleId) {
-                        showTripDetailsError('Missing schedule information.');
-                        document.getElementById('tripDetailsLoading').classList.add('d-none');
-                        return;
+                        passengers.forEach((passenger, index) => {
+                            const row = document.createElement('tr');
+
+                            const indexCell = document.createElement('td');
+                            indexCell.textContent = index + 1;
+                            row.appendChild(indexCell);
+
+                            const passengerCell = document.createElement('td');
+                            const nameStrong = document.createElement('strong');
+                            nameStrong.textContent = passenger.fullName || 'Unknown passenger';
+                            passengerCell.appendChild(nameStrong);
+
+                            if (passenger.phone) {
+                                const phoneLine = document.createElement('div');
+                                phoneLine.className = 'text-muted small';
+                                phoneLine.innerHTML = '<i class="fas fa-phone me-1"></i>' + passenger.phone;
+                                passengerCell.appendChild(phoneLine);
+                            }
+
+                            if (passenger.ticketNumber) {
+                                const ticketLine = document.createElement('div');
+                                ticketLine.className = 'text-muted small';
+                                ticketLine.textContent = 'Ticket ' + passenger.ticketNumber;
+                                passengerCell.appendChild(ticketLine);
+                            }
+
+                            row.appendChild(passengerCell);
+
+                            const seatCell = document.createElement('td');
+                            const seatBadge = document.createElement('span');
+                            seatBadge.className = 'badge bg-primary';
+                            seatBadge.textContent = passenger.seatNumber != null ? passenger.seatNumber : 'N/A';
+                            seatCell.appendChild(seatBadge);
+                            row.appendChild(seatCell);
+
+                            const boardingCell = document.createElement('td');
+                            fillStationCell(boardingCell, passenger.boardingStation, passenger.boardingCity);
+                            row.appendChild(boardingCell);
+
+                            const alightingCell = document.createElement('td');
+                            fillStationCell(alightingCell, passenger.alightingStation, passenger.alightingCity);
+                            row.appendChild(alightingCell);
+
+                            tbody.appendChild(row);
+                        });
+
+                        tableContainer.classList.remove('d-none');
                     }
 
-                    try {
-                        const response = await fetch(contextPath + '/driver/trip-details?scheduleId=' + encodeURIComponent(scheduleId), {
-                            headers: {
-                                'Accept': 'application/json'
+                    function fillStationCell(cell, stationName, city) {
+                        cell.innerHTML = '';
+                        if (stationName) {
+                            const nameEl = document.createElement('strong');
+                            nameEl.textContent = stationName;
+                            cell.appendChild(nameEl);
+                        }
+                        if (city) {
+                            const cityEl = document.createElement('div');
+                            cityEl.className = 'text-muted small';
+                            cityEl.textContent = city;
+                            cell.appendChild(cityEl);
+                        }
+                        if (!stationName && !city) {
+                            const placeholder = document.createElement('span');
+                            placeholder.className = 'text-muted';
+                            placeholder.textContent = 'Not set';
+                            cell.appendChild(placeholder);
+                        }
+                    }
+
+                    function showTripDetailsError(message) {
+                        const errorAlert = document.getElementById('tripDetailsError');
+                        errorAlert.textContent = message;
+                        errorAlert.classList.remove('d-none');
+                    }
+
+                    function showTripDetailsEmpty() {
+                        document.getElementById('tripDetailsEmpty').classList.remove('d-none');
+                    }
+
+                    function filterTrips() {
+                        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+                        const statusFilter = document.getElementById('statusFilter').value;
+                        const dateFilter = document.getElementById('dateFilter').value;
+
+                        const tripItems = document.querySelectorAll('.trip-item');
+                        let visibleCount = 0;
+
+                        tripItems.forEach(item => {
+                            const route = item.dataset.route ? item.dataset.route.toLowerCase() : '';
+                            const status = item.dataset.status;
+                            const date = item.dataset.date;
+
+                            const matchesSearch = route.includes(searchTerm);
+                            const matchesStatus = !statusFilter || status === statusFilter;
+                            const matchesDate = !dateFilter || date === dateFilter;
+
+                            if (matchesSearch && matchesStatus && matchesDate) {
+                                item.style.display = '';
+                                visibleCount++;
+                            } else {
+                                item.style.display = 'none';
                             }
                         });
 
-                        if (!response.ok) {
-                            throw new Error('Failed to load passenger details.');
-                        }
-
-                        const data = await response.json();
-                        if (data.success && Array.isArray(data.passengers) && data.passengers.length > 0) {
-                            populateTripDetailsTable(data.passengers);
+                        const noResults = document.getElementById('noResults');
+                        const tableBody = document.querySelector('#tripsTable tbody');
+                        if (visibleCount === 0 && tripItems.length > 0) {
+                            noResults.style.display = 'block';
+                            tableBody.style.display = 'none';
                         } else {
-                            showTripDetailsEmpty();
+                            noResults.style.display = 'none';
+                            tableBody.style.display = '';
                         }
-                    } catch (error) {
-                        showTripDetailsError(error.message || 'Unable to load passenger details.');
-                    } finally {
-                        document.getElementById('tripDetailsLoading').classList.add('d-none');
                     }
-                }
 
-                function populateTripDetailsTable(passengers) {
-                    const tableContainer = document.getElementById('tripDetailsTable');
-                    const tbody = document.getElementById('tripDetailsBody');
-
-                    passengers.forEach((passenger, index) => {
-                        const row = document.createElement('tr');
-
-                        const indexCell = document.createElement('td');
-                        indexCell.textContent = index + 1;
-                        row.appendChild(indexCell);
-
-                        const passengerCell = document.createElement('td');
-                        const nameStrong = document.createElement('strong');
-                        nameStrong.textContent = passenger.fullName || 'Unknown passenger';
-                        passengerCell.appendChild(nameStrong);
-
-                        if (passenger.username) {
-                            const usernameLine = document.createElement('div');
-                            usernameLine.className = 'text-muted small';
-                            usernameLine.textContent = passenger.username;
-                            passengerCell.appendChild(usernameLine);
-                        }
-
-                        if (passenger.ticketNumber) {
-                            const ticketLine = document.createElement('div');
-                            ticketLine.className = 'text-muted small';
-                            ticketLine.textContent = 'Ticket ' + passenger.ticketNumber;
-                            passengerCell.appendChild(ticketLine);
-                        }
-
-                        row.appendChild(passengerCell);
-
-                        const seatCell = document.createElement('td');
-                        const seatBadge = document.createElement('span');
-                        seatBadge.className = 'badge bg-primary';
-                        seatBadge.textContent = passenger.seatNumber != null ? passenger.seatNumber : 'N/A';
-                        seatCell.appendChild(seatBadge);
-                        row.appendChild(seatCell);
-
-                        const boardingCell = document.createElement('td');
-                        fillStationCell(boardingCell, passenger.boardingStation, passenger.boardingCity);
-                        row.appendChild(boardingCell);
-
-                        const alightingCell = document.createElement('td');
-                        fillStationCell(alightingCell, passenger.alightingStation, passenger.alightingCity);
-                        row.appendChild(alightingCell);
-
-                        tbody.appendChild(row);
-                    });
-
-                    tableContainer.classList.remove('d-none');
-                }
-
-                function fillStationCell(cell, stationName, city) {
-                    cell.innerHTML = '';
-                    if (stationName) {
-                        const nameEl = document.createElement('strong');
-                        nameEl.textContent = stationName;
-                        cell.appendChild(nameEl);
+                    function clearFilters() {
+                        document.getElementById('searchInput').value = '';
+                        document.getElementById('statusFilter').value = '';
+                        document.getElementById('dateFilter').value = '';
+                        filterTrips();
                     }
-                    if (city) {
-                        const cityEl = document.createElement('div');
-                        cityEl.className = 'text-muted small';
-                        cityEl.textContent = city;
-                        cell.appendChild(cityEl);
-                    }
-                    if (!stationName && !city) {
-                        const placeholder = document.createElement('span');
-                        placeholder.className = 'text-muted';
-                        placeholder.textContent = 'Not set';
-                        cell.appendChild(placeholder);
-                    }
-                }
-
-                function showTripDetailsError(message) {
-                    const errorAlert = document.getElementById('tripDetailsError');
-                    errorAlert.textContent = message;
-                    errorAlert.classList.remove('d-none');
-                }
-
-                function showTripDetailsEmpty() {
-                    document.getElementById('tripDetailsEmpty').classList.remove('d-none');
-                }
-
-                function filterTrips() {
-                    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-                    const statusFilter = document.getElementById('statusFilter').value;
-                    const dateFilter = document.getElementById('dateFilter').value;
-
-                    const tripItems = document.querySelectorAll('.trip-item');
-                    let visibleCount = 0;
-
-                    tripItems.forEach(item => {
-                        const route = item.dataset.route ? item.dataset.route.toLowerCase() : '';
-                        const status = item.dataset.status;
-                        const date = item.dataset.date;
-
-                        const matchesSearch = route.includes(searchTerm);
-                        const matchesStatus = !statusFilter || status === statusFilter;
-                        const matchesDate = !dateFilter || date === dateFilter;
-
-                        if (matchesSearch && matchesStatus && matchesDate) {
-                            item.style.display = '';
-                            visibleCount++;
-                        } else {
-                            item.style.display = 'none';
-                        }
-                    });
-
-                    const noResults = document.getElementById('noResults');
-                    const tableBody = document.querySelector('#tripsTable tbody');
-                    if (visibleCount === 0 && tripItems.length > 0) {
-                        noResults.style.display = 'block';
-                        tableBody.style.display = 'none';
-                    } else {
-                        noResults.style.display = 'none';
-                        tableBody.style.display = '';
-                    }
-                }
-
-                function clearFilters() {
-                    document.getElementById('searchInput').value = '';
-                    document.getElementById('statusFilter').value = '';
-                    document.getElementById('dateFilter').value = '';
-                    filterTrips();
-                }
-            </script>
+                </script>
         </body>
 
         </html>
