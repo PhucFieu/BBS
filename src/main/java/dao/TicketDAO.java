@@ -16,11 +16,6 @@ import model.User;
 import util.DBConnection;
 import util.UUIDUtils;
 
-/**
- *
- * @author LamDNB-CE192005
- */
-
 public class TicketDAO {
 
     public List<Tickets> getAllTickets() throws SQLException {
@@ -384,8 +379,8 @@ public class TicketDAO {
     }
 
     public boolean isSeatAvailable(UUID scheduleId, int seatNumber) throws SQLException {
-        String sql =
-                "SELECT COUNT(*) FROM Tickets WHERE schedule_id = ? AND seat_number = ? AND status = 'CONFIRMED'";
+        String sql = "SELECT COUNT(*) FROM Tickets WHERE schedule_id = ? AND seat_number = ? "
+                + "AND status NOT IN ('CANCELLED')";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -509,7 +504,8 @@ public class TicketDAO {
         List<Integer> bookedSeats = new ArrayList<>();
         String sql = "SELECT t.seat_number FROM Tickets t "
                 + "JOIN Schedules s ON t.schedule_id = s.schedule_id "
-                + "WHERE s.bus_id = ? AND s.departure_date = ? AND s.departure_time = CAST(? AS TIME) AND t.status = 'CONFIRMED'";
+                + "WHERE s.bus_id = ? AND s.departure_date = ? AND s.departure_time = CAST(? AS TIME) "
+                + "AND t.status NOT IN ('CANCELLED')";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -547,8 +543,6 @@ public class TicketDAO {
                         + "LEFT JOIN ScheduleDrivers sd ON s.schedule_id = sd.schedule_id "
                         + "LEFT JOIN Drivers d ON sd.driver_id = d.driver_id "
                         + "LEFT JOIN Users dr ON d.user_id = dr.user_id "
-                        + "LEFT JOIN Cities depc ON r.departure_city_id = depc.city_id "
-                        + "LEFT JOIN Cities destc ON r.destination_city_id = destc.city_id "
                         + "WHERE s.departure_date = ? AND t.status IN ('CONFIRMED','COMPLETED','CHECKED_IN','PENDING') "
                         + "ORDER BY t.booking_date DESC";
 
@@ -593,7 +587,7 @@ public class TicketDAO {
                         + "LEFT JOIN Stations as_st ON t.alighting_station_id = as_st.station_id "
                         + "LEFT JOIN Cities bsc ON bs.city_id = bsc.city_id "
                         + "LEFT JOIN Cities ascit ON as_st.city_id = ascit.city_id "
-                        + "WHERE s.departure_date = ? AND t.status = 'CHECKED_IN' "
+                        + "WHERE s.departure_date = ? AND t.checked_in_at IS NOT NULL AND t.status != 'CANCELLED' "
                         + "ORDER BY t.checked_in_at DESC";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
@@ -633,7 +627,8 @@ public class TicketDAO {
             java.sql.Time time) throws SQLException {
         String sql = "SELECT COUNT(*) FROM Tickets t "
                 + "JOIN Schedules s ON t.schedule_id = s.schedule_id "
-                + "WHERE s.bus_id = ? AND t.seat_number = ? AND s.departure_date = ? AND s.departure_time = ? AND t.status = 'CONFIRMED'";
+                + "WHERE s.bus_id = ? AND t.seat_number = ? AND s.departure_date = ? AND s.departure_time = ? "
+                + "AND t.status NOT IN ('CANCELLED')";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -873,6 +868,92 @@ public class TicketDAO {
     }
 
     /**
+     * Get only checked-in tickets for a schedule (for driver view)
+     */
+    public List<Tickets> getCheckedInTicketsByScheduleId(UUID scheduleId) throws SQLException {
+        List<Tickets> tickets = new ArrayList<>();
+        String sql = "SELECT t.*, "
+                + "u.user_id, u.full_name as user_name, u.username, u.email as user_email, u.phone_number, "
+                + "s.departure_date, s.departure_time, "
+                + "r.route_id, r.route_name, depc.city_name AS departure_city, destc.city_name AS destination_city, r.distance, "
+                + "b.bus_id, b.bus_number, b.bus_type, dr.full_name as driver_name, "
+                + "bs.station_name as boarding_station_name, bsc.city_name as boarding_city, "
+                + "as_st.station_name as alighting_station_name, ascit.city_name as alighting_city "
+                + "FROM Tickets t "
+                + "JOIN Users u ON t.user_id = u.user_id "
+                + "JOIN Schedules s ON t.schedule_id = s.schedule_id "
+                + "JOIN Routes r ON s.route_id = r.route_id "
+                + "JOIN Buses b ON s.bus_id = b.bus_id "
+                + "LEFT JOIN ScheduleDrivers sd ON s.schedule_id = sd.schedule_id "
+                + "LEFT JOIN Drivers d ON sd.driver_id = d.driver_id "
+                + "LEFT JOIN Users dr ON d.user_id = dr.user_id "
+                + "LEFT JOIN Stations bs ON t.boarding_station_id = bs.station_id "
+                + "LEFT JOIN Stations as_st ON t.alighting_station_id = as_st.station_id "
+                + "LEFT JOIN Cities depc ON r.departure_city_id = depc.city_id "
+                + "LEFT JOIN Cities destc ON r.destination_city_id = destc.city_id "
+                + "LEFT JOIN Cities bsc ON bs.city_id = bsc.city_id "
+                + "LEFT JOIN Cities ascit ON as_st.city_id = ascit.city_id "
+                + "WHERE t.schedule_id = ? AND t.checked_in_at IS NOT NULL AND t.status != 'CANCELLED' "
+                + "ORDER BY t.seat_number";
+
+        try (Connection conn = DBConnection.getInstance().getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setObject(1, scheduleId);
+            ResultSet rs = stmt.executeQuery();
+
+            while (rs.next()) {
+                Tickets ticket = mapResultSetToTicket(rs);
+                tickets.add(ticket);
+            }
+        }
+        return tickets;
+    }
+
+    /**
+     * Get unchecked-in tickets for a schedule (for driver check-in)
+     */
+    public List<Tickets> getUncheckedInTicketsByScheduleId(UUID scheduleId) throws SQLException {
+        List<Tickets> tickets = new ArrayList<>();
+        String sql = "SELECT t.*, "
+                + "u.user_id, u.full_name as user_name, u.username, u.email as user_email, u.phone_number, "
+                + "s.departure_date, s.departure_time, "
+                + "r.route_id, r.route_name, depc.city_name AS departure_city, destc.city_name AS destination_city, r.distance, "
+                + "b.bus_id, b.bus_number, b.bus_type, dr.full_name as driver_name, "
+                + "bs.station_name as boarding_station_name, bsc.city_name as boarding_city, "
+                + "as_st.station_name as alighting_station_name, ascit.city_name as alighting_city "
+                + "FROM Tickets t "
+                + "LEFT JOIN Users u ON t.user_id = u.user_id "
+                + "JOIN Schedules s ON t.schedule_id = s.schedule_id "
+                + "JOIN Routes r ON s.route_id = r.route_id "
+                + "JOIN Buses b ON s.bus_id = b.bus_id "
+                + "LEFT JOIN ScheduleDrivers sd ON s.schedule_id = sd.schedule_id "
+                + "LEFT JOIN Drivers d ON sd.driver_id = d.driver_id "
+                + "LEFT JOIN Users dr ON d.user_id = dr.user_id "
+                + "LEFT JOIN Stations bs ON t.boarding_station_id = bs.station_id "
+                + "LEFT JOIN Stations as_st ON t.alighting_station_id = as_st.station_id "
+                + "LEFT JOIN Cities depc ON r.departure_city_id = depc.city_id "
+                + "LEFT JOIN Cities destc ON r.destination_city_id = destc.city_id "
+                + "LEFT JOIN Cities bsc ON bs.city_id = bsc.city_id "
+                + "LEFT JOIN Cities ascit ON as_st.city_id = ascit.city_id "
+                + "WHERE t.schedule_id = ? AND t.checked_in_at IS NULL AND t.status != 'CANCELLED' AND t.payment_status = 'PAID' "
+                + "ORDER BY t.seat_number";
+
+        try (Connection conn = DBConnection.getInstance().getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setObject(1, scheduleId);
+            ResultSet rs = stmt.executeQuery();
+
+            while (rs.next()) {
+                Tickets ticket = mapResultSetToTicket(rs);
+                tickets.add(ticket);
+            }
+        }
+        return tickets;
+    }
+
+    /**
      * Check if driver has any pending tickets
      */
     public boolean hasDriverPendingTickets(UUID driverId) throws SQLException {
@@ -895,12 +976,50 @@ public class TicketDAO {
     }
 
     /**
+     * Check if schedule has any booked tickets (non-cancelled)
+     */
+    public boolean hasScheduleTickets(UUID scheduleId) throws SQLException {
+        String sql = "SELECT COUNT(*) FROM Tickets WHERE schedule_id = ? AND status != 'CANCELLED'";
+
+        try (Connection conn = DBConnection.getInstance().getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setObject(1, scheduleId);
+            ResultSet rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                return rs.getInt(1) > 0;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Get count of booked seats for a schedule
+     */
+    public int getBookedSeatsCount(UUID scheduleId) throws SQLException {
+        String sql = "SELECT COUNT(*) FROM Tickets WHERE schedule_id = ? AND status != 'CANCELLED'";
+
+        try (Connection conn = DBConnection.getInstance().getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setObject(1, scheduleId);
+            ResultSet rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+        }
+        return 0;
+    }
+
+    /**
      * Check if seat is available for update (excluding current ticket)
      */
     public boolean isSeatAvailableForUpdate(UUID scheduleId, int seatNumber, UUID excludeTicketId)
             throws SQLException {
-        String sql =
-                "SELECT COUNT(*) FROM Tickets WHERE schedule_id = ? AND seat_number = ? AND status = 'CONFIRMED' AND ticket_id != ?";
+        String sql = "SELECT COUNT(*) FROM Tickets WHERE schedule_id = ? AND seat_number = ? "
+                + "AND status NOT IN ('CANCELLED') AND ticket_id != ?";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -912,6 +1031,54 @@ public class TicketDAO {
 
             if (rs.next()) {
                 return rs.getInt(1) == 0;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Check if a phone or email is already associated with any non-cancelled ticket
+     * on the given schedule. This prevents duplicate passenger contacts on the same trip.
+     */
+    public boolean hasContactConflict(UUID scheduleId, String phone, String email)
+            throws SQLException {
+        String normalizedPhone = phone != null ? phone.trim() : null;
+        String normalizedEmail = email != null ? email.trim().toLowerCase() : null;
+
+        List<String> conditions = new ArrayList<>();
+        List<Object> parameters = new ArrayList<>();
+        parameters.add(scheduleId);
+
+        if (normalizedPhone != null && !normalizedPhone.isEmpty()) {
+            conditions.add("(t.customer_phone = ? OR u.phone_number = ?)");
+            parameters.add(normalizedPhone);
+            parameters.add(normalizedPhone);
+        }
+        if (normalizedEmail != null && !normalizedEmail.isEmpty()) {
+            conditions.add("(LOWER(t.customer_email) = ? OR LOWER(u.email) = ?)");
+            parameters.add(normalizedEmail);
+            parameters.add(normalizedEmail);
+        }
+
+        if (conditions.isEmpty()) {
+            return false; // Nothing to check
+        }
+
+        String sql = "SELECT COUNT(*) FROM Tickets t "
+                + "LEFT JOIN Users u ON t.user_id = u.user_id "
+                + "WHERE t.schedule_id = ? AND t.status NOT IN ('CANCELLED') AND ("
+                + String.join(" OR ", conditions) + ")";
+
+        try (Connection conn = DBConnection.getInstance().getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            for (int i = 0; i < parameters.size(); i++) {
+                stmt.setObject(i + 1, parameters.get(i));
+            }
+
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                return rs.getInt(1) > 0;
             }
         }
         return false;
@@ -1290,8 +1457,8 @@ public class TicketDAO {
 
     public List<Integer> getAvailableSeats(UUID scheduleId) throws SQLException {
         List<Integer> bookedSeats = new ArrayList<>();
-        String sql =
-                "SELECT seat_number FROM Tickets WHERE schedule_id = ? AND status = 'CONFIRMED'";
+        String sql = "SELECT seat_number FROM Tickets WHERE schedule_id = ? "
+                + "AND status NOT IN ('CANCELLED')";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
