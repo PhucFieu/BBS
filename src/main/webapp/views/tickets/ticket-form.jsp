@@ -704,7 +704,7 @@
                                                         required>
                                                     <div class="form-text">Ticket price will be auto-filled after
                                                         selecting a route</div>
-                                                    <div class="invalid-feedback">Vui lòng nhập giá vé</div>
+                                                    <div class="invalid-feedback">Please enter ticket price</div>
                                                 </div>
 
                                                 <div class="mb-3">

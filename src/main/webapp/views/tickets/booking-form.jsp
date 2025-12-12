@@ -116,21 +116,122 @@
                                 font-size: 0.9rem;
                             }
 
-                            .schedule-info {
+                            .station-name {
+                                font-size: 0.9rem;
+                                font-weight: 600;
                                 display: flex;
                                 align-items: center;
+                            }
+
+                            .station-name i {
+                                font-size: 0.8rem;
+                            }
+
+                            .schedule-info {
+                                display: flex;
+                                align-items: flex-start;
                                 gap: 15px;
                                 padding: 20px;
+                            }
+
+                            .schedule-card-header {
+                                display: flex;
+                                justify-content: space-between;
+                                align-items: center;
+                                gap: 12px;
+                                padding: 16px 20px 0;
                             }
 
                             .schedule-details {
                                 flex: 1;
                             }
 
+                            .schedule-time-block {
+                                flex: 1;
+                            }
+
+                            .time-label {
+                                font-size: 0.85rem;
+                                color: var(--text-light);
+                                text-transform: uppercase;
+                                letter-spacing: 0.5px;
+                                font-weight: 600;
+                            }
+
+                            .schedule-time-divider {
+                                color: var(--text-light);
+                                padding: 0 12px;
+                                font-size: 1.1rem;
+                            }
+
                             .schedule-price {
                                 font-size: 1.5rem;
                                 font-weight: 700;
                                 color: var(--success-color);
+                            }
+
+                            .schedule-meta {
+                                display: flex;
+                                flex-wrap: wrap;
+                                gap: 10px;
+                                padding: 0 20px 12px;
+                                color: var(--text-light);
+                                font-size: 0.95rem;
+                            }
+
+                            .meta-pill {
+                                display: inline-flex;
+                                align-items: center;
+                                gap: 8px;
+                                background: #f8fafc;
+                                border: 1px solid #e2e8f0;
+                                border-radius: 20px;
+                                padding: 6px 12px;
+                                font-weight: 600;
+                                color: var(--text-dark);
+                            }
+
+                            .meta-pill.success {
+                                border-color: rgba(102, 187, 106, 0.35);
+                                background: rgba(102, 187, 106, 0.08);
+                                color: #2e7d32;
+                            }
+
+                            .schedule-actions {
+                                display: flex;
+                                flex-wrap: wrap;
+                                gap: 10px;
+                                padding: 10px 20px 20px;
+                                border-top: 1px dashed #e2e8f0;
+                                margin-top: 8px;
+                            }
+
+                            .schedule-actions .btn {
+                                border-radius: 10px;
+                                font-weight: 600;
+                            }
+
+                            .seat-chip {
+                                display: inline-flex;
+                                align-items: center;
+                                justify-content: center;
+                                padding: 6px 10px;
+                                border-radius: 12px;
+                                font-weight: 600;
+                                margin: 2px;
+                                border: 1px solid #e2e8f0;
+                            }
+
+                            .seat-chip.available {
+                                background: rgba(102, 187, 106, 0.12);
+                                color: #2e7d32;
+                                border-color: rgba(102, 187, 106, 0.35);
+                            }
+
+                            .seat-chip.booked {
+                                background: #fff5f5;
+                                color: #b91c1c;
+                                border-color: #fecdd3;
                             }
 
                             .seat-selection {
@@ -531,6 +632,7 @@
                                 <c:if test="${not empty route}">
                                     <!-- Hidden input to store routeId for JavaScript -->
                                     <input type="hidden" id="routeIdValue" value="${route.routeId}" />
+                                    <input type="hidden" id="routeNameValue" value="${route.routeName}" />
                                     <c:if test="${not empty selectedSchedule}">
                                         <input type="hidden" id="preselectedScheduleId"
                                             value="${selectedSchedule.scheduleId}" />
@@ -625,41 +727,189 @@
                                                         <div class="schedule-card ${isExpired ? 'expired' : ''}"
                                                             data-schedule-id="${schedule.scheduleId}"
                                                             data-expired="${isExpired}">
+                                                            <div class="schedule-card-header">
+                                                                <div class="d-flex flex-wrap align-items-center gap-2">
+                                                                    <span class="meta-pill">
+                                                                        <i
+                                                                            class="fas fa-bus me-1"></i>${schedule.busNumber}
+                                                                    </span>
+                                                                    <span class="meta-pill success">
+                                                                        <i
+                                                                            class="fas fa-chair me-1"></i>${schedule.availableSeats}
+                                                                        ghế trống
+                                                                    </span>
+                                                                    <c:if test="${isExpired}">
+                                                                        <span class="expired-badge">EXPIRED</span>
+                                                                    </c:if>
+                                                                </div>
+                                                                <div class="text-end">
+                                                                    <div class="text-muted small">Price from</div>
+                                                                    <div class="schedule-price text-end">
+                                                                        <fmt:formatNumber value="${route.basePrice}"
+                                                                            pattern="#,###" />
+                                                                        ₫
+                                                                    </div>
+                                                                </div>
+                                                            </div>
                                                             <div class="schedule-info">
-                                                                <div class="schedule-details">
+                                                                <div class="schedule-time-block">
+                                                                    <div class="time-label">Departure</div>
                                                                     <div class="schedule-time">
                                                                         ${schedule.departureTime}
-                                                                        <i
-                                                                            class="fas fa-arrow-right mx-2 text-muted"></i>
-                                                                        ${schedule.estimatedArrivalTime}
-                                                                        <c:if test="${isExpired}">
-                                                                            <span class="expired-badge">EXPIRED</span>
-                                                                        </c:if>
                                                                     </div>
-                                                                    <div class="schedule-date mt-2">
+                                                                    <div class="schedule-date">
                                                                         <i class="fas fa-calendar me-2"></i>
                                                                         ${schedule.departureDate}
                                                                     </div>
-                                                                    <div class="mt-2">
-                                                                        <span class="badge bg-info me-2">
-                                                                            <i
-                                                                                class="fas fa-bus me-1"></i>${schedule.busNumber}
-                                                                        </span>
-                                                                        <span class="badge bg-success">
-                                                                            <i
-                                                                                class="fas fa-chair me-1"></i>${schedule.availableSeats}
-                                                                            seats available
-                                                                        </span>
+                                                                    <div class="station-name text-primary mt-2">
+                                                                        <i class="fas fa-map-marker-alt me-1"></i>
+                                                                        <c:choose>
+                                                                            <c:when
+                                                                                test="${not empty route.departureStationObj}">
+                                                                                ${route.departureStationObj.stationName}
+                                                                            </c:when>
+                                                                            <c:otherwise>
+                                                                                ${route.departureCity}
+                                                                            </c:otherwise>
+                                                                        </c:choose>
                                                                     </div>
                                                                 </div>
-                                                                <div class="schedule-price text-end">
-                                                                    <fmt:formatNumber value="${route.basePrice}"
-                                                                        pattern="#,###" />
-                                                                    ₫
+                                                                <div class="schedule-time-divider">
+                                                                    <i class="fas fa-arrow-right"></i>
+                                                                </div>
+                                                                <div class="schedule-time-block">
+                                                                    <div class="time-label">Arrival (estimated)</div>
+                                                                    <div class="schedule-time">
+                                                                        <c:choose>
+                                                                            <c:when
+                                                                                test="${not empty schedule.estimatedArrivalTime}">
+                                                                                ${schedule.estimatedArrivalTime}
+                                                                            </c:when>
+                                                                            <c:otherwise>
+                                                                                Đang cập nhật
+                                                                            </c:otherwise>
+                                                                        </c:choose>
+                                                                    </div>
+                                                                    <div class="schedule-date text-muted">
+                                                                        <i class="fas fa-flag-checkered me-2"></i>
+                                                                        Thời gian đến dự kiến
+                                                                    </div>
+                                                                    <div class="station-name text-danger mt-2">
+                                                                        <i class="fas fa-map-marker-alt me-1"></i>
+                                                                        <c:choose>
+                                                                            <c:when
+                                                                                test="${not empty route.destinationStationObj}">
+                                                                                ${route.destinationStationObj.stationName}
+                                                                            </c:when>
+                                                                            <c:otherwise>
+                                                                                ${route.destinationCity}
+                                                                            </c:otherwise>
+                                                                        </c:choose>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div class="schedule-meta">
+                                                                <span class="meta-pill">
+                                                                    <i
+                                                                        class="fas fa-route me-1"></i>${route.departureCity}
+                                                                    → ${route.destinationCity}
+                                                                </span>
+                                                                <span class="meta-pill">
+                                                                    <i class="fas fa-clock me-1"></i>Thời lượng:
+                                                                    ${route.durationHours} giờ
+                                                                </span>
+                                                            </div>
+                                                            <div class="schedule-actions">
+                                                                <button type="button"
+                                                                    class="btn btn-outline-success btn-sm"
+                                                                    onclick="showSeatStatus(event, '${schedule.scheduleId}')"
+                                                                    ${isExpired ? 'disabled' : '' }>
+                                                                    <i class="fas fa-th-list me-1"></i>Ghế đã/đang trống
+                                                                </button>
+                                                                <button type="button"
+                                                                    class="btn btn-outline-secondary btn-sm"
+                                                                    onclick="openStationsModal(event)">
+                                                                    <i class="fas fa-route me-1"></i>Stations Along
+                                                                    Route
+                                                                </button>
+                                                                <div
+                                                                    class="ms-auto text-muted small d-flex align-items-center">
+                                                                    <i class="fas fa-hand-pointer me-2"></i>Click card
+                                                                    to
+                                                                    select schedule
                                                                 </div>
                                                             </div>
                                                         </div>
                                                 </c:forEach>
+                                            </div>
+
+                                            <!-- Seat status modal -->
+                                            <div class="modal fade" id="seatStatusModal" tabindex="-1"
+                                                aria-hidden="true">
+                                                <div
+                                                    class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+                                                    <div class="modal-content">
+                                                        <div class="modal-header">
+                                                            <h5 class="modal-title">
+                                                                <i class="fas fa-th-list me-2"></i>Seat Status
+                                                            </h5>
+                                                            <button type="button" class="btn-close"
+                                                                data-bs-dismiss="modal" aria-label="Close"></button>
+                                                        </div>
+                                                        <div class="modal-body">
+                                                            <div id="seatStatusLoading" class="text-center py-4">
+                                                                <div class="spinner-border text-success" role="status">
+                                                                    <span class="visually-hidden">Loading...</span>
+                                                                </div>
+                                                                <div class="mt-3">Đang tải thông tin ghế...</div>
+                                                            </div>
+                                                            <div id="seatStatusError" class="alert alert-danger d-none">
+                                                            </div>
+                                                            <div id="seatStatusMeta"
+                                                                class="d-flex flex-wrap gap-3 mb-3"></div>
+                                                            <div class="bus-layout-container">
+                                                                <div id="seatStatusGrid" class="seat-grid"></div>
+                                                                <div class="seat-legend">
+                                                                    <div class="legend-item">
+                                                                        <div class="legend-seat available"></div>
+                                                                        <span>Ghế trống</span>
+                                                                    </div>
+                                                                    <div class="legend-item">
+                                                                        <div class="legend-seat booked"></div>
+                                                                        <span>Ghế đã đặt</span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Stations modal -->
+                                            <div class="modal fade" id="stationsModal" tabindex="-1" aria-hidden="true">
+                                                <div
+                                                    class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+                                                    <div class="modal-content">
+                                                        <div class="modal-header">
+                                                            <h5 class="modal-title" id="stationsModalLabel">
+                                                                <i class="fas fa-route me-2"></i>Danh sách trạm
+                                                            </h5>
+                                                            <button type="button" class="btn-close"
+                                                                data-bs-dismiss="modal" aria-label="Close"></button>
+                                                        </div>
+                                                        <div class="modal-body">
+                                                            <div id="stationsModalLoading" class="text-center py-4">
+                                                                <div class="spinner-border text-success" role="status">
+                                                                    <span class="visually-hidden">Loading...</span>
+                                                                </div>
+                                                                <div class="mt-3">Loading station list...</div>
+                                                            </div>
+                                                            <div id="stationsModalError"
+                                                                class="alert alert-danger d-none"></div>
+                                                            <div id="stationsModalList" class="list-group"></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
 
                                             <!-- Bus Station Selection -->
@@ -785,6 +1035,9 @@
                                     // Get routeId from hidden input or URL
                                     const routeIdInput = document.getElementById('routeIdValue');
                                     const routeIdFromJSP = routeIdInput ? routeIdInput.value : null;
+                                    const routeNameInput = document.getElementById('routeNameValue');
+                                    const routeNameFromJSP = routeNameInput ? routeNameInput.value : '';
+                                    const contextPath = '${pageContext.request.contextPath}';
                                     const preselectedScheduleInput = document.getElementById('preselectedScheduleId');
                                     const preselectedScheduleId = preselectedScheduleInput ? preselectedScheduleInput.value : null;
 
@@ -800,7 +1053,303 @@
                                     const stationTimeline = document.getElementById('stationTimeline');
                                     const stationTimelineTrack = document.getElementById('stationTimelineTrack');
 
+                                    // Popup elements
+                                    const seatStatusModalEl = document.getElementById('seatStatusModal');
+                                    const seatStatusGrid = document.getElementById('seatStatusGrid');
+                                    const seatStatusMeta = document.getElementById('seatStatusMeta');
+                                    const seatStatusLoading = document.getElementById('seatStatusLoading');
+                                    const seatStatusError = document.getElementById('seatStatusError');
+
+                                    const stationsModalEl = document.getElementById('stationsModal');
+                                    const stationsModalList = document.getElementById('stationsModalList');
+                                    const stationsModalLoading = document.getElementById('stationsModalLoading');
+                                    const stationsModalError = document.getElementById('stationsModalError');
+                                    const stationsModalLabel = document.getElementById('stationsModalLabel');
+
                                     let currentStations = [];
+
+                                    // Create seat layout for modal (read-only, no click events)
+                                    function createSeatLayoutForModal(totalSeats, bookedSeats) {
+                                        if (!seatStatusGrid) return;
+                                        seatStatusGrid.innerHTML = '';
+
+                                        // Render driver seat row at the top (front-left)
+                                        function renderDriverSeatRow() {
+                                            const driverRow = document.createElement('div');
+                                            driverRow.className = 'seat-row driver-seat-row';
+
+                                            const driverSeat = document.createElement('div');
+                                            driverSeat.className = 'seat driver-seat';
+
+                                            const driverLabel = document.createElement('div');
+                                            driverLabel.className = 'seat-label';
+                                            driverLabel.textContent = 'Driver';
+                                            driverSeat.appendChild(driverLabel);
+
+                                            const driverNumber = document.createElement('div');
+                                            driverNumber.className = 'seat-number';
+                                            driverNumber.textContent = 'Front';
+                                            driverSeat.appendChild(driverNumber);
+
+                                            driverRow.appendChild(driverSeat);
+
+                                            const frontAisle = document.createElement('div');
+                                            frontAisle.className = 'aisle wide';
+                                            frontAisle.textContent = '│';
+                                            driverRow.appendChild(frontAisle);
+
+                                            const placeholderSeat = document.createElement('div');
+                                            placeholderSeat.className = 'seat placeholder-seat';
+                                            driverRow.appendChild(placeholderSeat);
+
+                                            const placeholderSeat2 = document.createElement('div');
+                                            placeholderSeat2.className = 'seat placeholder-seat';
+                                            driverRow.appendChild(placeholderSeat2);
+
+                                            seatStatusGrid.appendChild(driverRow);
+                                        }
+
+                                        renderDriverSeatRow();
+
+                                        // Calculate seats per side (A = left, B = right)
+                                        const aSeats = Math.ceil(totalSeats / 2);
+                                        const bSeats = totalSeats - aSeats;
+
+                                        // Standard bus layout: 2 seats per row on each side (2-2 layout)
+                                        const seatsPerRow = 2;
+                                        const rows = Math.ceil(Math.max(aSeats, bSeats) / seatsPerRow);
+
+                                        const seatMap = [];
+                                        let aSeatNum = 1;
+                                        let bSeatNum = 1;
+
+                                        for (let row = 0; row < rows; row++) {
+                                            const rowSeats = [];
+
+                                            // Left side: A seats (window + aisle)
+                                            if (aSeatNum <= aSeats) {
+                                                rowSeats.push(createSeatDataForModal(aSeatNum, 'A', 'window', row));
+                                                aSeatNum++;
+                                            }
+
+                                            if (aSeatNum <= aSeats) {
+                                                rowSeats.push(createSeatDataForModal(aSeatNum, 'A', 'aisle', row));
+                                                aSeatNum++;
+                                            }
+
+                                            // Aisle separator
+                                            rowSeats.push({ type: 'aisle', wide: true });
+
+                                            // Right side: B seats (aisle + window)
+                                            if (bSeatNum <= bSeats) {
+                                                rowSeats.push(createSeatDataForModal(bSeatNum + aSeats, 'B', 'aisle', row));
+                                                bSeatNum++;
+                                            }
+
+                                            if (bSeatNum <= bSeats) {
+                                                rowSeats.push(createSeatDataForModal(bSeatNum + aSeats, 'B', 'window', row));
+                                                bSeatNum++;
+                                            }
+
+                                            if (rowSeats.length > 1) {
+                                                seatMap.push(rowSeats);
+                                            }
+                                        }
+
+                                        // Helper function to create seat data
+                                        function createSeatDataForModal(number, side, position, rowIndex) {
+                                            if (number > totalSeats) return null;
+
+                                            let label;
+                                            if (side === 'A') {
+                                                label = 'A' + String(number).padStart(2, '0');
+                                            } else {
+                                                const bNumber = number - aSeats;
+                                                label = 'B' + String(bNumber).padStart(2, '0');
+                                            }
+
+                                            return {
+                                                number: number,
+                                                label: label,
+                                                side: side,
+                                                position: position,
+                                                rowIndex: rowIndex
+                                            };
+                                        }
+
+                                        // Render seats
+                                        seatMap.forEach((rowSeats, rowIndex) => {
+                                            const seatRow = document.createElement('div');
+                                            seatRow.className = 'seat-row';
+
+                                            rowSeats.forEach(item => {
+                                                if (!item) return;
+
+                                                if (item.type === 'aisle') {
+                                                    const aisle = document.createElement('div');
+                                                    aisle.className = 'aisle ' + (item.wide ? 'wide' : '');
+                                                    aisle.textContent = '│';
+                                                    seatRow.appendChild(aisle);
+                                                } else if (item.number && item.number <= totalSeats) {
+                                                    const seat = document.createElement('div');
+                                                    seat.className = 'seat';
+                                                    seat.dataset.seatNumber = item.number;
+
+                                                    const isBooked = bookedSeats.includes(item.number);
+                                                    if (isBooked) {
+                                                        seat.classList.add('booked');
+                                                    } else {
+                                                        seat.classList.add('available');
+                                                    }
+
+                                                    // Create seat label
+                                                    const labelDiv = document.createElement('div');
+                                                    labelDiv.className = 'seat-label';
+                                                    labelDiv.textContent = item.label;
+                                                    seat.appendChild(labelDiv);
+
+                                                    const numberDiv = document.createElement('div');
+                                                    numberDiv.className = 'seat-number';
+                                                    numberDiv.textContent = '#' + item.number;
+                                                    seat.appendChild(numberDiv);
+
+                                                    // Add position hint
+                                                    const hint = document.createElement('div');
+                                                    hint.className = 'seat-position-hint';
+                                                    const positionText = item.position === 'window' ? 'Window' : 'Aisle';
+                                                    const sideText = item.side === 'A' ? 'Left' : 'Right';
+                                                    const rowText = rowIndex < 3 ? 'Front' : 'Back';
+                                                    hint.textContent = positionText + ' - ' + sideText + ' - ' + rowText;
+                                                    seat.appendChild(hint);
+
+                                                    seatRow.appendChild(seat);
+                                                }
+                                            });
+
+                                            if (seatRow.children.length > 0) {
+                                                seatStatusGrid.appendChild(seatRow);
+                                            }
+                                        });
+                                    }
+
+                                    function showSeatStatus(event, scheduleId) {
+                                        if (event) {
+                                            event.stopPropagation();
+                                        }
+                                        if (!scheduleId || !seatStatusModalEl) {
+                                            return;
+                                        }
+
+                                        seatStatusError.classList.add('d-none');
+                                        seatStatusLoading.classList.remove('d-none');
+                                        if (seatStatusGrid) {
+                                            seatStatusGrid.innerHTML = '';
+                                        }
+                                        seatStatusMeta.innerHTML = '';
+
+                                        const seatModal = new bootstrap.Modal(seatStatusModalEl);
+                                        seatModal.show();
+
+                                        fetch(contextPath + '/tickets/schedule-seats?scheduleId=' + encodeURIComponent(scheduleId))
+                                            .then(response => {
+                                                if (!response.ok) {
+                                                    throw new Error('HTTP ' + response.status);
+                                                }
+                                                return response.json();
+                                            })
+                                            .then(data => {
+                                                seatStatusLoading.classList.add('d-none');
+                                                if (data.error) {
+                                                    seatStatusError.textContent = data.error;
+                                                    seatStatusError.classList.remove('d-none');
+                                                    return;
+                                                }
+
+                                                const booked = data.bookedSeats || [];
+                                                const available = data.availableSeats || [];
+                                                const totalSeats = data.totalSeats || (booked.length + available.length);
+
+                                                seatStatusMeta.innerHTML =
+                                                    '<span class="meta-pill success"><i class="fas fa-chair me-1"></i>' + available.length + ' available seats</span>' +
+                                                    '<span class="meta-pill"><i class="fas fa-ban me-1"></i>' + booked.length + ' booked</span>' +
+                                                    '<span class="meta-pill"><i class="fas fa-hashtag me-1"></i>' + totalSeats + ' total seats</span>';
+
+                                                createSeatLayoutForModal(totalSeats, booked);
+                                            })
+                                            .catch(error => {
+                                                seatStatusLoading.classList.add('d-none');
+                                                seatStatusError.textContent = 'Cannot load seat information: ' + error;
+                                                seatStatusError.classList.remove('d-none');
+                                            });
+                                    }
+
+                                    function openStationsModal(event) {
+                                        if (event) {
+                                            event.stopPropagation();
+                                        }
+                                        if (!stationsModalEl) {
+                                            return;
+                                        }
+
+                                        stationsModalError.classList.add('d-none');
+                                        stationsModalLoading.classList.remove('d-none');
+                                        stationsModalList.innerHTML = '';
+
+                                        if (stationsModalLabel) {
+                                            stationsModalLabel.innerHTML = '<i class="fas fa-route me-2"></i>Danh sách trạm - ' + (routeNameFromJSP || 'Tuyến xe');
+                                        }
+
+                                        const stationModal = new bootstrap.Modal(stationsModalEl);
+                                        stationModal.show();
+
+                                        if (!routeIdFromJSP) {
+                                            stationsModalLoading.classList.add('d-none');
+                                            stationsModalError.textContent = 'Route information not found.';
+                                            stationsModalError.classList.remove('d-none');
+                                            return;
+                                        }
+
+                                        fetch(contextPath + '/tickets/get-stations-by-route?routeId=' + encodeURIComponent(routeIdFromJSP))
+                                            .then(response => {
+                                                if (!response.ok) {
+                                                    throw new Error('HTTP ' + response.status);
+                                                }
+                                                return response.json();
+                                            })
+                                            .then(data => {
+                                                stationsModalLoading.classList.add('d-none');
+                                                if (data.error) {
+                                                    stationsModalError.textContent = data.error;
+                                                    stationsModalError.classList.remove('d-none');
+                                                    return;
+                                                }
+
+                                                const stations = data.stations || [];
+                                                if (stations.length === 0) {
+                                                    stationsModalList.innerHTML = '<div class="alert alert-info mb-0">No station information for this route yet.</div>';
+                                                    return;
+                                                }
+
+                                                stationsModalList.innerHTML = stations.map((st, idx) => {
+                                                    const name = st.stationName || 'Trạm';
+                                                    const city = st.city || '';
+                                                    const address = st.address ? ' - ' + st.address : '';
+                                                    const seq = st.sequenceNumber ? st.sequenceNumber : (idx + 1);
+                                                    return '<div class="list-group-item d-flex justify-content-between align-items-start">' +
+                                                        '<div>' +
+                                                        '<div class="fw-semibold">' + name + '</div>' +
+                                                        '<div class="small text-muted">' + city + address + '</div>' +
+                                                        '</div>' +
+                                                        '<span class="badge bg-light text-dark border">#' + seq + '</span>' +
+                                                        '</div>';
+                                                }).join('');
+                                            })
+                                            .catch(error => {
+                                                stationsModalLoading.classList.add('d-none');
+                                                stationsModalError.textContent = 'Cannot load station list: ' + error;
+                                                stationsModalError.classList.remove('d-none');
+                                            });
+                                    }
 
                                     /**
                                      * Show loading indicator
