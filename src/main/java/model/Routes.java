@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.UUID;
 
 public class Routes {
+
     private UUID routeId; // route_id
     private String routeName; // route_name
     private UUID departureCityId; // departure_city_id - reference to City
@@ -29,15 +30,15 @@ public class Routes {
 
     // Related schedules for search results
     private List<Schedule> schedules;
-    
+
     // Related City objects
     private City departureCityObj;
     private City destinationCityObj;
-    
+
     // Terminal station IDs (default stations for this route)
     private UUID departureStationId;
     private UUID destinationStationId;
-    
+
     // Related Station objects
     private Station departureStationObj;
     private Station destinationStationObj;
@@ -64,7 +65,7 @@ public class Routes {
         this.createdDate = LocalDateTime.now();
         this.updatedDate = LocalDateTime.now();
     }
-    
+
     // Constructor với City IDs
     public Routes(String routeName, UUID departureCityId, UUID destinationCityId,
             BigDecimal distance, int durationHours, BigDecimal basePrice) {
@@ -146,7 +147,8 @@ public class Routes {
     }
 
     /**
-     * @deprecated Use getDestinationCityId() and getDestinationCityObj() instead
+     * @deprecated Use getDestinationCityId() and getDestinationCityObj()
+     * instead
      */
     @Deprecated
     public String getDestinationCity() {
@@ -160,7 +162,7 @@ public class Routes {
     public void setDestinationCity(String destinationCity) {
         this.destinationCity = destinationCity;
     }
-    
+
     public City getDepartureCityObj() {
         return departureCityObj;
     }
@@ -283,17 +285,17 @@ public class Routes {
     // Optional: toString
     @Override
     public String toString() {
-        return "Routes{" +
-                "routeId=" + routeId +
-                ", routeName='" + routeName + '\'' +
-                ", departureCity='" + departureCity + '\'' +
-                ", destinationCity='" + destinationCity + '\'' +
-                ", distance=" + distance +
-                ", durationHours=" + durationHours +
-                ", basePrice=" + basePrice +
-                ", status='" + status + '\'' +
-                ", createdDate=" + createdDate +
-                ", updatedDate=" + updatedDate +
-                '}';
+        return "Routes{"
+                + "routeId=" + routeId
+                + ", routeName='" + routeName + '\''
+                + ", departureCity='" + departureCity + '\''
+                + ", destinationCity='" + destinationCity + '\''
+                + ", distance=" + distance
+                + ", durationHours=" + durationHours
+                + ", basePrice=" + basePrice
+                + ", status='" + status + '\''
+                + ", createdDate=" + createdDate
+                + ", updatedDate=" + updatedDate
+                + '}';
     }
 }
