@@ -16,6 +16,7 @@ import java.util.stream.Collectors;
 import com.google.gson.Gson;
 
 import dao.BusDAO;
+import dao.CityDAO;
 import dao.RouteDAO;
 import dao.RouteStationDAO;
 import dao.ScheduleDAO;
@@ -23,7 +24,6 @@ import dao.ScheduleStationDAO;
 import dao.StationDAO;
 import dao.TicketDAO;
 import dao.UserDAO;
-import dao.CityDAO;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -39,11 +39,6 @@ import model.Station;
 import model.Tickets;
 import model.User;
 import util.URLUtils;
-
-/**
- *
- * @author LamDNB-CE192005
- */
 
 @WebServlet(urlPatterns = {"/tickets/*", "/admin/tickets/*"})
 public class TicketController extends HttpServlet {
@@ -441,7 +436,8 @@ public class TicketController extends HttpServlet {
             UUID scheduleId = UUID.fromString(scheduleIdStr);
             List<java.util.Map<String, Object>> stationData = new ArrayList<>();
 
-            List<ScheduleStation> scheduleStations = scheduleStationDAO.getStationsBySchedule(scheduleId);
+            List<ScheduleStation> scheduleStations =
+                    scheduleStationDAO.getStationsBySchedule(scheduleId);
             boolean hasStations = appendScheduleStations(stationData, scheduleStations);
 
             if (!hasStations) {
@@ -451,7 +447,7 @@ public class TicketController extends HttpServlet {
                     Routes route = routeDAO.getRouteByIdAnyStatus(schedule.getRouteId());
                     Integer minCityNum = null;
                     Integer maxCityNum = null;
-                    
+
                     if (route != null && route.getDepartureCityId() != null
                             && route.getDestinationCityId() != null) {
                         model.City depCity = cityDAO.getCityById(route.getDepartureCityId());
@@ -463,10 +459,11 @@ public class TicketController extends HttpServlet {
                             maxCityNum = Math.max(fromNum, toNum);
                         }
                     }
-                    
+
                     List<RouteStation> routeStations =
                             routeStationDAO.getStationsByRoute(schedule.getRouteId());
-                    hasStations = appendRouteStationsFilteredByCityRange(stationData, routeStations, minCityNum, maxCityNum);
+                    hasStations = appendRouteStationsFilteredByCityRange(stationData, routeStations,
+                            minCityNum, maxCityNum);
                 }
             }
 
@@ -491,7 +488,8 @@ public class TicketController extends HttpServlet {
             response.setContentType("application/json; charset=UTF-8");
             response.setCharacterEncoding("UTF-8");
             response.getWriter()
-                    .write("{\"error\":\"Database error retrieving stations: " + e.getMessage() + "\"}");
+                    .write("{\"error\":\"Database error retrieving stations: " + e.getMessage()
+                            + "\"}");
         } catch (Exception e) {
             response.setContentType("application/json; charset=UTF-8");
             response.setCharacterEncoding("UTF-8");
@@ -557,7 +555,8 @@ public class TicketController extends HttpServlet {
             response.setContentType("application/json; charset=UTF-8");
             response.setCharacterEncoding("UTF-8");
             response.getWriter()
-                    .write("{\"error\":\"Database error retrieving stations: " + e.getMessage() + "\"}");
+                    .write("{\"error\":\"Database error retrieving stations: " + e.getMessage()
+                            + "\"}");
         } catch (Exception e) {
             response.setContentType("application/json; charset=UTF-8");
             response.setCharacterEncoding("UTF-8");
@@ -611,6 +610,10 @@ public class TicketController extends HttpServlet {
                 if (city == null) {
                     continue;
                 }
+                // Populate city name if missing
+                if (station.getCity() == null || station.getCity().isEmpty()) {
+                    station.setCity(city.getCityName());
+                }
                 int num = city.getCityNumber();
                 if (num < minCityNum || num > maxCityNum) {
                     // Skip stations whose city lies outside the route's city range
@@ -624,7 +627,7 @@ public class TicketController extends HttpServlet {
     }
 
     private void appendStations(List<java.util.Map<String, Object>> stationData,
-            List<Station> stations) {
+            List<Station> stations) throws SQLException {
         if (stations == null || stations.isEmpty()) {
             return;
         }
@@ -634,15 +637,33 @@ public class TicketController extends HttpServlet {
     }
 
     private void appendStationRecord(List<java.util.Map<String, Object>> stationData,
-            Station station, Integer sequenceNumber) {
+            Station station, Integer sequenceNumber) throws SQLException {
         if (station == null) {
             return;
         }
         java.util.Map<String, Object> stationMap = new java.util.HashMap<>();
         stationMap.put("stationId", station.getStationId().toString());
-        stationMap.put("stationName", station.getStationName());
-        stationMap.put("city", station.getCity());
-        stationMap.put("address", station.getAddress());
+        stationMap.put("stationName",
+                station.getStationName() != null ? station.getStationName() : "");
+
+        // Ensure city name is populated
+        String cityName = station.getCity();
+        if (cityName == null || cityName.isEmpty()) {
+            // Try to get city name from cityId if available
+            if (station.getCityId() != null) {
+                try {
+                    model.City city = cityDAO.getCityById(station.getCityId());
+                    if (city != null) {
+                        cityName = city.getCityName();
+                    }
+                } catch (SQLException e) {
+                    // Ignore error, use empty string
+                    cityName = "";
+                }
+            }
+        }
+        stationMap.put("city", cityName != null ? cityName : "");
+        stationMap.put("address", station.getAddress() != null ? station.getAddress() : "");
         if (sequenceNumber != null && sequenceNumber > 0) {
             stationMap.put("sequenceNumber", sequenceNumber);
         }
@@ -1085,7 +1106,8 @@ public class TicketController extends HttpServlet {
                     validStations = scheduleStationDAO.getValidStationsForBooking(scheduleId);
                     // If no schedule stations, use route stations from the schedule's route
                     if (validStations == null || validStations.isEmpty()) {
-                        validStations = routeStationDAO.getStationsByRouteAsStations(schedule.getRouteId());
+                        validStations =
+                                routeStationDAO.getStationsByRouteAsStations(schedule.getRouteId());
                     }
                 }
             } catch (Exception e) {
@@ -1312,7 +1334,8 @@ public class TicketController extends HttpServlet {
                                         returnStations.getAlightingStation().getStationName());
                             }
                         } catch (IllegalArgumentException validationError) {
-                            response.sendRedirect(buildRedirectUrl.apply(validationError.getMessage()));
+                            response.sendRedirect(
+                                    buildRedirectUrl.apply(validationError.getMessage()));
                             return;
                         }
                     }
