@@ -2,11 +2,6 @@ package model;
 
 import java.util.UUID;
 
-/**
- *
- * @author LamDNB-CE192005
- */
-
 public class TicketGroup {
     private UUID groupId;
     private UUID ticketId;

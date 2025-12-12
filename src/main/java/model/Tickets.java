@@ -4,13 +4,10 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.UUID;
-
-/**
- *
- * @author LamDNB-CE192005
- */
+import java.util.Date;
 
 public class Tickets {
 
@@ -403,6 +400,15 @@ public class Tickets {
         this.checkedInAt = checkedInAt;
     }
 
+    /**
+     * Helper for JSP formatting; converts LocalDateTime to java.util.Date.
+     */
+    public Date getCheckedInAtDate() {
+        return checkedInAt == null
+                ? null
+                : Date.from(checkedInAt.atZone(ZoneId.systemDefault()).toInstant());
+    }
+
     public UUID getCheckedInByStaffId() {
         return checkedInByStaffId;
     }
@@ -415,7 +421,7 @@ public class Tickets {
      * Check if this ticket is checked in
      */
     public boolean isCheckedIn() {
-        return "CHECKED_IN".equals(status);
+        return checkedInAt != null;
     }
 
     /**
