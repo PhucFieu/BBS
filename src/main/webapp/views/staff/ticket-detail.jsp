@@ -80,10 +80,14 @@
                     <small>Ticket Number</small>
                     <div class="ticket-number">${ticket.ticketNumber}</div>
                     <div class="mt-2">
-                        <span class="badge ${ticket.status == 'CONFIRMED' ? 'bg-light text-success' : 
-                            ticket.status == 'CHECKED_IN' ? 'bg-light text-info' : 
+                        <span class="badge ${not empty ticket.checkedInAt ? 'bg-light text-info' : 
+                            ticket.status == 'CONFIRMED' ? 'bg-light text-success' : 
                             ticket.status == 'CANCELLED' ? 'bg-light text-danger' : 'bg-light text-warning'} me-2">
-                            <i class="fas fa-circle me-1"></i>${ticket.status}
+                            <i class="fas fa-circle me-1"></i>
+                            <c:choose>
+                                <c:when test="${not empty ticket.checkedInAt}">Checked In</c:when>
+                                <c:otherwise>${ticket.status}</c:otherwise>
+                            </c:choose>
                         </span>
                         <span class="badge ${ticket.paymentStatus == 'PAID' ? 'bg-light text-success' : 'bg-light text-warning'}">
                             <i class="fas fa-credit-card me-1"></i>${ticket.paymentStatus}
@@ -226,17 +230,7 @@
                             </form>
                         </c:if>
                         
-                        <c:if test="${ticket.status == 'CONFIRMED' && ticket.paymentStatus == 'PAID'}">
-                            <form method="post" action="${pageContext.request.contextPath}/staff/check-in" style="display: inline;">
-                                <input type="hidden" name="ticketId" value="${ticket.ticketId}">
-                                <input type="hidden" name="scheduleId" value="${ticket.scheduleId}">
-                                <button type="submit" class="btn btn-info action-btn text-white">
-                                    <i class="fas fa-user-check me-2"></i>Check-in
-                                </button>
-                            </form>
-                        </c:if>
-                        
-                        <c:if test="${ticket.status != 'CANCELLED' && ticket.status != 'CHECKED_IN'}">
+                        <c:if test="${ticket.status != 'CANCELLED' && empty ticket.checkedInAt}">
                             <a href="${pageContext.request.contextPath}/staff/edit-ticket?id=${ticket.ticketId}" 
                                class="btn btn-warning action-btn">
                                 <i class="fas fa-edit me-2"></i>Edit Ticket
