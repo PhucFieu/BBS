@@ -33,6 +33,7 @@ import util.StringUtils;
 
 @WebServlet(urlPatterns = {"/routes/*", "/admin/routes/*"})
 public class RouteController extends HttpServlet {
+
     private RouteDAO routeDAO;
     private RouteStationDAO routeStationDAO;
     private StationDAO stationDAO;
@@ -60,8 +61,9 @@ public class RouteController extends HttpServlet {
             throws ServletException, IOException {
         String servletPath = request.getServletPath();
         String pathInfo = request.getPathInfo();
-        if (pathInfo == null)
+        if (pathInfo == null) {
             pathInfo = "/";
+        }
 
         try {
             if (servletPath.startsWith("/admin")) {
@@ -161,8 +163,9 @@ public class RouteController extends HttpServlet {
             throws ServletException, IOException {
         String servletPath = request.getServletPath();
         String pathInfo = request.getPathInfo();
-        if (pathInfo == null)
+        if (pathInfo == null) {
             pathInfo = "/";
+        }
 
         try {
             if (servletPath.startsWith("/admin")) {
@@ -192,10 +195,11 @@ public class RouteController extends HttpServlet {
                                 response);
                         return;
                     }
-                    if ("/add".equals(pathInfo))
+                    if ("/add".equals(pathInfo)) {
                         addRoute(request, response);
-                    else
+                    } else {
                         updateRoute(request, response);
+                    }
                 } else {
                     response.sendError(HttpServletResponse.SC_NOT_FOUND);
                 }
@@ -270,7 +274,7 @@ public class RouteController extends HttpServlet {
                     JsonObject stationJson = new JsonObject();
                     stationJson.addProperty("stationId",
                             station.getStationId() == null ? null
-                                    : station.getStationId().toString());
+                            : station.getStationId().toString());
                     stationJson.addProperty("stationName", station.getStationName());
                     stationJson.addProperty("city", station.getCity());
                     stationJson.addProperty("address", station.getAddress());
@@ -319,8 +323,8 @@ public class RouteController extends HttpServlet {
                 // Load all active stations for terminal station selection
                 request.setAttribute("stations", stationDAO.getAllStations());
                 // Load route stations for intermediate station selection
-                List<Station> routeStations =
-                        routeStationDAO.getStationsByRouteAsStations(route.getRouteId());
+                List<Station> routeStations
+                        = routeStationDAO.getStationsByRouteAsStations(route.getRouteId());
                 request.setAttribute("routeStations", routeStations);
                 request.getRequestDispatcher("/views/routes/route-form.jsp").forward(request,
                         response);
@@ -644,8 +648,8 @@ public class RouteController extends HttpServlet {
             if (departureCityId.equals(destinationCityId)) {
                 response.sendRedirect(
                         request.getContextPath() + "/routes/edit?id=" + routeIdStr + "&error="
-                                + encodeParam(
-                                        "Error: Departure and destination cities must be different"));
+                        + encodeParam(
+                                "Error: Departure and destination cities must be different"));
                 return;
             }
 
@@ -653,8 +657,8 @@ public class RouteController extends HttpServlet {
             if (!DISTANCE_PATTERN.matcher(distanceStr).matches()) {
                 response.sendRedirect(
                         request.getContextPath() + "/routes/edit?id=" + routeIdStr + "&error="
-                                + encodeParam(
-                                        "Error: Invalid distance format. Use numbers with up to 2 decimals (e.g., 105 or 105.5)"));
+                        + encodeParam(
+                                "Error: Invalid distance format. Use numbers with up to 2 decimals (e.g., 105 or 105.5)"));
                 return;
             }
             BigDecimal distance = new BigDecimal(distanceStr);
@@ -662,7 +666,7 @@ public class RouteController extends HttpServlet {
                     || distance.compareTo(new BigDecimal("5000")) > 0) {
                 response.sendRedirect(
                         request.getContextPath() + "/routes/edit?id=" + routeIdStr + "&error="
-                                + encodeParam("Error: Distance must be between 1 and 5000 km"));
+                        + encodeParam("Error: Distance must be between 1 and 5000 km"));
                 return;
             }
 
@@ -670,15 +674,15 @@ public class RouteController extends HttpServlet {
             if (!DURATION_PATTERN.matcher(durationHoursStr).matches()) {
                 response.sendRedirect(
                         request.getContextPath() + "/routes/edit?id=" + routeIdStr + "&error="
-                                + encodeParam(
-                                        "Error: Invalid duration format. Enter whole hours (e.g., 2, 5, 12)"));
+                        + encodeParam(
+                                "Error: Invalid duration format. Enter whole hours (e.g., 2, 5, 12)"));
                 return;
             }
             int durationHours = Integer.parseInt(durationHoursStr);
             if (durationHours < 1 || durationHours > 72) {
                 response.sendRedirect(
                         request.getContextPath() + "/routes/edit?id=" + routeIdStr + "&error="
-                                + encodeParam("Error: Duration must be between 1 and 72 hours"));
+                        + encodeParam("Error: Duration must be between 1 and 72 hours"));
                 return;
             }
 
@@ -687,8 +691,8 @@ public class RouteController extends HttpServlet {
             if (departureCity == null || destinationCity == null) {
                 response.sendRedirect(
                         request.getContextPath() + "/routes/edit?id=" + routeIdStr + "&error="
-                                + encodeParam(
-                                        "Error: Unable to resolve selected cities. Please try again."));
+                        + encodeParam(
+                                "Error: Unable to resolve selected cities. Please try again."));
                 return;
             }
 
@@ -721,7 +725,7 @@ public class RouteController extends HttpServlet {
                 errorMsg += "A route requires at least 2 active stations in the city range.";
                 response.sendRedirect(
                         request.getContextPath() + "/routes/edit?id=" + routeIdStr + "&error="
-                                + encodeParam(errorMsg));
+                        + encodeParam(errorMsg));
                 return;
             }
 
@@ -738,7 +742,7 @@ public class RouteController extends HttpServlet {
             if (basePrice.compareTo(new BigDecimal("1000")) < 0) {
                 response.sendRedirect(
                         request.getContextPath() + "/routes/edit?id=" + routeIdStr + "&error="
-                                + encodeParam("Error: Base price must be at least 1000"));
+                        + encodeParam("Error: Base price must be at least 1000"));
                 return;
             }
 
@@ -753,8 +757,8 @@ public class RouteController extends HttpServlet {
             if (routeDAO.isRouteNameExistsExcludingId(routeName, routeId)) {
                 response.sendRedirect(
                         request.getContextPath() + "/routes/edit?id=" + routeIdStr + "&error="
-                                + encodeParam("Error: Route name \"" + routeName
-                                        + "\" already exists. Please choose a different name."));
+                        + encodeParam("Error: Route name \"" + routeName
+                                + "\" already exists. Please choose a different name."));
                 return;
             }
 
@@ -816,8 +820,8 @@ public class RouteController extends HttpServlet {
             } else {
                 response.sendRedirect(
                         request.getContextPath() + "/routes/edit?id=" + routeIdStr
-                                + "&error=" + encodeParam(
-                                        "Error: Failed to update route. Please try again or contact administrator"));
+                        + "&error=" + encodeParam(
+                                "Error: Failed to update route. Please try again or contact administrator"));
             }
         } catch (NumberFormatException e) {
             response.sendRedirect(request.getContextPath() + "/routes/edit?id=" + routeIdStr
@@ -850,11 +854,11 @@ public class RouteController extends HttpServlet {
         }
 
         UUID departureStationId = parseUuidOptional(departureStationIdStr, "departure station");
-        UUID destinationStationId =
-                parseUuidOptional(destinationStationIdStr, "destination station");
+        UUID destinationStationId
+                = parseUuidOptional(destinationStationIdStr, "destination station");
 
-        RouteStationRequestDTO stationRequest =
-                new RouteStationRequestDTO(departureStationId, destinationStationId,
+        RouteStationRequestDTO stationRequest
+                = new RouteStationRequestDTO(departureStationId, destinationStationId,
                         orderedStationIds);
         stationRequest.validateAndResolve(stationDAO);
         return stationRequest;
@@ -908,7 +912,7 @@ public class RouteController extends HttpServlet {
             if (routeDAO.isRouteAssignedToSchedule(routeId)) {
                 String errorMsg = URLEncoder.encode(
                         "Cannot delete route! Route \"" + routeName
-                                + "\" has been assigned to schedules. Please delete or cancel related schedules before deleting this route.",
+                        + "\" has been assigned to schedules. Please delete or cancel related schedules before deleting this route.",
                         StandardCharsets.UTF_8);
                 response.sendRedirect(request.getContextPath()
                         + "/routes?error=" + errorMsg);
@@ -934,10 +938,9 @@ public class RouteController extends HttpServlet {
         } catch (Exception e) {
             response.sendRedirect(request.getContextPath() + "/routes?error=" + encodeParam(
                     "Error: An unexpected error occurred while deleting the route. "
-                            + e.getMessage()));
+                    + e.getMessage()));
         }
     }
-
 
     private void searchRoutes(HttpServletRequest request, HttpServletResponse response)
             throws SQLException, ServletException, IOException {

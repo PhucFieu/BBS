@@ -6,6 +6,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import dao.RouteDAO;
@@ -121,7 +122,10 @@ public class RouteSearchController extends HttpServlet {
 
         if (routes.isEmpty()) {
             request.setAttribute("error",
-                    "No routes found from " + departureCity + " to " + destinationCity);
+                    "Không tìm thấy tuyến đường từ " + departureCity + " đến " + destinationCity);
+            request.setAttribute("showNotFoundPopup", true);
+            request.setAttribute("departureCity", departureCity.trim());
+            request.setAttribute("destinationCity", destinationCity.trim());
             showSearchForm(request, response);
             return;
         }
@@ -147,11 +151,36 @@ public class RouteSearchController extends HttpServlet {
 
         // Get schedules for each route and filter out expired ones
         LocalDateTime now = LocalDateTime.now();
+        dao.TicketDAO ticketDAO = new dao.TicketDAO();
+        java.util.Map<UUID, Integer> bookedSeatsMap = new java.util.HashMap<>();
+
         for (Routes route : routes) {
+            // Load station information if station IDs exist but station objects are missing
+            if (route.getDepartureStationId() != null && route.getDepartureStationObj() == null) {
+                try {
+                    Station depStation = stationDAO.getStationById(route.getDepartureStationId());
+                    if (depStation != null) {
+                        route.setDepartureStationObj(depStation);
+                    }
+                } catch (SQLException e) {
+                    // Ignore if station not found
+                }
+            }
+            if (route.getDestinationStationId() != null && route.getDestinationStationObj() == null) {
+                try {
+                    Station destStation = stationDAO.getStationById(route.getDestinationStationId());
+                    if (destStation != null) {
+                        route.setDestinationStationObj(destStation);
+                    }
+                } catch (SQLException e) {
+                    // Ignore if station not found
+                }
+            }
             List<Schedule> schedules;
             if (departureDate != null) {
                 // Filter by date if provided
-                schedules = scheduleDAO.getSchedulesByRouteAndDate(route.getRouteId(), departureDate);
+                schedules
+                        = scheduleDAO.getSchedulesByRouteAndDate(route.getRouteId(), departureDate);
             } else {
                 // Get all schedules if no date specified
                 schedules = scheduleDAO.getSchedulesByRoute(route.getRouteId());
@@ -159,7 +188,8 @@ public class RouteSearchController extends HttpServlet {
             // Filter out expired schedules (departure date + time is before now)
             schedules = schedules.stream()
                     .filter(schedule -> {
-                        if (schedule.getDepartureDate() == null || schedule.getDepartureTime() == null) {
+                        if (schedule.getDepartureDate() == null
+                                || schedule.getDepartureTime() == null) {
                             return false;
                         }
                         LocalDateTime departureDateTime = LocalDateTime.of(
@@ -168,8 +198,21 @@ public class RouteSearchController extends HttpServlet {
                         return departureDateTime.isAfter(now);
                     })
                     .collect(Collectors.toList());
+
+            // Get booked seats count for each schedule
+            for (Schedule schedule : schedules) {
+                try {
+                    int bookedSeats = ticketDAO.getBookedSeatsCount(schedule.getScheduleId());
+                    bookedSeatsMap.put(schedule.getScheduleId(), bookedSeats);
+                } catch (SQLException e) {
+                    bookedSeatsMap.put(schedule.getScheduleId(), 0);
+                }
+            }
+
             route.setSchedules(schedules);
         }
+
+        request.setAttribute("bookedSeatsMap", bookedSeatsMap);
 
         request.setAttribute("routes", routes);
         request.setAttribute("departureCity", departureCity.trim());
@@ -206,14 +249,16 @@ public class RouteSearchController extends HttpServlet {
             }
 
             // Search for return routes (reversed)
-            List<Routes> returnRoutes = routeDAO.searchRoutes(destinationCity.trim(), departureCity.trim());
+            List<Routes> returnRoutes
+                    = routeDAO.searchRoutes(destinationCity.trim(), departureCity.trim());
 
             // Get schedules for return routes and filter out expired ones
             for (Routes route : returnRoutes) {
                 List<Schedule> returnSchedules;
                 if (returnDate != null) {
                     // Filter by return date if provided
-                    returnSchedules = scheduleDAO.getSchedulesByRouteAndDate(route.getRouteId(), returnDate);
+                    returnSchedules
+                            = scheduleDAO.getSchedulesByRouteAndDate(route.getRouteId(), returnDate);
                 } else {
                     // Get all schedules if no return date specified
                     returnSchedules = scheduleDAO.getSchedulesByRoute(route.getRouteId());
@@ -221,7 +266,8 @@ public class RouteSearchController extends HttpServlet {
                 // Filter out expired schedules (departure date + time is before now)
                 returnSchedules = returnSchedules.stream()
                         .filter(schedule -> {
-                            if (schedule.getDepartureDate() == null || schedule.getDepartureTime() == null) {
+                            if (schedule.getDepartureDate() == null
+                                    || schedule.getDepartureTime() == null) {
                                 return false;
                             }
                             LocalDateTime departureDateTime = LocalDateTime.of(
@@ -230,6 +276,17 @@ public class RouteSearchController extends HttpServlet {
                             return departureDateTime.isAfter(now);
                         })
                         .collect(Collectors.toList());
+
+                // Get booked seats count for return schedules
+                for (Schedule schedule : returnSchedules) {
+                    try {
+                        int bookedSeats = ticketDAO.getBookedSeatsCount(schedule.getScheduleId());
+                        bookedSeatsMap.put(schedule.getScheduleId(), bookedSeats);
+                    } catch (SQLException e) {
+                        bookedSeatsMap.put(schedule.getScheduleId(), 0);
+                    }
+                }
+
                 route.setSchedules(returnSchedules);
             }
 
@@ -293,6 +350,7 @@ public class RouteSearchController extends HttpServlet {
 
         // Return lightweight payload to avoid Java Time serialization issues
         class CityDTO {
+
             String city;
 
             CityDTO(String city) {
@@ -327,7 +385,8 @@ public class RouteSearchController extends HttpServlet {
 
         try {
             // Search for routes
-            List<Routes> routes = routeDAO.searchRoutes(departureCity.trim(), destinationCity.trim());
+            List<Routes> routes
+                    = routeDAO.searchRoutes(departureCity.trim(), destinationCity.trim());
 
             // For each route, get available dates from schedules
             List<java.util.Map<String, Object>> routesData = new ArrayList<>();
@@ -338,7 +397,8 @@ public class RouteSearchController extends HttpServlet {
                 java.util.Set<String> availableDates = new java.util.TreeSet<>();
                 LocalDateTime now = LocalDateTime.now();
                 for (Schedule schedule : schedules) {
-                    if (schedule.getDepartureDate() != null && schedule.getDepartureTime() != null) {
+                    if (schedule.getDepartureDate() != null
+                            && schedule.getDepartureTime() != null) {
                         LocalDateTime departureDateTime = LocalDateTime.of(
                                 schedule.getDepartureDate(),
                                 schedule.getDepartureTime());
