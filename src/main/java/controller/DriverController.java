@@ -31,7 +31,7 @@ import model.Schedule;
 import model.Tickets;
 import util.AuthUtils;
 
-@WebServlet(urlPatterns = {"/driver/*", "/admin/drivers/*"})
+@WebServlet(urlPatterns = { "/driver/*", "/admin/drivers/*" })
 public class DriverController extends HttpServlet {
     private DriverDAO driverDAO;
     private ScheduleDAO scheduleDAO;
@@ -103,10 +103,15 @@ public class DriverController extends HttpServlet {
 
                 if (pathInfo.equals("/") || pathInfo.equals("/dashboard")) {
                     showDashboard(request, response);
+                } else if (pathInfo.equals("/schedule")) {
+                    // Redirect to /trips since Schedule functionality is merged into My Trips
+                    response.sendRedirect(request.getContextPath() + "/driver/trips");
                 } else if (pathInfo.equals("/trips")) {
                     showAssignedTrips(request, response);
                 } else if (pathInfo.equals("/trip-details")) {
                     respondTripDetails(request, response);
+                } else if (pathInfo.equals("/check-in")) {
+                    showCheckInPassengers(request, response);
                 } else if (pathInfo.equals("/update-status")) {
                     showUpdateStatusForm(request, response);
                 } else {
@@ -165,6 +170,10 @@ public class DriverController extends HttpServlet {
 
                 if (pathInfo.equals("/update-status")) {
                     updateTripStatus(request, response);
+                } else if (pathInfo.equals("/check-in")) {
+                    performCheckIn(request, response);
+                } else if (pathInfo.equals("/check-in-ajax")) {
+                    performCheckInAjax(request, response);
                 } else {
                     response.sendError(HttpServletResponse.SC_NOT_FOUND);
                 }
@@ -230,37 +239,9 @@ public class DriverController extends HttpServlet {
         HttpSession session = request.getSession(false);
         UUID userId = (UUID) session.getAttribute("userId");
 
-        // Get driver info
-        Driver driver = driverDAO.getDriverByUserId(userId);
+        Driver driver = resolveOrCreateDriverProfile(request, response, userId);
         if (driver == null) {
-            // Auto-create a minimal driver profile for this user and continue to dashboard
-            try {
-                model.Driver newDriver = new model.Driver();
-                newDriver.setUserId(userId);
-                // Create a placeholder license number; can be updated later by admin
-                String placeholder = "TEMP-" + userId.toString().replace("-", "");
-                placeholder = placeholder.substring(Math.max(0, placeholder.length() - 10));
-                newDriver.setLicenseNumber(placeholder);
-                newDriver.setExperienceYears(0);
-                newDriver.setStatus("ACTIVE");
-
-                boolean created = driverDAO.addDriver(newDriver);
-                if (!created) {
-                    request.setAttribute("error",
-                            "Unable to auto-create driver profile for current user");
-                    request.getRequestDispatcher("/views/errors/403.jsp").forward(request,
-                            response);
-                    return;
-                }
-
-                // Reload the driver profile
-                driver = driverDAO.getDriverByUserId(userId);
-            } catch (SQLException ex) {
-                request.setAttribute("error",
-                        "Database error while creating driver profile: " + ex.getMessage());
-                request.getRequestDispatcher("/views/errors/403.jsp").forward(request, response);
-                return;
-            }
+            return; // resolveOrCreateDriverProfile already handled the response
         }
 
         // Get assigned schedules for this driver
@@ -269,6 +250,26 @@ public class DriverController extends HttpServlet {
         request.setAttribute("driver", driver);
         request.setAttribute("trips", assignedTrips);
         request.getRequestDispatcher("/views/driver/trips.jsp").forward(request, response);
+    }
+
+    /**
+     * Show schedule page for the current driver (calendar/table view)
+     */
+    private void showSchedule(HttpServletRequest request, HttpServletResponse response)
+            throws SQLException, ServletException, IOException {
+        HttpSession session = request.getSession(false);
+        UUID userId = (UUID) session.getAttribute("userId");
+
+        Driver driver = resolveOrCreateDriverProfile(request, response, userId);
+        if (driver == null) {
+            return;
+        }
+
+        List<Schedule> assignedTrips = scheduleDAO.getSchedulesByDriverId(driver.getDriverId());
+
+        request.setAttribute("driver", driver);
+        request.setAttribute("trips", assignedTrips);
+        request.getRequestDispatcher("/views/driver/schedule.jsp").forward(request, response);
     }
 
     /**
@@ -328,6 +329,7 @@ public class DriverController extends HttpServlet {
                 return;
             }
 
+            // Show all passengers for this trip (including those not yet checked in)
             List<Tickets> passengers = ticketDAO.getTicketsByScheduleId(scheduleId);
             List<Map<String, Object>> passengerData = new ArrayList<>();
 
@@ -343,6 +345,12 @@ public class DriverController extends HttpServlet {
                         && !ticket.getCustomerPhone().trim().isEmpty())
                                 ? ticket.getCustomerPhone()
                                 : "";
+                boolean isCheckedIn = ticket.getCheckedInAt() != null || "CHECKED_IN".equals(ticket.getStatus());
+                boolean canCheckIn = "PAID".equals(ticket.getPaymentStatus()) && !isCheckedIn
+                        && !"CANCELLED".equals(ticket.getStatus());
+
+                passengerInfo.put("ticketId",
+                        ticket.getTicketId() != null ? ticket.getTicketId().toString() : null);
                 passengerInfo.put("fullName", displayName);
                 passengerInfo.put("phone", displayPhone);
                 passengerInfo.put("username", ticket.getUsername());
@@ -352,6 +360,13 @@ public class DriverController extends HttpServlet {
                 passengerInfo.put("boardingCity", ticket.getBoardingCity());
                 passengerInfo.put("alightingStation", ticket.getAlightingStationName());
                 passengerInfo.put("alightingCity", ticket.getAlightingCity());
+                passengerInfo.put("status", ticket.getStatus());
+                passengerInfo.put("paymentStatus", ticket.getPaymentStatus());
+                passengerInfo.put("checkedIn", isCheckedIn);
+                passengerInfo.put("canCheckIn", canCheckIn);
+                passengerInfo.put("checkedInAt",
+                        ticket.getCheckedInAt() != null ? ticket.getCheckedInAt().toString()
+                                : null);
                 passengerData.add(passengerInfo);
             }
 
@@ -365,6 +380,299 @@ public class DriverController extends HttpServlet {
             payload.put("success", false);
             payload.put("message", "Failed to load trip details. Please try again later.");
             writeJson(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, payload);
+        }
+    }
+
+    private Driver resolveOrCreateDriverProfile(HttpServletRequest request,
+            HttpServletResponse response, UUID userId)
+            throws ServletException, IOException {
+        Driver driver = null;
+        try {
+            driver = driverDAO.getDriverByUserId(userId);
+            if (driver == null) {
+                model.Driver newDriver = new model.Driver();
+                newDriver.setUserId(userId);
+                String placeholder = "TEMP-" + userId.toString().replace("-", "");
+                placeholder = placeholder.substring(Math.max(0, placeholder.length() - 10));
+                newDriver.setLicenseNumber(placeholder);
+                newDriver.setExperienceYears(0);
+                newDriver.setStatus("ACTIVE");
+
+                boolean created = driverDAO.addDriver(newDriver);
+                if (!created) {
+                    request.setAttribute("error",
+                            "Unable to auto-create driver profile for current user");
+                    request.getRequestDispatcher("/views/errors/403.jsp").forward(request,
+                            response);
+                    return null;
+                }
+
+                driver = driverDAO.getDriverByUserId(userId);
+            }
+        } catch (SQLException ex) {
+            request.setAttribute("error",
+                    "Database error while creating driver profile: " + ex.getMessage());
+            request.getRequestDispatcher("/views/errors/403.jsp").forward(request, response);
+            return null;
+        }
+        return driver;
+    }
+
+    /**
+     * Perform check-in for a passenger via AJAX (driver modal)
+     */
+    private void performCheckInAjax(HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+
+        Map<String, Object> payload = new HashMap<>();
+        HttpSession session = request.getSession(false);
+        if (session == null || session.getAttribute("userId") == null) {
+            payload.put("success", false);
+            payload.put("message", "Session expired. Please sign in again.");
+            writeJson(response, HttpServletResponse.SC_UNAUTHORIZED, payload);
+            return;
+        }
+
+        UUID userId = (UUID) session.getAttribute("userId");
+        String ticketIdStr = request.getParameter("ticketId");
+        String scheduleIdStr = request.getParameter("scheduleId");
+
+        if (ticketIdStr == null || ticketIdStr.trim().isEmpty()) {
+            payload.put("success", false);
+            payload.put("message", "Ticket ID is required");
+            writeJson(response, HttpServletResponse.SC_BAD_REQUEST, payload);
+            return;
+        }
+
+        try {
+            Driver driver = driverDAO.getDriverByUserId(userId);
+            if (driver == null) {
+                payload.put("success", false);
+                payload.put("message", "Driver profile not found");
+                writeJson(response, HttpServletResponse.SC_FORBIDDEN, payload);
+                return;
+            }
+
+            UUID ticketId = UUID.fromString(ticketIdStr);
+            Tickets ticket = ticketDAO.getTicketById(ticketId);
+            if (ticket == null) {
+                payload.put("success", false);
+                payload.put("message", "Ticket not found");
+                writeJson(response, HttpServletResponse.SC_NOT_FOUND, payload);
+                return;
+            }
+
+            UUID scheduleId = null;
+            if (scheduleIdStr != null && !scheduleIdStr.trim().isEmpty()) {
+                scheduleId = UUID.fromString(scheduleIdStr);
+            } else if (ticket.getScheduleId() != null) {
+                scheduleId = ticket.getScheduleId();
+            }
+
+            if (scheduleId != null && !scheduleDAO.isDriverAssignedToSchedule(scheduleId,
+                    driver.getDriverId())) {
+                payload.put("success", false);
+                payload.put("message", "Access denied for this schedule");
+                writeJson(response, HttpServletResponse.SC_FORBIDDEN, payload);
+                return;
+            }
+
+            if (!"PAID".equals(ticket.getPaymentStatus())) {
+                payload.put("success", false);
+                payload.put("message", "Ticket is not paid. Please collect payment first.");
+                writeJson(response, HttpServletResponse.SC_BAD_REQUEST, payload);
+                return;
+            }
+
+            if ("CANCELLED".equals(ticket.getStatus())) {
+                payload.put("success", false);
+                payload.put("message", "Cannot check in a cancelled ticket");
+                writeJson(response, HttpServletResponse.SC_BAD_REQUEST, payload);
+                return;
+            }
+
+            if (ticket.getCheckedInAt() != null || "CHECKED_IN".equals(ticket.getStatus())) {
+                payload.put("success", true);
+                payload.put("message", "Passenger already checked in");
+                payload.put("status", ticket.getStatus());
+                payload.put("checkedInAt",
+                        ticket.getCheckedInAt() != null ? ticket.getCheckedInAt().toString()
+                                : null);
+                writeJson(response, HttpServletResponse.SC_OK, payload);
+                return;
+            }
+
+            ticket.setStatus("CHECKED_IN");
+            ticket.setCheckedInAt(LocalDateTime.now());
+            ticket.setCheckedInByStaffId(userId); // Using driver's user ID for audit
+
+            boolean success = ticketDAO.updateTicket(ticket);
+            if (success) {
+                payload.put("success", true);
+                payload.put("message", "Passenger checked in successfully");
+                payload.put("status", ticket.getStatus());
+                payload.put("checkedInAt",
+                        ticket.getCheckedInAt() != null ? ticket.getCheckedInAt().toString()
+                                : null);
+                writeJson(response, HttpServletResponse.SC_OK, payload);
+            } else {
+                payload.put("success", false);
+                payload.put("message", "Failed to check in passenger");
+                writeJson(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, payload);
+            }
+        } catch (IllegalArgumentException e) {
+            payload.put("success", false);
+            payload.put("message", "Invalid identifier format");
+            writeJson(response, HttpServletResponse.SC_BAD_REQUEST, payload);
+        } catch (SQLException e) {
+            payload.put("success", false);
+            payload.put("message", "Database error: " + e.getMessage());
+            writeJson(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, payload);
+        }
+    }
+
+    /**
+     * Show check-in page for driver to check-in passengers
+     */
+    private void showCheckInPassengers(HttpServletRequest request, HttpServletResponse response)
+            throws SQLException, ServletException, IOException {
+        HttpSession session = request.getSession(false);
+        UUID userId = (UUID) session.getAttribute("userId");
+
+        Driver driver = driverDAO.getDriverByUserId(userId);
+        if (driver == null) {
+            response.sendRedirect(
+                    request.getContextPath() + "/driver/trips?error=Driver profile not found");
+            return;
+        }
+
+        String scheduleIdStr = request.getParameter("scheduleId");
+        if (scheduleIdStr == null || scheduleIdStr.trim().isEmpty()) {
+            response.sendRedirect(
+                    request.getContextPath() + "/driver/trips?error=Schedule ID is required");
+            return;
+        }
+
+        try {
+            UUID scheduleId = UUID.fromString(scheduleIdStr);
+
+            // Verify driver is assigned to this schedule
+            boolean isAssigned = scheduleDAO.isDriverAssignedToSchedule(scheduleId, driver.getDriverId());
+            if (!isAssigned) {
+                response.sendRedirect(request.getContextPath()
+                        + "/driver/trips?error=Access denied for this schedule");
+                return;
+            }
+
+            Schedule schedule = scheduleDAO.getScheduleById(scheduleId);
+            if (schedule == null) {
+                response.sendRedirect(
+                        request.getContextPath() + "/driver/trips?error=Schedule not found");
+                return;
+            }
+
+            // Get unchecked-in tickets (paid tickets that haven't been checked in)
+            List<Tickets> uncheckedInTickets = ticketDAO.getUncheckedInTicketsByScheduleId(scheduleId);
+            List<Tickets> checkedInTickets = ticketDAO.getCheckedInTicketsByScheduleId(scheduleId);
+
+            request.setAttribute("schedule", schedule);
+            request.setAttribute("uncheckedInTickets", uncheckedInTickets);
+            request.setAttribute("checkedInTickets", checkedInTickets);
+            request.getRequestDispatcher("/views/driver/check-in.jsp").forward(request, response);
+
+        } catch (IllegalArgumentException e) {
+            response.sendRedirect(
+                    request.getContextPath() + "/driver/trips?error=Invalid schedule ID format");
+        }
+    }
+
+    /**
+     * Perform check-in for a passenger (driver action)
+     */
+    private void performCheckIn(HttpServletRequest request, HttpServletResponse response)
+            throws SQLException, IOException {
+        HttpSession session = request.getSession(false);
+        UUID userId = (UUID) session.getAttribute("userId");
+
+        Driver driver = driverDAO.getDriverByUserId(userId);
+        if (driver == null) {
+            response.sendRedirect(
+                    request.getContextPath() + "/driver/trips?error=Driver profile not found");
+            return;
+        }
+
+        String ticketIdStr = request.getParameter("ticketId");
+        String scheduleIdStr = request.getParameter("scheduleId");
+
+        if (ticketIdStr == null || ticketIdStr.trim().isEmpty()) {
+            String redirectUrl = request.getContextPath() + "/driver/check-in?scheduleId=" + scheduleIdStr;
+            response.sendRedirect(redirectUrl + "&error=Ticket ID is required");
+            return;
+        }
+
+        try {
+            UUID ticketId = UUID.fromString(ticketIdStr);
+            Tickets ticket = ticketDAO.getTicketById(ticketId);
+
+            if (ticket == null) {
+                String redirectUrl = request.getContextPath() + "/driver/check-in?scheduleId=" + scheduleIdStr;
+                response.sendRedirect(redirectUrl + "&error=Ticket not found");
+                return;
+            }
+
+            // Verify driver is assigned to this schedule
+            if (scheduleIdStr != null && !scheduleIdStr.trim().isEmpty()) {
+                UUID scheduleId = UUID.fromString(scheduleIdStr);
+                boolean isAssigned = scheduleDAO.isDriverAssignedToSchedule(scheduleId, driver.getDriverId());
+                if (!isAssigned) {
+                    response.sendRedirect(request.getContextPath()
+                            + "/driver/trips?error=Access denied for this schedule");
+                    return;
+                }
+            }
+
+            if (ticket.getCheckedInAt() != null) {
+                String redirectUrl = request.getContextPath() + "/driver/check-in?scheduleId=" + scheduleIdStr;
+                response.sendRedirect(redirectUrl + "&message=Passenger already checked in");
+                return;
+            }
+
+            // Check payment status
+            if (!"PAID".equals(ticket.getPaymentStatus())) {
+                String redirectUrl = request.getContextPath() + "/driver/check-in?scheduleId=" + scheduleIdStr;
+                response.sendRedirect(
+                        redirectUrl + "&error=Ticket is not paid. Please collect payment first.");
+                return;
+            }
+
+            if ("CANCELLED".equals(ticket.getStatus())) {
+                String redirectUrl = request.getContextPath() + "/driver/check-in?scheduleId=" + scheduleIdStr;
+                response.sendRedirect(redirectUrl + "&error=Cannot check in a cancelled ticket");
+                return;
+            }
+
+            // Perform check-in
+            ticket.setStatus("CHECKED_IN");
+            ticket.setCheckedInAt(java.time.LocalDateTime.now());
+            ticket.setCheckedInByStaffId(userId); // Using driver's user ID
+
+            boolean success = ticketDAO.updateTicket(ticket);
+
+            if (success) {
+                String redirectUrl = request.getContextPath() + "/driver/check-in?scheduleId=" + scheduleIdStr;
+                response.sendRedirect(redirectUrl + "&message=Passenger checked in successfully");
+            } else {
+                String redirectUrl = request.getContextPath() + "/driver/check-in?scheduleId=" + scheduleIdStr;
+                response.sendRedirect(redirectUrl + "&error=Failed to check in passenger");
+            }
+        } catch (IllegalArgumentException e) {
+            String redirectUrl = request.getContextPath() + "/driver/check-in?scheduleId=" + scheduleIdStr;
+            response.sendRedirect(redirectUrl + "&error=Invalid ticket ID format");
+        } catch (Exception e) {
+            String redirectUrl = request.getContextPath() + "/driver/check-in?scheduleId=" + scheduleIdStr;
+            response.sendRedirect(redirectUrl + "&error=Error: " + e.getMessage());
         }
     }
 
@@ -704,7 +1012,8 @@ public class DriverController extends HttpServlet {
             double requiredGapHours = calculateRequiredGapHours(schedule);
             double scheduleDurationHours = Math.max(0, requiredGapHours - 8.0);
 
-            // Check minimum gap between each driver's last schedule end and this schedule start
+            // Check minimum gap between each driver's last schedule end and this schedule
+            // start
             Map<UUID, Double> driverMinGap = new HashMap<>();
             for (Driver driver : drivers) {
                 double minGap = scheduleDAO.calculateMinGapBeforeNewSchedule(
@@ -913,8 +1222,7 @@ public class DriverController extends HttpServlet {
             user.setRole("DRIVER");
             user.setStatus("ACTIVE");
             // Ensure id_card is unique to satisfy DB unique constraint without DB changes
-            String autoIdCard =
-                    "AUTO-" + user.getUserId().toString().replace("-", "").substring(0, 12);
+            String autoIdCard = "AUTO-" + user.getUserId().toString().replace("-", "").substring(0, 12);
             user.setIdCard(autoIdCard);
             user.setAddress(null);
             user.setGender(null);
@@ -946,16 +1254,13 @@ public class DriverController extends HttpServlet {
                 if (e.getMessage().contains("UNIQUE KEY constraint")) {
                     if (e.getMessage().contains("username")
                             || e.getMessage().contains("UQ__Users__")) {
-                        errorMsg =
-                                "Error: Username already exists. Please choose a different username.";
+                        errorMsg = "Error: Username already exists. Please choose a different username.";
                     } else if (e.getMessage().contains("email")) {
                         errorMsg = "Error: Email already exists. Please use a different email.";
                     } else if (e.getMessage().contains("phone")) {
-                        errorMsg =
-                                "Error: Phone number already exists. Please use a different phone number.";
+                        errorMsg = "Error: Phone number already exists. Please use a different phone number.";
                     } else {
-                        errorMsg =
-                                "Error: A unique constraint violation occurred. Please check username, email, phone number, or ID card.";
+                        errorMsg = "Error: A unique constraint violation occurred. Please check username, email, phone number, or ID card.";
                     }
                 }
                 response.sendRedirect(request.getContextPath()
@@ -1269,7 +1574,8 @@ public class DriverController extends HttpServlet {
                 return;
             }
 
-            // Check if driver can be assigned (8-hour rule: gap between schedule end and new
+            // Check if driver can be assigned (8-hour rule: gap between schedule end and
+            // new
             // schedule start)
             double requiredGapHours = calculateRequiredGapHours(schedule);
             Schedule violatingSchedule = scheduleDAO.checkDriverScheduleTimeGap(
@@ -1294,8 +1600,7 @@ public class DriverController extends HttpServlet {
                 }
                 java.time.LocalDateTime newScheduleStart = java.time.LocalDateTime.of(
                         schedule.getDepartureDate(), schedule.getDepartureTime());
-                java.time.Duration gap =
-                        java.time.Duration.between(violatingScheduleEnd, newScheduleStart);
+                java.time.Duration gap = java.time.Duration.between(violatingScheduleEnd, newScheduleStart);
                 double gapHours = gap.toMinutes() / 60.0;
                 double newTripDurationHours = Math.max(0, requiredGapHours - 8.0);
 
@@ -1355,9 +1660,8 @@ public class DriverController extends HttpServlet {
             boolean success = scheduleDAO.assignDriverToSchedule(scheduleId, driverId, true);
             if (success) {
                 Driver driver = driverDAO.getDriverById(driverId);
-                String driverName =
-                        driver != null && driver.getFullName() != null ? driver.getFullName()
-                                : "Driver";
+                String driverName = driver != null && driver.getFullName() != null ? driver.getFullName()
+                        : "Driver";
                 String message = "Driver assigned successfully! " + driverName
                         + " has been assigned to this schedule";
                 response.sendRedirect(request.getContextPath()
