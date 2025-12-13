@@ -412,10 +412,9 @@
                             </div>
                             <div class="page-actions">
                                 <c:if test="${role == 'ADMIN' || role == 'DRIVER'}">
-                                    <a href="${pageContext.request.contextPath}/tickets/add"
-                                        class="btn btn-primary btn-lg">
-                                        <i class="fas fa-plus me-2"></i>Thêm Vé Mới
-                                    </a>
+                                    <span class="badge bg-secondary rounded-pill">
+                                        Vé được tạo tự động khi khách đặt chỗ
+                                    </span>
                                 </c:if>
                             </div>
                         </div>
@@ -594,10 +593,8 @@
                                 data-departuretime="<fmt:formatDate value='${ticket.departureTimeSql}' pattern='HH:mm'/>"
                                 data-boardingstation="<c:out value='${ticket.boardingStationName}'/>"
                                 data-boardingcity="<c:out value='${ticket.boardingCity}'/>"
-                                data-boardingtime="${ticket.boardingArrivalTimeSql}"
                                 data-dropoffstation="<c:out value='${ticket.alightingStationName}'/>"
                                 data-dropoffcity="<c:out value='${ticket.alightingCity}'/>"
-                                data-dropofftime="${ticket.alightingArrivalTimeSql}"
                                 data-ticketprice="${ticket.ticketPrice}" data-status="${ticket.status}"
                                 data-paymentstatus="${ticket.paymentStatus}">
                                 <i class="fas fa-eye"></i>
@@ -709,10 +706,8 @@
                                                 data-departuretime="<fmt:formatDate value='${ticket.departureTimeSql}' pattern='HH:mm'/>"
                                                 data-boardingstation="<c:out value='${ticket.boardingStationName}'/>"
                                                 data-boardingcity="<c:out value='${ticket.boardingCity}'/>"
-                                                data-boardingtime="${ticket.boardingArrivalTimeSql}"
                                                 data-dropoffstation="<c:out value='${ticket.alightingStationName}'/>"
                                                 data-dropoffcity="<c:out value='${ticket.alightingCity}'/>"
-                                                data-dropofftime="${ticket.alightingArrivalTimeSql}"
                                                 data-ticketprice="${ticket.ticketPrice}" data-status="${ticket.status}"
                                                 data-paymentstatus="${ticket.paymentStatus}">
                                                 <i class="fas fa-eye"></i>
@@ -884,10 +879,10 @@
                                     // Boarding / Drop-off
                                     var bStation = button.getAttribute('data-boardingstation') || '';
                                     var bCity = button.getAttribute('data-boardingcity') || '';
-                                    var bTime = button.getAttribute('data-boardingtime') || '';
+                                    var bTime = '';
                                     var dStation = button.getAttribute('data-dropoffstation') || '';
                                     var dCity = button.getAttribute('data-dropoffcity') || '';
-                                    var dTime = button.getAttribute('data-dropofftime') || '';
+                                    var dTime = '';
                                     var boardingText = (bStation ? bStation : '-') + (bCity ? ' (' + bCity + ')' : '') + (bTime ? ' • ' + bTime : '');
                                     var dropoffText = (dStation ? dStation : '-') + (dCity ? ' (' + dCity + ')' : '') + (dTime ? ' • ' + dTime : '');
                                     document.getElementById('detailBoarding').textContent = boardingText;

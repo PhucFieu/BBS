@@ -1,550 +1,1013 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
-    <%@ taglib prefix="c" uri="jakarta.tags.core" %>
-        <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
+<!DOCTYPE html>
+<html lang="en">
 
-            <!DOCTYPE html>
-            <html lang="en">
+    <head>
+        <jsp:include page="/views/partials/head.jsp">
+            <jsp:param name="title" value="Search Results - Bus Booking System" />
+        </jsp:include>
+        <style>
+            :root {
+                --primary-gradient: linear-gradient(135deg, #66bb6a 0%, #81c784 100%);
+                --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+                --success-color: #10b981;
+                --text-dark: #1e293b;
+                --text-light: #64748b;
+                --card-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+                --card-shadow-hover: 0 20px 40px rgba(0, 0, 0, 0.15);
+            }
 
-            <head>
-                <jsp:include page="/views/partials/head.jsp">
-                    <jsp:param name="title" value="Search Results - BusTicket System" />
-                </jsp:include>
-                <style>
-                    .search-summary {
-                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                        color: white;
-                        padding: 20px;
-                        border-radius: 10px;
-                        margin-bottom: 30px;
-                    }
+            body {
+                font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+                background: #f8fafc;
+                min-height: 100vh;
+                display: flex;
+                flex-direction: column;
+            }
 
-                    .route-card {
-                        border: 1px solid #e9ecef;
-                        border-radius: 10px;
-                        margin-bottom: 20px;
-                        transition: transform 0.2s, box-shadow 0.2s;
-                    }
+            /* Hero Section */
+            .search-hero {
+                background: var(--primary-gradient);
+                color: white;
+                padding: 60px 0 40px;
+                position: relative;
+                overflow: hidden;
+                margin-bottom: 40px;
+            }
 
-                    .route-card:hover {
-                        transform: translateY(-2px);
-                        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-                    }
+            .search-hero::before {
+                content: '';
+                position: absolute;
+                top: -50%;
+                right: -10%;
+                width: 500px;
+                height: 500px;
+                background: rgba(255, 255, 255, 0.1);
+                border-radius: 50%;
+                transform: rotate(45deg);
+            }
 
-                    .schedule-item {
-                        border: 1px solid #e9ecef;
-                        border-radius: 8px;
-                        padding: 15px;
-                        margin-bottom: 10px;
-                        background: #f8f9fa;
-                    }
+            .search-hero::after {
+                content: '';
+                position: absolute;
+                bottom: -30%;
+                left: -5%;
+                width: 400px;
+                height: 400px;
+                background: rgba(255, 255, 255, 0.08);
+                border-radius: 50%;
+            }
 
-                    .schedule-item:hover {
-                        background: #e9ecef;
-                    }
+            .search-hero-content {
+                position: relative;
+                z-index: 2;
+            }
 
-                    .price-highlight {
-                        font-size: 1.2rem;
-                        font-weight: bold;
-                        color: #28a745;
-                    }
+            .search-title {
+                font-size: 2.5rem;
+                font-weight: 700;
+                margin-bottom: 1rem;
+                text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            }
 
-                    .seat-availability {
-                        font-size: 0.9rem;
-                        color: #6c757d;
-                    }
+            .search-subtitle {
+                font-size: 1.25rem;
+                opacity: 0.95;
+                margin-bottom: 1.5rem;
+            }
 
-                    .btn-book {
-                        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-                        border: none;
-                        color: white;
-                        font-weight: 600;
-                    }
+            .date-badges {
+                display: flex;
+                gap: 12px;
+                flex-wrap: wrap;
+                justify-content: center;
+                margin-top: 1.5rem;
+            }
 
-                    .btn-book:hover {
-                        transform: translateY(-1px);
-                        box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
-                    }
+            .date-badge {
+                background: rgba(255, 255, 255, 0.2);
+                backdrop-filter: blur(10px);
+                border: 1px solid rgba(255, 255, 255, 0.3);
+                padding: 10px 20px;
+                border-radius: 25px;
+                font-size: 0.95rem;
+                font-weight: 500;
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+            }
 
-                    .trip-section {
-                        margin-bottom: 40px;
-                    }
+            /* Route Cards */
+            .route-card {
+                background: white;
+                border: none;
+                border-radius: 20px;
+                box-shadow: var(--card-shadow);
+                transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+                overflow: hidden;
+                height: 100%;
+                display: flex;
+                flex-direction: column;
+                position: relative;
+            }
 
-                    .trip-header {
-                        background: #f8f9fa;
-                        padding: 15px;
-                        border-radius: 8px;
-                        margin-bottom: 20px;
-                    }
+            .route-card::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 5px;
+                background: var(--primary-gradient);
+                transform: scaleX(0);
+                transform-origin: left;
+                transition: transform 0.4s ease;
+            }
 
-                    .no-results {
-                        text-align: center;
-                        padding: 60px 20px;
-                    }
+            .route-card:hover {
+                transform: translateY(-10px) scale(1.02);
+                box-shadow: var(--card-shadow-hover);
+            }
 
-                    .no-results i {
-                        font-size: 4rem;
-                        color: #6c757d;
-                        margin-bottom: 20px;
-                    }
+            .route-card:hover::before {
+                transform: scaleX(1);
+            }
 
-                    .filter-section {
-                        background: #f8f9fa;
-                        padding: 20px;
-                        border-radius: 8px;
-                        margin-bottom: 20px;
-                    }
+            .route-card-header {
+                padding: 1.75rem 1.75rem 1rem;
+                background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+                border-bottom: 1px solid #e2e8f0;
+            }
 
-                    .sort-options {
-                        display: flex;
-                        gap: 10px;
-                        align-items: center;
-                    }
+            .route-name {
+                font-size: 1.35rem;
+                font-weight: 700;
+                color: var(--text-dark);
+                margin-bottom: 0.5rem;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
 
-                    .sort-options select {
-                        min-width: 150px;
-                    }
-                </style>
-            </head>
+            .route-name i {
+                color: #66bb6a;
+                font-size: 1.2rem;
+            }
 
-            <body>
-                <%@ include file="/views/partials/user-header.jsp" %>
+            .route-path {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                margin-top: 1rem;
+                padding: 12px;
+                background: #f1f5f9;
+                border-radius: 12px;
+            }
 
-                    <div class="container mt-4">
-                        <!-- Search Summary -->
-                        <div class="search-summary">
-                            <div class="row align-items-center">
-                                <div class="col-md-8">
-                                    <h4 class="mb-2">
-                                        <i class="fas fa-search me-2"></i>Search Results
-                                    </h4>
-                                    <p class="mb-0">
-                                        <i class="fas fa-map-marker-alt me-1"></i>${departureCity}
-                                        <i class="fas fa-arrow-right mx-2"></i>
-                                        <i class="fas fa-map-marker-alt me-1"></i>${destinationCity}
-                                        <span class="ms-3">
-                                            <i class="fas fa-calendar me-1"></i>
-                                            <fmt:formatDate value="${departureDate}" pattern="EEEE, MMMM dd, yyyy" />
-                                        </span>
-                                        <c:if test="${tripType eq 'roundtrip' and not empty returnDate}">
-                                            <span class="ms-3">
-                                                <i class="fas fa-calendar me-1"></i>
-                                                <fmt:formatDate value="${returnDate}" pattern="EEEE, MMMM dd, yyyy" />
-                                            </span>
-                                        </c:if>
-                                    </p>
-                                </div>
-                                <div class="col-md-4 text-end">
-                                    <a href="${pageContext.request.contextPath}/routes" class="btn btn-light">
-                                        <i class="fas fa-search me-1"></i>New Search
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
+            .route-city {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                font-weight: 600;
+                color: var(--text-dark);
+                font-size: 1rem;
+            }
 
-                        <!-- Outbound Trip -->
-                        <div class="trip-section">
-                            <div class="trip-header">
-                                <h5 class="mb-0">
-                                    <i class="fas fa-arrow-right text-primary me-2"></i>
-                                    Outbound Trip: ${departureCity} → ${destinationCity}
-                                </h5>
-                            </div>
+            .route-city.departure i {
+                color: #66bb6a;
+                font-size: 1.1rem;
+            }
 
-                            <c:choose>
-                                <c:when test="${empty routes}">
-                                    <div class="no-results">
-                                        <i class="fas fa-route"></i>
-                                        <h5>No routes found</h5>
-                                        <p class="text-muted">We couldn't find any routes between ${departureCity} and
-                                            ${destinationCity} for the selected date.</p>
-                                        <a href="${pageContext.request.contextPath}/routes" class="btn btn-primary">
-                                            <i class="fas fa-search me-1"></i>Try Different Search
-                                        </a>
-                                    </div>
-                                </c:when>
-                                <c:otherwise>
-                                    <!-- Filter and Sort -->
-                                    <div class="filter-section">
-                                        <div class="row align-items-center">
-                                            <div class="col-md-6">
-                                                <strong>Found ${routes.size()} route(s)</strong>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <div class="sort-options justify-content-end">
-                                                    <label for="sortBy" class="form-label mb-0 me-2">Sort by:</label>
-                                                    <select class="form-select" id="sortBy" onchange="sortRoutes()">
-                                                        <option value="price">Price (Low to High)</option>
-                                                        <option value="duration">Duration (Short to Long)</option>
-                                                        <option value="departure">Departure Time</option>
-                                                    </select>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
+            .route-city.destination i {
+                color: #f5576c;
+                font-size: 1.1rem;
+            }
 
-                                    <!-- Routes List -->
-                                    <div id="routesList">
-                                        <c:forEach var="route" items="${routes}">
-                                            <div class="route-card" data-price="${route.basePrice}"
-                                                data-duration="${route.durationHours}">
-                                                <div class="card-body">
-                                                    <div class="row">
-                                                        <div class="col-md-8">
-                                                            <h5 class="card-title">
-                                                                <i
-                                                                    class="fas fa-route text-primary me-2"></i>${route.routeName}
-                                                            </h5>
-                                                            <p class="card-text mb-3">
-                                                                <i class="fas fa-map-marker-alt text-primary"></i>
-                                                                ${route.departureCity}
-                                                                <i class="fas fa-arrow-right mx-2 text-muted"></i>
-                                                                <i class="fas fa-map-marker-alt text-danger"></i>
-                                                                ${route.destinationCity}
-                                                            </p>
-                                                            <div class="row">
-                                                                <div class="col-sm-4">
-                                                                    <small class="text-muted">Distance</small><br>
-                                                                    <strong>${route.distance} km</strong>
-                                                                </div>
-                                                                <div class="col-sm-4">
-                                                                    <small class="text-muted">Duration</small><br>
-                                                                    <strong>${route.durationHours} hours</strong>
-                                                                </div>
-                                                                <div class="col-sm-4">
-                                                                    <small class="text-muted">Base Price</small><br>
-                                                                    <strong class="text-success">
-                                                                        <fmt:formatNumber value="${route.basePrice}"
-                                                                            type="currency" currencySymbol="₫"
-                                                                            maxFractionDigits="0" />
-                                                                    </strong>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                        <div class="col-md-4 text-end">
-                                                            <div class="price-highlight mb-2">
-                                                                From
-                                                                <fmt:formatNumber value="${route.basePrice}"
-                                                                    type="currency" currencySymbol="₫"
-                                                                    maxFractionDigits="0" />
-                                                            </div>
-                                                            <c:choose>
-                                                                <c:when test="${empty route.schedules}">
-                                                                    <p class="text-muted mb-2">No schedules available
-                                                                    </p>
-                                                                </c:when>
-                                                                <c:otherwise>
-                                                                    <p class="seat-availability mb-2">
-                                                                        ${route.schedules.size()} schedule(s) available
-                                                                    </p>
-                                                                </c:otherwise>
-                                                            </c:choose>
-                                                            <button class="btn btn-outline-primary"
-                                                                onclick="toggleSchedules('route${route.routeId}')">
-                                                                <i class="fas fa-clock me-1"></i>View Schedules
-                                                            </button>
-                                                        </div>
-                                                    </div>
+            .route-arrow {
+                color: var(--text-light);
+                font-size: 1.2rem;
+                flex: 1;
+                text-align: center;
+            }
 
-                                                    <!-- Schedules (Hidden by default) -->
-                                                    <div id="route${route.routeId}" class="mt-3" style="display: none;">
-                                                        <hr>
-                                                        <h6 class="text-primary mb-3">
-                                                            <i class="fas fa-clock me-2"></i>Available Schedules
-                                                        </h6>
-                                                        <c:choose>
-                                                            <c:when test="${empty route.schedules}">
-                                                                <div class="alert alert-warning">
-                                                                    <i class="fas fa-exclamation-triangle me-2"></i>
-                                                                    No schedules available for this route on the
-                                                                    selected date.
-                                                                </div>
-                                                            </c:when>
-                                                            <c:otherwise>
-                                                                <c:forEach var="schedule" items="${route.schedules}">
-                                                                    <div class="schedule-item">
-                                                                        <div class="row align-items-center">
-                                                                            <div class="col-md-3">
-                                                                                <strong>
-                                                                                    <fmt:formatDate
-                                                                                        value="${schedule.departureTime}"
-                                                                                        pattern="HH:mm" />
-                                                                                </strong>
-                                                                                <br>
-                                                                                <small
-                                                                                    class="text-muted">Departure</small>
-                                                                            </div>
-                                                                            <div class="col-md-3">
-                                                                                <strong>
-                                                                                    <fmt:formatDate
-                                                                                        value="${schedule.estimatedArrivalTime}"
-                                                                                        pattern="HH:mm" />
-                                                                                </strong>
-                                                                                <br>
-                                                                                <small
-                                                                                    class="text-muted">Arrival</small>
-                                                                            </div>
-                                                                            <div class="col-md-2">
-                                                                                <strong>${schedule.availableSeats}</strong>
-                                                                                <br>
-                                                                                <small class="text-muted">Available
-                                                                                    Seats</small>
-                                                                            </div>
-                                                                            <div class="col-md-2">
-                                                                                <strong class="text-success">
-                                                                                    <fmt:formatNumber
-                                                                                        value="${route.basePrice}"
-                                                                                        type="currency"
-                                                                                        currencySymbol="₫"
-                                                                                        maxFractionDigits="0" />
-                                                                                </strong>
-                                                                                <br>
-                                                                                <small class="text-muted">Price</small>
-                                                                            </div>
-                                                                            <div class="col-md-2 text-end">
-                                                                                <c:choose>
-                                                                                    <c:when
-                                                                                        test="${schedule.availableSeats > 0}">
-                                                                                        <a href="${pageContext.request.contextPath}/tickets/book?routeId=${route.routeId}&scheduleId=${schedule.scheduleId}&departureDate=${departureDate}&tripType=${tripType}&returnDate=${returnDate}"
-                                                                                            class="btn btn-book">
-                                                                                            <i
-                                                                                                class="fas fa-ticket-alt me-1"></i>Book
-                                                                                            Now
-                                                                                        </a>
-                                                                                    </c:when>
-                                                                                    <c:otherwise>
-                                                                                        <button
-                                                                                            class="btn btn-secondary"
-                                                                                            disabled>
-                                                                                            <i
-                                                                                                class="fas fa-times me-1"></i>Sold
-                                                                                            Out
-                                                                                        </button>
-                                                                                    </c:otherwise>
-                                                                                </c:choose>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                </c:forEach>
-                                                            </c:otherwise>
-                                                        </c:choose>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </c:forEach>
-                                    </div>
-                                </c:otherwise>
-                            </c:choose>
-                        </div>
+            .route-card-body {
+                padding: 1.5rem 1.75rem;
+                flex: 1;
+            }
 
-                        <!-- Return Trip (if round trip) -->
-                        <c:if test="${tripType eq 'roundtrip' and not empty returnRoutes}">
-                            <div class="trip-section">
-                                <div class="trip-header">
-                                    <h5 class="mb-0">
-                                        <i class="fas fa-arrow-left text-warning me-2"></i>
-                                        Return Trip: ${destinationCity} → ${departureCity}
-                                    </h5>
-                                </div>
+            .route-info-grid {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 1rem;
+                margin-bottom: 1.5rem;
+            }
 
-                                <c:choose>
-                                    <c:when test="${empty returnRoutes}">
-                                        <div class="no-results">
-                                            <i class="fas fa-route"></i>
-                                            <h5>No return routes found</h5>
-                                            <p class="text-muted">We couldn't find any return routes for the selected
-                                                date.</p>
-                                        </div>
-                                    </c:when>
-                                    <c:otherwise>
-                                        <c:forEach var="route" items="${returnRoutes}">
-                                            <div class="route-card">
-                                                <div class="card-body">
-                                                    <div class="row">
-                                                        <div class="col-md-8">
-                                                            <h5 class="card-title">
-                                                                <i
-                                                                    class="fas fa-route text-warning me-2"></i>${route.routeName}
-                                                            </h5>
-                                                            <p class="card-text mb-3">
-                                                                <i class="fas fa-map-marker-alt text-danger"></i>
-                                                                ${route.destinationCity}
-                                                                <i class="fas fa-arrow-left mx-2 text-muted"></i>
-                                                                <i class="fas fa-map-marker-alt text-primary"></i>
-                                                                ${route.departureCity}
-                                                            </p>
-                                                            <div class="row">
-                                                                <div class="col-sm-4">
-                                                                    <small class="text-muted">Distance</small><br>
-                                                                    <strong>${route.distance} km</strong>
-                                                                </div>
-                                                                <div class="col-sm-4">
-                                                                    <small class="text-muted">Duration</small><br>
-                                                                    <strong>${route.durationHours} hours</strong>
-                                                                </div>
-                                                                <div class="col-sm-4">
-                                                                    <small class="text-muted">Base Price</small><br>
-                                                                    <strong class="text-success">
-                                                                        <fmt:formatNumber value="${route.basePrice}"
-                                                                            type="currency" currencySymbol="₫"
-                                                                            maxFractionDigits="0" />
-                                                                    </strong>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                        <div class="col-md-4 text-end">
-                                                            <div class="price-highlight mb-2">
-                                                                From
-                                                                <fmt:formatNumber value="${route.basePrice}"
-                                                                    type="currency" currencySymbol="₫"
-                                                                    maxFractionDigits="0" />
-                                                            </div>
-                                                            <c:choose>
-                                                                <c:when test="${empty route.schedules}">
-                                                                    <p class="text-muted mb-2">No schedules available
-                                                                    </p>
-                                                                </c:when>
-                                                                <c:otherwise>
-                                                                    <p class="seat-availability mb-2">
-                                                                        ${route.schedules.size()} schedule(s) available
-                                                                    </p>
-                                                                </c:otherwise>
-                                                            </c:choose>
-                                                            <button class="btn btn-outline-warning"
-                                                                onclick="toggleSchedules('returnRoute${route.routeId}')">
-                                                                <i class="fas fa-clock me-1"></i>View Schedules
-                                                            </button>
-                                                        </div>
-                                                    </div>
+            .route-info-item {
+                text-align: center;
+                padding: 12px;
+                background: #f8fafc;
+                border-radius: 12px;
+                transition: all 0.3s ease;
+            }
 
-                                                    <!-- Return Schedules -->
-                                                    <div id="returnRoute${route.routeId}" class="mt-3"
-                                                        style="display: none;">
-                                                        <hr>
-                                                        <h6 class="text-warning mb-3">
-                                                            <i class="fas fa-clock me-2"></i>Available Return Schedules
-                                                        </h6>
-                                                        <c:choose>
-                                                            <c:when test="${empty route.schedules}">
-                                                                <div class="alert alert-warning">
-                                                                    <i class="fas fa-exclamation-triangle me-2"></i>
-                                                                    No return schedules available for this route on the
-                                                                    selected date.
-                                                                </div>
-                                                            </c:when>
-                                                            <c:otherwise>
-                                                                <c:forEach var="schedule" items="${route.schedules}">
-                                                                    <div class="schedule-item">
-                                                                        <div class="row align-items-center">
-                                                                            <div class="col-md-3">
-                                                                                <strong>
-                                                                                    <fmt:formatDate
-                                                                                        value="${schedule.departureTime}"
-                                                                                        pattern="HH:mm" />
-                                                                                </strong>
-                                                                                <br>
-                                                                                <small
-                                                                                    class="text-muted">Departure</small>
-                                                                            </div>
-                                                                            <div class="col-md-3">
-                                                                                <strong>
-                                                                                    <fmt:formatDate
-                                                                                        value="${schedule.estimatedArrivalTime}"
-                                                                                        pattern="HH:mm" />
-                                                                                </strong>
-                                                                                <br>
-                                                                                <small
-                                                                                    class="text-muted">Arrival</small>
-                                                                            </div>
-                                                                            <div class="col-md-2">
-                                                                                <strong>${schedule.availableSeats}</strong>
-                                                                                <br>
-                                                                                <small class="text-muted">Available
-                                                                                    Seats</small>
-                                                                            </div>
-                                                                            <div class="col-md-2">
-                                                                                <strong class="text-success">
-                                                                                    <fmt:formatNumber
-                                                                                        value="${route.basePrice}"
-                                                                                        type="currency"
-                                                                                        currencySymbol="₫"
-                                                                                        maxFractionDigits="0" />
-                                                                                </strong>
-                                                                                <br>
-                                                                                <small class="text-muted">Price</small>
-                                                                            </div>
-                                                                            <div class="col-md-2 text-end">
-                                                                                <c:choose>
-                                                                                    <c:when
-                                                                                        test="${schedule.availableSeats > 0}">
-                                                                                        <a href="${pageContext.request.contextPath}/tickets/book?routeId=${route.routeId}&scheduleId=${schedule.scheduleId}&departureDate=${returnDate}&tripType=${tripType}&returnDate=${departureDate}"
-                                                                                            class="btn btn-warning">
-                                                                                            <i
-                                                                                                class="fas fa-ticket-alt me-1"></i>Book
-                                                                                            Return
-                                                                                        </a>
-                                                                                    </c:when>
-                                                                                    <c:otherwise>
-                                                                                        <button
-                                                                                            class="btn btn-secondary"
-                                                                                            disabled>
-                                                                                            <i
-                                                                                                class="fas fa-times me-1"></i>Sold
-                                                                                            Out
-                                                                                        </button>
-                                                                                    </c:otherwise>
-                                                                                </c:choose>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                </c:forEach>
-                                                            </c:otherwise>
-                                                        </c:choose>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </c:forEach>
-                                    </c:otherwise>
-                                </c:choose>
-                            </div>
+            .route-card:hover .route-info-item {
+                background: #f1f5f9;
+                transform: translateY(-2px);
+            }
+
+            .route-info-icon {
+                font-size: 1.5rem;
+                margin-bottom: 8px;
+                color: #66bb6a;
+            }
+
+            .route-info-label {
+                font-size: 0.75rem;
+                color: var(--text-light);
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                font-weight: 600;
+                margin-bottom: 4px;
+            }
+
+            .route-info-value {
+                font-size: 1rem;
+                font-weight: 700;
+                color: var(--text-dark);
+            }
+
+            .route-price {
+                text-align: center;
+                padding: 1rem;
+                background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                color: white;
+                border-radius: 12px;
+                margin-bottom: 1.5rem;
+            }
+
+            .route-price-label {
+                font-size: 0.85rem;
+                opacity: 0.9;
+                margin-bottom: 4px;
+            }
+
+            .route-price-value {
+                font-size: 1.75rem;
+                font-weight: 700;
+            }
+
+            .route-card-footer {
+                padding: 0 1.75rem 1.75rem;
+            }
+
+            .btn-view-schedules {
+                width: 100%;
+                padding: 14px 24px;
+                background: var(--primary-gradient);
+                color: white;
+                border: none;
+                border-radius: 12px;
+                font-weight: 600;
+                font-size: 1rem;
+                transition: all 0.3s ease;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+            }
+
+            .btn-view-schedules:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 8px 20px rgba(102, 187, 106, 0.4);
+                color: white;
+            }
+
+            .btn-view-schedules:active {
+                transform: translateY(0);
+            }
+
+            /* Seat status modal */
+            .seat-grid {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .seat-row {
+                display: flex;
+                gap: 8px;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .seat {
+                width: 46px;
+                height: 46px;
+                border: 2px solid #cbd5e1;
+                border-radius: 10px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: 700;
+                font-size: 0.9rem;
+                background: #ffffff;
+                color: #1e293b;
+            }
+
+            .seat.available {
+                border-color: rgba(16, 185, 129, 0.45);
+                background: rgba(16, 185, 129, 0.08);
+                color: #0f5132;
+            }
+
+            .seat.booked {
+                border-color: #fecdd3;
+                background: #fff5f5;
+                color: #b91c1c;
+            }
+
+            .aisle {
+                width: 32px;
+                min-width: 32px;
+                height: 46px;
+            }
+
+            .seat-legend {
+                display: flex;
+                gap: 16px;
+                flex-wrap: wrap;
+                margin-top: 14px;
+            }
+
+            .seat-legend .legend-item {
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                font-weight: 600;
+                color: #475569;
+            }
+
+            .bus-layout-container {
+                background: #f8fafc;
+                border-radius: 16px;
+                padding: 18px;
+                border: 1px solid #e2e8f0;
+            }
+
+            .legend-seat {
+                width: 18px;
+                height: 18px;
+                border-radius: 6px;
+                border: 2px solid #cbd5e1;
+            }
+
+            .legend-seat.available {
+                border-color: rgba(16, 185, 129, 0.45);
+                background: rgba(16, 185, 129, 0.18);
+            }
+
+            .legend-seat.booked {
+                border-color: #fecdd3;
+                background: #fff5f5;
+            }
+
+            /* Empty State */
+            .empty-state {
+                text-align: center;
+                padding: 80px 20px;
+                background: white;
+                border-radius: 20px;
+                box-shadow: var(--card-shadow);
+            }
+
+            .empty-state-icon {
+                font-size: 5rem;
+                color: var(--text-light);
+                margin-bottom: 1.5rem;
+                opacity: 0.5;
+            }
+
+            .empty-state-title {
+                font-size: 1.5rem;
+                font-weight: 600;
+                color: var(--text-dark);
+                margin-bottom: 0.5rem;
+            }
+
+            .empty-state-text {
+                color: var(--text-light);
+                font-size: 1rem;
+            }
+
+            /* Error Alert */
+            .alert-custom {
+                border: none;
+                border-radius: 16px;
+                padding: 1.25rem 1.5rem;
+                box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15);
+                margin-bottom: 2rem;
+            }
+
+            /* Return Routes Section */
+            .return-routes-section {
+                margin-top: 60px;
+                padding-top: 40px;
+                border-top: 2px solid #e2e8f0;
+            }
+
+            .section-header {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                margin-bottom: 2rem;
+            }
+
+            .section-header-icon {
+                width: 50px;
+                height: 50px;
+                background: var(--secondary-gradient);
+                border-radius: 12px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: white;
+                font-size: 1.5rem;
+            }
+
+            .section-header-title {
+                font-size: 1.75rem;
+                font-weight: 700;
+                color: var(--text-dark);
+                margin: 0;
+            }
+
+            /* Responsive */
+            @media (max-width: 768px) {
+                .search-title {
+                    font-size: 1.75rem;
+                }
+
+                .search-subtitle {
+                    font-size: 1rem;
+                }
+
+                .route-info-grid {
+                    grid-template-columns: 1fr;
+                    gap: 0.75rem;
+                }
+
+                .route-path {
+                    flex-direction: column;
+                    gap: 8px;
+                }
+
+                .route-arrow {
+                    transform: rotate(90deg);
+                }
+            }
+
+            /* Animation */
+            @keyframes fadeInUp {
+                from {
+                    opacity: 0;
+                    transform: translateY(30px);
+                }
+
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+
+            .route-card {
+                animation: fadeInUp 0.6s ease forwards;
+            }
+
+            .route-card:nth-child(1) {
+                animation-delay: 0.1s;
+            }
+
+            .route-card:nth-child(2) {
+                animation-delay: 0.2s;
+            }
+
+            .route-card:nth-child(3) {
+                animation-delay: 0.3s;
+            }
+
+            .route-card:nth-child(4) {
+                animation-delay: 0.4s;
+            }
+
+            .route-card:nth-child(5) {
+                animation-delay: 0.5s;
+            }
+
+            .route-card:nth-child(6) {
+                animation-delay: 0.6s;
+            }
+        </style>
+    </head>
+
+    <body>
+        <%@ include file="/views/partials/user-header.jsp" %>
+
+        <!-- Hero Section -->
+        <section class="search-hero">
+            <div class="container search-hero-content">
+                <div class="text-center">
+                    <h1 class="search-title">
+                        <i class="fas fa-search me-3"></i>Search Results
+                    </h1>
+                    <p class="search-subtitle">
+                        From <strong>${departureCity}</strong> to <strong>${destinationCity}</strong>
+                    </p>
+                    <div class="date-badges">
+                        <c:if test="${not empty departureDate}">
+                            <span class="date-badge">
+                                <i class="fas fa-calendar-alt"></i>
+                                <span>Depart: ${departureDate}</span>
+                            </span>
+                        </c:if>
+                        <c:if test="${not empty returnDate}">
+                            <span class="date-badge">
+                                <i class="fas fa-calendar-alt"></i>
+                                <span>Return: ${returnDate}</span>
+                            </span>
                         </c:if>
                     </div>
+                </div>
+            </div>
+        </section>
 
-                    <%@ include file="/views/partials/footer.jsp" %>
+        <!-- Main Content -->
+        <div class="container mb-5" style="flex: 1;">
+            <c:if test="${not empty error}">
+                <div class="alert alert-danger alert-custom alert-dismissible fade show" role="alert">
+                    <i class="fas fa-exclamation-circle me-2"></i>${error}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            </c:if>
 
-                        <script>
-                            function toggleSchedules(routeId) {
-                                const element = document.getElementById(routeId);
-                                if (element.style.display === 'none') {
-                                    element.style.display = 'block';
-                                } else {
-                                    element.style.display = 'none';
+            <c:choose>
+                <c:when test="${empty routes}">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">
+                            <i class="fas fa-route"></i>
+                        </div>
+                        <h3 class="empty-state-title">No routes found</h3>
+                        <p class="empty-state-text">Sorry, we couldn't find any routes matching your search.
+                        </p>
+                    </div>
+                </c:when>
+                <c:otherwise>
+                    <div class="row g-4">
+                        <c:forEach var="route" items="${routes}">
+                            <div class="col-md-6 col-lg-4">
+                                <div class="route-card">
+                                    <div class="route-card-header">
+                                        <h5 class="route-name">
+                                            <i class="fas fa-route"></i>
+                                            ${route.routeName}
+                                        </h5>
+                                        <div class="route-path">
+                                            <span class="route-city departure">
+                                                <i class="fas fa-map-marker-alt"></i>
+                                                ${route.departureCity}
+                                            </span>
+                                            <span class="route-arrow">
+                                                <i class="fas fa-arrow-right"></i>
+                                            </span>
+                                            <span class="route-city destination">
+                                                <i class="fas fa-map-marker-alt"></i>
+                                                ${route.destinationCity}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="route-card-body">
+                                        <div class="route-info-grid">
+                                            <div class="route-info-item">
+                                                <div class="route-info-icon">
+                                                    <i class="fas fa-road"></i>
+                                                </div>
+                                                <div class="route-info-label">Distance</div>
+                                                <div class="route-info-value">${route.distance} km</div>
+                                            </div>
+                                            <div class="route-info-item">
+                                                <div class="route-info-icon">
+                                                    <i class="fas fa-clock"></i>
+                                                </div>
+                                                <div class="route-info-label">Duration</div>
+                                                <div class="route-info-value">${route.durationHours} hours
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="route-price">
+                                            <div class="route-price-label">Price from</div>
+                                            <div class="route-price-value">
+                                                <fmt:formatNumber value="${route.basePrice}"
+                                                                  pattern="#,###" /> ₫
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="route-card-footer">
+                                        <c:choose>
+                                            <c:when test="${not empty departureDate}">
+                                                <a class="btn btn-view-schedules"
+                                                   href="${pageContext.request.contextPath}/search/schedules?routeId=${route.routeId}&departureDate=${departureDate}">
+                                                    <i class="fas fa-calendar-alt"></i>
+                                                    <span>View All Schedules</span>
+                                                </a>
+                                            </c:when>
+                                            <c:otherwise>
+                                                <a class="btn btn-view-schedules"
+                                                   href="${pageContext.request.contextPath}/search/schedules?routeId=${route.routeId}">
+                                                    <i class="fas fa-calendar-alt"></i>
+                                                    <span>View All Schedules</span>
+                                                </a>
+                                            </c:otherwise>
+                                        </c:choose>
+                                    </div>
+                                </div>
+                            </div>
+                        </c:forEach>
+                    </div>
+                </c:otherwise>
+            </c:choose>
+
+            <!-- Return Routes Section -->
+            <c:if test="${tripType eq 'roundtrip'}">
+                <div class="return-routes-section">
+                    <div class="section-header">
+                        <div class="section-header-icon">
+                            <i class="fas fa-exchange-alt"></i>
+                        </div>
+                        <h2 class="section-header-title">Return routes</h2>
+                    </div>
+                    <c:choose>
+                        <c:when test="${empty returnRoutes}">
+                            <div class="alert alert-info alert-custom">
+                                <i class="fas fa-info-circle me-2"></i>No return routes found
+                            </div>
+                        </c:when>
+                        <c:otherwise>
+                            <div class="row g-4">
+                                <c:forEach var="route" items="${returnRoutes}">
+                                    <div class="col-md-6 col-lg-4">
+                                        <div class="route-card">
+                                            <div class="route-card-header">
+                                                <h5 class="route-name">
+                                                    <i class="fas fa-route"></i>
+                                                    ${route.routeName}
+                                                </h5>
+                                                <div class="route-path">
+                                                    <span class="route-city departure">
+                                                        <i class="fas fa-map-marker-alt"></i>
+                                                        ${route.departureCity}
+                                                    </span>
+                                                    <span class="route-arrow">
+                                                        <i class="fas fa-arrow-right"></i>
+                                                    </span>
+                                                    <span class="route-city destination">
+                                                        <i class="fas fa-map-marker-alt"></i>
+                                                        ${route.destinationCity}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div class="route-card-body">
+                                                <div class="route-info-grid">
+                                                    <div class="route-info-item">
+                                                        <div class="route-info-icon">
+                                                            <i class="fas fa-road"></i>
+                                                        </div>
+                                                        <div class="route-info-label">Distance</div>
+                                                        <div class="route-info-value">${route.distance} km
+                                                        </div>
+                                                    </div>
+                                                    <div class="route-info-item">
+                                                        <div class="route-info-icon">
+                                                            <i class="fas fa-clock"></i>
+                                                        </div>
+                                                        <div class="route-info-label">Duration</div>
+                                                        <div class="route-info-value">${route.durationHours}
+                                                            hours</div>
+                                                    </div>
+                                                </div>
+                                                <div class="route-price">
+                                                    <div class="route-price-label">Price from</div>
+                                                    <div class="route-price-value">
+                                                        <fmt:formatNumber value="${route.basePrice}"
+                                                                          pattern="#,###" /> ₫
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="route-card-footer">
+                                                <c:choose>
+                                                    <c:when test="${not empty returnDate}">
+                                                        <a class="btn btn-view-schedules"
+                                                           href="${pageContext.request.contextPath}/search/schedules?routeId=${route.routeId}&departureDate=${returnDate}">
+                                                            <i class="fas fa-calendar-alt"></i>
+                                                            <span>View schedules</span>
+                                                        </a>
+                                                    </c:when>
+                                                    <c:otherwise>
+                                                        <a class="btn btn-view-schedules"
+                                                           href="${pageContext.request.contextPath}/search/schedules?routeId=${route.routeId}">
+                                                            <i class="fas fa-calendar-alt"></i>
+                                                            <span>View schedules</span>
+                                                        </a>
+                                                    </c:otherwise>
+                                                </c:choose>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </c:forEach>
+                            </div>
+                        </c:otherwise>
+                    </c:choose>
+                </div>
+            </c:if>
+        </div>
+
+        <!-- Seats Modal -->
+        <div class="modal fade" id="seatsModal" tabindex="-1" aria-labelledby="seatsModalLabel"
+             aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title" id="seatsModalLabel"><i
+                                class="fas fa-th-list me-2"></i>Trạng thái ghế</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                                aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="seatStatusLoading" class="text-center py-3">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <div class="mt-2">Loading seat information...</div>
+                        </div>
+                        <div id="seatStatusError" class="alert alert-danger d-none"></div>
+                        <div id="seatStatusMeta" class="d-flex flex-wrap gap-2 mb-3"></div>
+                        <div class="bus-layout-container">
+                            <div id="seatStatusGrid" class="seat-grid"></div>
+                            <div class="seat-legend">
+                                <div class="legend-item">
+                                    <div class="legend-seat available"></div>
+                                    <span>Available Seats</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-seat booked"></div>
+                                    <span>Booked Seats</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary"
+                                data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stations Modal -->
+        <div class="modal fade" id="stationsModal" tabindex="-1" aria-labelledby="stationsModalLabel"
+             aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header bg-secondary text-white">
+                        <h5 class="modal-title" id="stationsModalLabel"><i
+                                class="fas fa-route me-2"></i>Station List</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                                aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="stationsLoading" class="text-center py-3 d-none">
+                            <div class="spinner-border text-secondary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                        <div id="stationsError" class="alert alert-danger d-none"></div>
+                        <div id="stationsList" class="list-group"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary"
+                                data-bs-dismiss="modal">Đóng</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <%@ include file="/views/partials/footer.jsp" %>
+
+        <script>
+                            const contextPath = '${pageContext.request.contextPath}';
+                            const seatStatusModalEl = document.getElementById('seatsModal');
+                            const seatStatusLoading = document.getElementById('seatStatusLoading');
+                            const seatStatusError = document.getElementById('seatStatusError');
+                            const seatStatusGrid = document.getElementById('seatStatusGrid');
+                            const seatStatusMeta = document.getElementById('seatStatusMeta');
+
+                            function createSeatLayout(totalSeats, bookedSeats) {
+                                if (!seatStatusGrid)
+                                    return;
+                                seatStatusGrid.innerHTML = '';
+                                const bookedSet = new Set(bookedSeats || []);
+                                const seatsPerRow = 4;
+
+                                for (let i = 1; i <= totalSeats; i++) {
+                                    if ((i - 1) % seatsPerRow === 0) {
+                                        const row = document.createElement('div');
+                                        row.className = 'seat-row';
+                                        seatStatusGrid.appendChild(row);
+                                    }
+                                    const currentRow = seatStatusGrid.lastElementChild;
+                                    const seatEl = document.createElement('div');
+                                    seatEl.className = 'seat ' + (bookedSet.has(i) ? 'booked' : 'available');
+                                    seatEl.textContent = i;
+                                    currentRow.appendChild(seatEl);
+
+                                    if (i % 2 === 0 && i % seatsPerRow !== 0) {
+                                        const aisle = document.createElement('div');
+                                        aisle.className = 'aisle';
+                                        currentRow.appendChild(aisle);
+                                    }
                                 }
                             }
 
-                            function sortRoutes() {
-                                const sortBy = document.getElementById('sortBy').value;
-                                const routesList = document.getElementById('routesList');
-                                const routes = Array.from(routesList.children);
+                            function showSeatModal(scheduleId) {
+                                if (!scheduleId || !seatStatusModalEl)
+                                    return;
 
-                                routes.sort((a, b) => {
-                                    switch (sortBy) {
-                                        case 'price':
-                                            return parseFloat(a.dataset.price) - parseFloat(b.dataset.price);
-                                        case 'duration':
-                                            return parseInt(a.dataset.duration) - parseInt(b.dataset.duration);
-                                        case 'departure':
-                                            // This would need departure time data, for now just return 0
-                                            return 0;
-                                        default:
-                                            return 0;
+                                seatStatusError.classList.add('d-none');
+                                seatStatusLoading.classList.remove('d-none');
+                                seatStatusGrid.innerHTML = '';
+                                seatStatusMeta.innerHTML = '';
+
+                                const modal = new bootstrap.Modal(seatStatusModalEl);
+                                modal.show();
+
+                                fetch(contextPath + '/tickets/schedule-seats?scheduleId=' + encodeURIComponent(scheduleId))
+                                        .then(resp => {
+                                            if (!resp.ok)
+                                                throw new Error('HTTP ' + resp.status);
+                                            return resp.json();
+                                        })
+                                        .then(data => {
+                                            seatStatusLoading.classList.add('d-none');
+                                            if (data.error) {
+                                                seatStatusError.textContent = data.error;
+                                                seatStatusError.classList.remove('d-none');
+                                                return;
+                                            }
+
+                                            const booked = data.bookedSeats || [];
+                                            const available = data.availableSeats || [];
+                                            const total = data.totalSeats || (booked.length + available.length);
+
+                                            seatStatusMeta.innerHTML =
+                                                    '<span class="badge bg-success bg-opacity-25 text-success me-2"><i class="fas fa-chair me-1"></i>' + available.length + ' available seats</span>' +
+                                                    '<span class="badge bg-danger bg-opacity-25 text-danger me-2"><i class="fas fa-ban me-1"></i>' + booked.length + ' booked</span>' +
+                                                    '<span class="badge bg-light text-dark border"><i class="fas fa-hashtag me-1"></i>' + total + ' total seats</span>';
+
+                                            createSeatLayout(total, booked);
+                                        })
+                                        .catch(err => {
+                                            seatStatusLoading.classList.add('d-none');
+                                            seatStatusError.textContent = 'Cannot load seat information: ' + err;
+                                            seatStatusError.classList.remove('d-none');
+                                        });
+                            }
+
+                            function showStationsModal(routeId, routeName, scheduleId) {
+                                const listEl = document.getElementById('stationsList');
+                                const loadingEl = document.getElementById('stationsLoading');
+                                const errorEl = document.getElementById('stationsError');
+                                listEl.innerHTML = '';
+                                errorEl.classList.add('d-none');
+                                loadingEl.classList.remove('d-none');
+                                document.getElementById('stationsModalLabel').innerHTML = '<i class="fas fa-route me-2"></i>Station List - ' + (routeName || '');
+
+                                // Show modal immediately
+                                const modal = new bootstrap.Modal(document.getElementById('stationsModal'));
+                                modal.show();
+
+                                // Prefer schedule-specific stations; fall back to route-level
+                                const fetchUrl = scheduleId
+                                        ? (contextPath + '/tickets/get-stations-by-schedule?scheduleId=' + scheduleId)
+                                        : (contextPath + '/tickets/get-stations-by-route?routeId=' + routeId);
+
+                                console.log('Fetching stations from:', fetchUrl);
+
+                                fetch(fetchUrl)
+                                        .then(resp => {
+                                            console.log('Response status:', resp.status);
+                                            if (!resp.ok)
+                                                throw new Error('HTTP ' + resp.status);
+                                            return resp.json();
+                                        })
+                                        .then(data => {
+                                            console.log('Stations data received:', data);
+                                            loadingEl.classList.add('d-none');
+                                            listEl.innerHTML = '';
+                                            if (data.error) {
+                                                errorEl.textContent = data.error;
+                                                errorEl.classList.remove('d-none');
+                                                // If schedule lookup failed, attempt route-level fallback
+                                                if (scheduleId) {
+                                                    console.log('Attempting fallback to route-level stations');
+                                                    return fetch(contextPath + '/tickets/get-stations-by-route?routeId=' + routeId)
+                                                            .then(resp => resp.json())
+                                                            .then(fallback => {
+                                                                console.log('Fallback data:', fallback);
+                                                                if (fallback.error) {
+                                                                    errorEl.textContent = fallback.error;
+                                                                    return;
+                                                                }
+                                                                renderStations(listEl, fallback.stations || []);
+                                                            })
+                                                            .catch(() => { /* swallow; error already shown */
+                                                            });
+                                                }
+                                                return;
+                                            }
+                                            renderStations(listEl, data.stations || []);
+                                        })
+                                        .catch(err => {
+                                            console.error('Error fetching stations:', err);
+                                            loadingEl.classList.add('d-none');
+                                            errorEl.textContent = 'Cannot load station list: ' + err;
+                                            errorEl.classList.remove('d-none');
+                                        });
+                            }
+
+                            function renderStations(listEl, stations) {
+                                console.log('renderStations called with:', stations);
+
+                                const safeText = (val, fallback = '') => {
+                                    if (typeof val === 'string') {
+                                        const trimmed = val.trim();
+                                        return trimmed !== '' && trimmed.toLowerCase() !== 'false' ? trimmed : fallback;
                                     }
+                                    if (typeof val === 'number') {
+                                        return val.toString();
+                                    }
+                                    return fallback;
+                                };
+
+                                if (!stations || stations.length === 0) {
+                                    console.log('No stations found');
+                                    listEl.innerHTML = '<div class="alert alert-info mb-0">No station information for this route yet.</div>';
+                                    return;
+                                }
+
+                                // Normalize and skip invalid items
+                                const normalized = (stations || []).map((st, idx) => {
+                                    if (!st)
+                                        return null;
+                                    const stationName = safeText(st.stationName, 'Trạm');
+                                    const city = safeText(st.city, '');
+                                    const address = safeText(st.address, '');
+                                    const seq = st.sequenceNumber && st.sequenceNumber > 0
+                                            ? st.sequenceNumber
+                                            : (idx + 1);
+                                    return {stationName, city, address, sequenceNumber: seq};
+                                }).filter(Boolean);
+
+                                console.log('Normalized stations:', normalized);
+
+                                if (!normalized.length) {
+                                    console.log('No valid stations after normalization');
+                                    listEl.innerHTML = '<div class="alert alert-info mb-0">No station information for this route yet.</div>';
+                                    return;
+                                }
+
+                                normalized.forEach((st) => {
+                                    const name = safeText(st.stationName, 'Station');
+                                    const city = safeText(st.city, '');
+                                    const address = safeText(st.address, '');
+                                    const seq = st.sequenceNumber ? ('#' + st.sequenceNumber) : '#';
+
+                                    const item = document.createElement('div');
+                                    item.className = 'list-group-item d-flex justify-content-between align-items-start';
+                                    item.innerHTML = `
+                                <div>
+                                    <div class="fw-semibold">${name}</div>
+                                    <div class="small text-muted">${city}${address ? ' - ' + address : ''}</div>
+                                </div>
+                                <span class="badge bg-light text-dark border">${seq}</span>
+                            `;
+                                    listEl.appendChild(item);
                                 });
 
-                                // Clear and re-append sorted routes
-                                routesList.innerHTML = '';
-                                routes.forEach(route => routesList.appendChild(route));
+                                console.log('Stations rendered:', normalized.length, 'items');
                             }
-                        </script>
-            </body>
+        </script>
+    </body>
 
-            </html>
+</html>

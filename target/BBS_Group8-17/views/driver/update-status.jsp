@@ -142,14 +142,17 @@
                     .container {
                         padding: 0 1rem;
                     }
+
                     .card-body {
                         padding: 1rem;
                     }
+
                     .btn {
                         padding: 0.5rem 1rem;
                         font-size: 0.875rem;
                     }
                 }
+
                 .form-container {
                     background: linear-gradient(135deg, #66bb6a 0%, #81c784 100%);
                     border-radius: 15px;
@@ -323,9 +326,9 @@
                                         </label>
                                         <select class="form-select" id="stopStationId" name="stopStationId">
                                             <option value="">Choose station</option>
-                                            <c:forEach var="rs" items="${routeStops}">
-                                                <option value="${rs.stationId}">
-                                                    ${rs.stopOrder}. ${rs.stationName} - ${rs.city}
+                                            <c:forEach var="station" items="${stations}">
+                                                <option value="${station.stationId}">
+                                                    ${station.stationName} - ${station.city}
                                                 </option>
                                             </c:forEach>
                                         </select>

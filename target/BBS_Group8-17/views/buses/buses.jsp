@@ -117,10 +117,12 @@
                                                         </h6>
                                                         <c:choose>
                                                             <c:when test="${bus.status eq 'ACTIVE'}">
-                                                                <span class="badge bg-success status-badge">Active</span>
+                                                                <span
+                                                                    class="badge bg-success status-badge">Active</span>
                                                             </c:when>
                                                             <c:otherwise>
-                                                                <span class="badge bg-secondary status-badge">Inactive</span>
+                                                                <span
+                                                                    class="badge bg-secondary status-badge">Inactive</span>
                                                             </c:otherwise>
                                                         </c:choose>
                                                     </div>
@@ -156,8 +158,7 @@
                                                         </a>
                                                         <button type="button" class="btn btn-sm btn-danger btn-action"
                                                             data-busnumber="${bus.busNumber}"
-                                                            onclick="confirmDelete(${bus.busId}, this)"
-                                                            title="Delete">
+                                                            onclick="confirmDelete(${bus.busId}, this)" title="Delete">
                                                             <i class="fas fa-trash"></i>
                                                         </button>
                                                     </div>
@@ -218,8 +219,7 @@
                                                         </a>
                                                         <button type="button" class="btn btn-sm btn-danger btn-action"
                                                             data-busnumber="${bus.busNumber}"
-                                                            onclick="confirmDelete(${bus.busId}, this)"
-                                                            title="Delete">
+                                                            onclick="confirmDelete(${bus.busId}, this)" title="Delete">
                                                             <i class="fas fa-trash"></i>
                                                         </button>
                                                     </td>
@@ -255,12 +255,13 @@
                                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                 </div>
                                 <div class="modal-body">
-                                    <p>Bạn có chắc chắn muốn xóa xe <strong id="busNumberToDelete"></strong>?</p>
-                                    <p class="text-danger"><small>Hành động này không thể hoàn tác.</small></p>
+                                    <p>Are you sure you want to delete bus <strong id="busNumberToDelete"></strong>?</p>
+                                    <p class="text-danger"><small>This action cannot be undone.</small></p>
                                 </div>
                                 <div class="modal-footer">
-                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                                    <a href="#" id="confirmDeleteBtn" class="btn btn-danger">Xóa</a>
+                                    <button type="button" class="btn btn-secondary"
+                                        data-bs-dismiss="modal">Cancel</button>
+                                    <a href="#" id="confirmDeleteBtn" class="btn btn-danger">Delete</a>
                                 </div>
                             </div>
                         </div>
@@ -272,7 +273,8 @@
                         <div class="modal-dialog">
                             <div class="modal-content">
                                 <div class="modal-header bg-primary text-white">
-                                    <h5 class="modal-title" id="busDetailModalLabel"><i class="fas fa-bus me-2"></i>Bus Details</h5>
+                                    <h5 class="modal-title" id="busDetailModalLabel"><i class="fas fa-bus me-2"></i>Bus
+                                        Details</h5>
                                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                 </div>
                                 <div class="modal-body">
@@ -382,4 +384,3 @@
             </body>
 
             </html>
-
