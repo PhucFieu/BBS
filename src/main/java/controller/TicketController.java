@@ -40,7 +40,7 @@ import model.Tickets;
 import model.User;
 import util.URLUtils;
 
-@WebServlet(urlPatterns = {"/tickets/*", "/admin/tickets/*"})
+@WebServlet(urlPatterns = { "/tickets/*", "/admin/tickets/*" })
 public class TicketController extends HttpServlet {
 
     private TicketDAO ticketDAO;
@@ -119,6 +119,8 @@ public class TicketController extends HttpServlet {
                     deleteTicket(request, response);
                 } else if (pathInfo.equals("/cancel")) {
                     deleteTicket(request, response);
+                } else if (pathInfo.equals("/remove")) {
+                    removeCancelledTicket(request, response);
                 } else if (pathInfo.equals("/search")) {
                     searchTickets(request, response);
                 } else if (pathInfo.equals("/print")) {
@@ -141,6 +143,8 @@ public class TicketController extends HttpServlet {
                     showBookingForm(request, response);
                 } else if (pathInfo.equals("/get-schedules-by-route")) {
                     getSchedulesByRoute(request, response);
+                } else if (pathInfo.equals("/json")) {
+                    getTicketJson(request, response);
                 } else if (pathInfo.equals("/get-stations-by-schedule")) {
                     getStationsBySchedule(request, response);
                 } else if (pathInfo.equals("/get-stations-by-route")) {
@@ -185,6 +189,10 @@ public class TicketController extends HttpServlet {
                     adminUpdateTicket(request, response);
                 } else if ("/bulk-action".equals(pathInfo)) {
                     adminHandleBulkTicketAction(request, response);
+                } else if ("/confirm".equals(pathInfo)) {
+                    adminConfirmTicket(request, response);
+                } else if ("/refund".equals(pathInfo)) {
+                    adminRefundTicket(request, response);
                 } else {
                     response.sendError(HttpServletResponse.SC_NOT_FOUND);
                 }
@@ -194,6 +202,14 @@ public class TicketController extends HttpServlet {
                             + "/tickets?error=Manual ticket creation is disabled");
                 } else if (pathInfo.equals("/edit")) {
                     updateTicket(request, response);
+                } else if (pathInfo.equals("/mark-paid")) {
+                    userMarkTicketPaid(request, response);
+                } else if (pathInfo.equals("/confirm")) {
+                    // Allow non-admin confirm via same handler if needed (redirects if not allowed)
+                    adminConfirmTicket(request, response);
+                } else if (pathInfo.equals("/refund")) {
+                    // Allow refund route to reuse admin handler (will check role)
+                    adminRefundTicket(request, response);
                 } else if (pathInfo.equals("/book")) {
                     HttpSession session = request.getSession(false);
                     if (session == null || session.getAttribute("user") == null) {
@@ -300,48 +316,94 @@ public class TicketController extends HttpServlet {
         return UUID.fromString(rawValue.trim());
     }
 
-    private StationValidationResult validateStationSelection(UUID routeId, UUID boardingStationId,
+    private StationValidationResult validateStationSelection(UUID routeId, UUID scheduleId, UUID boardingStationId,
             UUID alightingStationId) throws SQLException {
-        if (routeId == null) {
-            throw new IllegalArgumentException("Route is required to validate stations");
-        }
         if (boardingStationId == null || alightingStationId == null) {
             throw new IllegalArgumentException("Both boarding and drop-off stations are required");
         }
 
-        List<RouteStation> routeStations = routeStationDAO.getStationsByRoute(routeId);
-        if (routeStations == null || routeStations.isEmpty()) {
-            throw new IllegalArgumentException("Route template does not contain any stations");
+        // First, try to get stations from schedule
+        List<model.ScheduleStation> scheduleStations = null;
+        if (scheduleId != null) {
+            scheduleStations = scheduleStationDAO.getStationsBySchedule(scheduleId);
         }
 
-        RouteStation boardingStation = null;
-        RouteStation alightingStation = null;
-        for (RouteStation routeStation : routeStations) {
-            if (boardingStation == null
-                    && boardingStationId.equals(routeStation.getStationId())) {
-                boardingStation = routeStation;
+        // If schedule has stations, validate against schedule stations
+        if (scheduleStations != null && !scheduleStations.isEmpty()) {
+            model.ScheduleStation boardingScheduleStation = null;
+            model.ScheduleStation alightingScheduleStation = null;
+            for (model.ScheduleStation ss : scheduleStations) {
+                if (boardingScheduleStation == null && boardingStationId.equals(ss.getStationId())) {
+                    boardingScheduleStation = ss;
+                }
+                if (alightingScheduleStation == null && alightingStationId.equals(ss.getStationId())) {
+                    alightingScheduleStation = ss;
+                }
             }
-            if (alightingStation == null
-                    && alightingStationId.equals(routeStation.getStationId())) {
-                alightingStation = routeStation;
+
+            if (boardingScheduleStation == null || alightingScheduleStation == null) {
+                throw new IllegalArgumentException("Selected stations are not part of this schedule");
             }
+            if (alightingScheduleStation.getSequenceNumber() <= boardingScheduleStation.getSequenceNumber()) {
+                throw new IllegalArgumentException("Drop-off station must come after the boarding station");
+            }
+
+            // Get station details
+            Station boarding = stationDAO.getStationById(boardingStationId);
+            Station alighting = stationDAO.getStationById(alightingStationId);
+            return new StationValidationResult(boarding, alighting);
         }
 
-        if (boardingStation == null || alightingStation == null) {
-            throw new IllegalArgumentException("Selected stations are not part of this route");
-        }
-        if (alightingStation.getSequenceNumber() <= boardingStation.getSequenceNumber()) {
-            throw new IllegalArgumentException(
-                    "Drop-off station must come after the boarding station");
+        // If no schedule stations, try route stations
+        List<RouteStation> routeStations = null;
+        if (routeId != null) {
+            routeStations = routeStationDAO.getStationsByRoute(routeId);
         }
 
-        Station boarding = boardingStation.getStation();
+        if (routeStations != null && !routeStations.isEmpty()) {
+            RouteStation boardingStation = null;
+            RouteStation alightingStation = null;
+            for (RouteStation routeStation : routeStations) {
+                if (boardingStation == null && boardingStationId.equals(routeStation.getStationId())) {
+                    boardingStation = routeStation;
+                }
+                if (alightingStation == null && alightingStationId.equals(routeStation.getStationId())) {
+                    alightingStation = routeStation;
+                }
+            }
+
+            if (boardingStation == null || alightingStation == null) {
+                throw new IllegalArgumentException("Selected stations are not part of this route");
+            }
+            if (alightingStation.getSequenceNumber() <= boardingStation.getSequenceNumber()) {
+                throw new IllegalArgumentException("Drop-off station must come after the boarding station");
+            }
+
+            Station boarding = boardingStation.getStation();
+            if (boarding == null) {
+                boarding = stationDAO.getStationById(boardingStation.getStationId());
+            }
+            Station alighting = alightingStation.getStation();
+            if (alighting == null) {
+                alighting = stationDAO.getStationById(alightingStation.getStationId());
+            }
+            return new StationValidationResult(boarding, alighting);
+        }
+
+        // If neither schedule nor route has stations defined, just validate that
+        // stations exist
+        // and are different (flexible mode - allows any valid stations)
+        Station boarding = stationDAO.getStationById(boardingStationId);
+        Station alighting = stationDAO.getStationById(alightingStationId);
+
         if (boarding == null) {
-            boarding = stationDAO.getStationById(boardingStation.getStationId());
+            throw new IllegalArgumentException("Boarding station not found");
         }
-        Station alighting = alightingStation.getStation();
         if (alighting == null) {
-            alighting = stationDAO.getStationById(alightingStation.getStationId());
+            throw new IllegalArgumentException("Drop-off station not found");
+        }
+        if (boardingStationId.equals(alightingStationId)) {
+            throw new IllegalArgumentException("Boarding and drop-off stations must be different");
         }
 
         return new StationValidationResult(boarding, alighting);
@@ -436,8 +498,7 @@ public class TicketController extends HttpServlet {
             UUID scheduleId = UUID.fromString(scheduleIdStr);
             List<java.util.Map<String, Object>> stationData = new ArrayList<>();
 
-            List<ScheduleStation> scheduleStations =
-                    scheduleStationDAO.getStationsBySchedule(scheduleId);
+            List<ScheduleStation> scheduleStations = scheduleStationDAO.getStationsBySchedule(scheduleId);
             boolean hasStations = appendScheduleStations(stationData, scheduleStations);
 
             if (!hasStations) {
@@ -460,8 +521,7 @@ public class TicketController extends HttpServlet {
                         }
                     }
 
-                    List<RouteStation> routeStations =
-                            routeStationDAO.getStationsByRoute(schedule.getRouteId());
+                    List<RouteStation> routeStations = routeStationDAO.getStationsByRoute(schedule.getRouteId());
                     hasStations = appendRouteStationsFilteredByCityRange(stationData, routeStations,
                             minCityNum, maxCityNum);
                 }
@@ -498,6 +558,34 @@ public class TicketController extends HttpServlet {
         }
     }
 
+    private void getTicketJson(HttpServletRequest request, HttpServletResponse response)
+            throws SQLException, IOException {
+        String ticketNumber = request.getParameter("ticketNumber");
+        String id = request.getParameter("id");
+
+        model.Tickets ticket = null;
+        try {
+            if (ticketNumber != null && !ticketNumber.trim().isEmpty()) {
+                ticket = ticketDAO.getTicketByNumber(ticketNumber.trim());
+            } else if (id != null && !id.trim().isEmpty()) {
+                java.util.UUID ticketId = java.util.UUID.fromString(id.trim());
+                ticket = ticketDAO.getTicketById(ticketId);
+            }
+        } catch (Exception e) {
+            // ignore, return null
+        }
+
+        response.setContentType("application/json; charset=UTF-8");
+        response.setCharacterEncoding("UTF-8");
+        if (ticket == null) {
+            response.getWriter().write("{}");
+            return;
+        }
+
+        com.google.gson.Gson gson = new com.google.gson.Gson();
+        response.getWriter().write(gson.toJson(ticket));
+    }
+
     private void getStationsByRoute(HttpServletRequest request, HttpServletResponse response)
             throws SQLException, IOException {
         String routeIdStr = request.getParameter("routeId");
@@ -530,9 +618,8 @@ public class TicketController extends HttpServlet {
             }
 
             List<RouteStation> routeStations = routeStationDAO.getStationsByRoute(routeId);
-            boolean hasStations =
-                    appendRouteStationsFilteredByCityRange(stationData, routeStations, minCityNum,
-                            maxCityNum);
+            boolean hasStations = appendRouteStationsFilteredByCityRange(stationData, routeStations, minCityNum,
+                    maxCityNum);
 
             if (!hasStations) {
                 List<Station> allStations = stationDAO.getAllStations();
@@ -991,7 +1078,8 @@ public class TicketController extends HttpServlet {
             tickets = ticketDAO.getTicketsByUserIdWithFilters(user.getUserId(), statusFilter,
                     paymentStatusFilter, dateFrom);
         } else {
-            // Admin/Driver: show all tickets (can use searchTickets for filtering if needed)
+            // Admin/Driver: show all tickets (can use searchTickets for filtering if
+            // needed)
             if (statusFilter != null || paymentStatusFilter != null || dateFromStr != null) {
                 java.sql.Date dateFrom = null;
                 if (dateFromStr != null && !dateFromStr.trim().isEmpty()) {
@@ -1056,10 +1144,8 @@ public class TicketController extends HttpServlet {
                     List<Schedule> schedules;
                     if (departureDateStr != null && !departureDateStr.trim().isEmpty()) {
                         try {
-                            java.time.LocalDate departureDate =
-                                    java.time.LocalDate.parse(departureDateStr);
-                            schedules =
-                                    scheduleDAO.getSchedulesByRouteAndDate(routeId, departureDate);
+                            java.time.LocalDate departureDate = java.time.LocalDate.parse(departureDateStr);
+                            schedules = scheduleDAO.getSchedulesByRouteAndDate(routeId, departureDate);
                             request.setAttribute("departureDate", departureDateStr);
                         } catch (Exception e) {
                             // If date parsing fails, fall back to all schedules
@@ -1106,8 +1192,7 @@ public class TicketController extends HttpServlet {
                     validStations = scheduleStationDAO.getValidStationsForBooking(scheduleId);
                     // If no schedule stations, use route stations from the schedule's route
                     if (validStations == null || validStations.isEmpty()) {
-                        validStations =
-                                routeStationDAO.getStationsByRouteAsStations(schedule.getRouteId());
+                        validStations = routeStationDAO.getStationsByRouteAsStations(schedule.getRouteId());
                     }
                 }
             } catch (Exception e) {
@@ -1162,8 +1247,7 @@ public class TicketController extends HttpServlet {
             if (routeIdStr != null && !routeIdStr.trim().isEmpty()) {
                 redirectUrl += URLUtils.createParameter("routeId", routeIdStr) + "&";
             }
-            redirectUrl +=
-                    URLUtils.createParameter("error", "Missing required booking information");
+            redirectUrl += URLUtils.createParameter("error", "Missing required booking information");
             response.sendRedirect(redirectUrl);
             return;
         }
@@ -1238,9 +1322,9 @@ public class TicketController extends HttpServlet {
                     return;
                 }
                 try {
-                    StationValidationResult stationValidationResult =
-                            validateStationSelection(route.getRouteId(), boardingStationId,
-                                    alightingStationId);
+                    StationValidationResult stationValidationResult = validateStationSelection(route.getRouteId(),
+                            scheduleId, boardingStationId,
+                            alightingStationId);
                     ticket.setBoardingStationId(boardingStationId);
                     ticket.setAlightingStationId(alightingStationId);
                     if (stationValidationResult.getBoardingStation() != null) {
@@ -1280,8 +1364,7 @@ public class TicketController extends HttpServlet {
                     if (returnSchedule == null || returnRoute == null) {
                         String redirectUrl = request.getContextPath() + "/tickets/book?";
                         if (finalRouteIdStr != null && !finalRouteIdStr.trim().isEmpty()) {
-                            redirectUrl +=
-                                    URLUtils.createParameter("routeId", finalRouteIdStr) + "&";
+                            redirectUrl += URLUtils.createParameter("routeId", finalRouteIdStr) + "&";
                         }
                         redirectUrl += URLUtils.createParameter("error",
                                 "Return schedule or route not found");
@@ -1299,10 +1382,8 @@ public class TicketController extends HttpServlet {
                     returnTicket.setPaymentStatus("PENDING");
 
                     // Set stations for return ticket (reversed)
-                    String returnBoardingStationIdStr =
-                            request.getParameter("returnBoardingStationId");
-                    String returnAlightingStationIdStr =
-                            request.getParameter("returnAlightingStationId");
+                    String returnBoardingStationIdStr = request.getParameter("returnBoardingStationId");
+                    String returnAlightingStationIdStr = request.getParameter("returnAlightingStationId");
                     UUID returnBoardingStationId = null;
                     UUID returnAlightingStationId = null;
                     try {
@@ -1320,9 +1401,9 @@ public class TicketController extends HttpServlet {
                             return;
                         }
                         try {
-                            StationValidationResult returnStations =
-                                    validateStationSelection(returnRoute.getRouteId(),
-                                            returnBoardingStationId, returnAlightingStationId);
+                            StationValidationResult returnStations = validateStationSelection(returnRoute.getRouteId(),
+                                    returnScheduleId,
+                                    returnBoardingStationId, returnAlightingStationId);
                             returnTicket.setBoardingStationId(returnBoardingStationId);
                             returnTicket.setAlightingStationId(returnAlightingStationId);
                             if (returnStations.getBoardingStation() != null) {
@@ -1365,8 +1446,8 @@ public class TicketController extends HttpServlet {
             }
 
             response.sendRedirect(request.getContextPath()
-                    + "/tickets?message=Ticket booked successfully! Ticket number: "
-                    + ticket.getTicketNumber());
+                    + "/tickets?showTicketNumber="
+                    + java.net.URLEncoder.encode(ticket.getTicketNumber(), java.nio.charset.StandardCharsets.UTF_8));
         } catch (NumberFormatException e) {
             // Try to get routeId from schedule if possible
             String errorRouteId = routeIdStr;
@@ -1405,8 +1486,7 @@ public class TicketController extends HttpServlet {
             if (errorRouteId != null && !errorRouteId.trim().isEmpty()) {
                 redirectUrl += URLUtils.createParameter("routeId", errorRouteId) + "&";
             }
-            redirectUrl +=
-                    URLUtils.createParameter("error", "Error booking ticket: " + e.getMessage());
+            redirectUrl += URLUtils.createParameter("error", "Error booking ticket: " + e.getMessage());
             response.sendRedirect(redirectUrl);
         }
     }
@@ -1841,6 +1921,57 @@ public class TicketController extends HttpServlet {
         }
     }
 
+    /**
+     * Remove a cancelled ticket permanently (hard delete) after passenger confirms.
+     */
+    private void removeCancelledTicket(HttpServletRequest request, HttpServletResponse response)
+            throws SQLException, IOException, ServletException {
+        String ticketIdStr = request.getParameter("id");
+
+        if (ticketIdStr == null || ticketIdStr.trim().isEmpty()) {
+            handleError(request, response, "Ticket ID is required");
+            return;
+        }
+
+        UUID ticketId;
+        try {
+            ticketId = UUID.fromString(ticketIdStr.trim());
+        } catch (IllegalArgumentException e) {
+            handleError(request, response, "Invalid ticket ID format: " + ticketIdStr);
+            return;
+        }
+
+        HttpSession session = request.getSession(false);
+        User user = (session != null) ? (User) session.getAttribute("user") : null;
+
+        if (user == null || !"USER".equals(user.getRole())) {
+            response.sendRedirect(request.getContextPath() + "/auth/login?error=You need to login");
+            return;
+        }
+
+        // Ensure ticket belongs to user
+        if (!ticketDAO.isTicketOwnedByUser(ticketId, user.getUserId())) {
+            response.sendRedirect(request.getContextPath()
+                    + "/tickets?error=Access denied. You can only remove your own cancelled tickets.");
+            return;
+        }
+
+        // Only allow hard delete if currently CANCELLED
+        Tickets ticket = ticketDAO.getTicketById(ticketId);
+        if (ticket == null || ticket.getStatus() == null || !"CANCELLED".equals(ticket.getStatus())) {
+            response.sendRedirect(request.getContextPath() + "/tickets?error=Ticket is not in cancelled state");
+            return;
+        }
+
+        boolean success = ticketDAO.hardDeleteTicket(ticketId);
+
+        if (success) {
+            response.sendRedirect(request.getContextPath() + "/tickets?message=Cancelled ticket removed");
+        } else {
+            response.sendRedirect(request.getContextPath() + "/tickets?error=Failed to remove cancelled ticket");
+        }
+    }
+
     private void getTicketById(HttpServletRequest request, HttpServletResponse response)
             throws SQLException, ServletException, IOException {
         String pathInfo = request.getPathInfo();
@@ -1892,7 +2023,8 @@ public class TicketController extends HttpServlet {
                             : null,
                     null, null, null, null);
 
-            // Get accurate statistics from database (includes all tickets regardless of filters)
+            // Get accurate statistics from database (includes all tickets regardless of
+            // filters)
             java.util.Map<String, Object> statistics = ticketDAO.getTicketStatistics();
             request.setAttribute("ticketStats", statistics);
 
@@ -2030,8 +2162,7 @@ public class TicketController extends HttpServlet {
                 return;
             }
 
-            boolean isSeatAvailable =
-                    ticketDAO.isSeatAvailableForUpdate(scheduleId, seatNumber, ticketId);
+            boolean isSeatAvailable = ticketDAO.isSeatAvailableForUpdate(scheduleId, seatNumber, ticketId);
             if (!isSeatAvailable) {
                 response.sendRedirect(
                         request.getContextPath() + "/admin/tickets/edit?id=" + ticketId
@@ -2100,6 +2231,94 @@ public class TicketController extends HttpServlet {
             response.sendRedirect(
                     request.getContextPath()
                             + "/admin/tickets?error=Error: Invalid ticket ID. Please check again");
+        }
+    }
+
+    // Allow ticket owner to mark their ticket as paid (from user-facing pages)
+    private void userMarkTicketPaid(HttpServletRequest request, HttpServletResponse response)
+            throws SQLException, IOException {
+        HttpSession session = request.getSession(false);
+        if (session == null || session.getAttribute("user") == null) {
+            response.sendRedirect(
+                    request.getContextPath() + "/auth/login?error=You need to login to perform this action");
+            return;
+        }
+
+        User user = (User) session.getAttribute("user");
+        String ticketIdStr = request.getParameter("ticketId");
+        if (ticketIdStr == null || ticketIdStr.trim().isEmpty()) {
+            response.sendRedirect(request.getContextPath() + "/tickets?error=Ticket ID is required");
+            return;
+        }
+
+        try {
+            UUID ticketId = UUID.fromString(ticketIdStr);
+            // Verify ownership
+            if (!ticketDAO.isTicketOwnedByUser(ticketId, user.getUserId())) {
+                response.sendRedirect(request.getContextPath() + "/tickets?error=Access denied");
+                return;
+            }
+
+            Tickets ticket = ticketDAO.getTicketById(ticketId);
+            if (ticket == null) {
+                response.sendRedirect(request.getContextPath() + "/tickets?error=Ticket not found");
+                return;
+            }
+
+            ticket.setPaymentStatus("PAID");
+            boolean success = ticketDAO.updateTicket(ticket);
+
+            if (success) {
+                response.sendRedirect(request.getContextPath() + "/tickets?message=Payment recorded successfully");
+            } else {
+                response.sendRedirect(request.getContextPath() + "/tickets?error=Failed to record payment");
+            }
+        } catch (IllegalArgumentException e) {
+            response.sendRedirect(request.getContextPath() + "/tickets?error=Invalid ticket ID");
+        }
+    }
+
+    /**
+     * Admin/Driver action to confirm a ticket (sets status to CONFIRMED)
+     */
+    private void adminConfirmTicket(HttpServletRequest request, HttpServletResponse response)
+            throws SQLException, IOException, ServletException {
+        HttpSession session = request.getSession(false);
+        User sessionUser = (session != null) ? (User) session.getAttribute("user") : null;
+        if (sessionUser == null) {
+            response.sendRedirect(request.getContextPath() + "/auth/login");
+            return;
+        }
+        if (!"ADMIN".equals(sessionUser.getRole()) && !"DRIVER".equals(sessionUser.getRole())) {
+            request.setAttribute("error", "Access denied: ADMIN or DRIVER required");
+            request.getRequestDispatcher("/views/errors/403.jsp").forward(request, response);
+            return;
+        }
+
+        String id = request.getParameter("id");
+        UUID ticketId = parseUuidOrNull(id);
+        if (ticketId == null) {
+            response.sendRedirect(request.getContextPath() + "/admin/tickets?error=Invalid+ticket+id");
+            return;
+        }
+
+        Tickets ticket = ticketDAO.getTicketById(ticketId);
+        if (ticket == null) {
+            response.sendRedirect(request.getContextPath() + "/admin/tickets?error=Ticket+not+found");
+            return;
+        }
+
+        if ("CONFIRMED".equals(ticket.getStatus())) {
+            response.sendRedirect(request.getContextPath() + "/admin/tickets?message=Ticket+already+confirmed");
+            return;
+        }
+
+        ticket.setStatus("CONFIRMED");
+        boolean ok = ticketDAO.updateTicket(ticket);
+        if (ok) {
+            response.sendRedirect(request.getContextPath() + "/admin/tickets?message=Ticket+confirmed");
+        } else {
+            response.sendRedirect(request.getContextPath() + "/admin/tickets?error=Failed+to+confirm+ticket");
         }
     }
 
@@ -2177,6 +2396,63 @@ public class TicketController extends HttpServlet {
         }
     }
 
+    /**
+     * Admin/Driver action to refund a single ticket (sets payment_status =
+     * 'REFUNDED' and appends note)
+     */
+    private void adminRefundTicket(HttpServletRequest request, HttpServletResponse response)
+            throws SQLException, IOException, ServletException {
+        HttpSession session = request.getSession(false);
+        User sessionUser = (session != null) ? (User) session.getAttribute("user") : null;
+        if (sessionUser == null) {
+            response.sendRedirect(request.getContextPath() + "/auth/login");
+            return;
+        }
+        if (!"ADMIN".equals(sessionUser.getRole()) && !"DRIVER".equals(sessionUser.getRole())) {
+            request.setAttribute("error", "Access denied: ADMIN or DRIVER required");
+            request.getRequestDispatcher("/views/errors/403.jsp").forward(request, response);
+            return;
+        }
+
+        String id = request.getParameter("id");
+        UUID ticketId = parseUuidOrNull(id);
+        if (ticketId == null) {
+            response.sendRedirect(request.getContextPath() + "/admin/tickets?error=Invalid+ticket+id");
+            return;
+        }
+
+        String reason = request.getParameter("reason");
+        if (reason == null)
+            reason = "";
+
+        Tickets ticket = ticketDAO.getTicketById(ticketId);
+        if (ticket == null) {
+            response.sendRedirect(request.getContextPath() + "/admin/tickets?error=Ticket+not+found");
+            return;
+        }
+
+        if (!"PAID".equals(ticket.getPaymentStatus())) {
+            response.sendRedirect(request.getContextPath() + "/admin/tickets?error=Only+PAID+tickets+can+be+refunded");
+            return;
+        }
+
+        // Append refund note
+        String existingNotes = ticket.getNotes() != null ? ticket.getNotes() : "";
+        String noteSuffix = " | Refunded" + (reason.trim().isEmpty() ? "" : ": " + reason.trim());
+        ticket.setNotes(existingNotes + noteSuffix);
+
+        ticket.setPaymentStatus("REFUNDED");
+        // Optionally keep status as-is or set to CANCELLED; here we leave status
+        // unchanged
+
+        boolean ok = ticketDAO.updateTicket(ticket);
+        if (ok) {
+            response.sendRedirect(request.getContextPath() + "/admin/tickets?message=Ticket+refunded");
+        } else {
+            response.sendRedirect(request.getContextPath() + "/admin/tickets?error=Failed+to+refund+ticket");
+        }
+    }
+
     private void adminExportTickets(HttpServletRequest request, HttpServletResponse response)
             throws SQLException, IOException {
         String format = request.getParameter("format");
@@ -2229,4 +2505,3 @@ public class TicketController extends HttpServlet {
         }
     }
 }
-
