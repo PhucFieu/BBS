@@ -9,7 +9,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import model.City;
 import model.Station;
 import util.DBConnection;
 import util.UUIDUtils;
@@ -19,8 +18,8 @@ public class StationDAO {
     public List<Station> getAllStations() throws SQLException {
         List<Station> stations = new ArrayList<>();
         String sql = "SELECT s.*, c.city_name FROM Stations s " +
-                     "LEFT JOIN Cities c ON s.city_id = c.city_id " +
-                     "WHERE s.status = 'ACTIVE' ORDER BY s.station_name";
+                "LEFT JOIN Cities c ON s.city_id = c.city_id " +
+                "WHERE s.status = 'ACTIVE' ORDER BY s.station_name";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql);
@@ -36,8 +35,8 @@ public class StationDAO {
 
     public Station getStationById(UUID stationId) throws SQLException {
         String sql = "SELECT s.*, c.city_name FROM Stations s " +
-                     "LEFT JOIN Cities c ON s.city_id = c.city_id " +
-                     "WHERE s.station_id = ? AND s.status = 'ACTIVE'";
+                "LEFT JOIN Cities c ON s.city_id = c.city_id " +
+                "WHERE s.station_id = ? AND s.status = 'ACTIVE'";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -51,15 +50,15 @@ public class StationDAO {
         }
         return null;
     }
-    
+
     /**
      * Get stations by city ID
      */
     public List<Station> getStationsByCityId(UUID cityId) throws SQLException {
         List<Station> stations = new ArrayList<>();
         String sql = "SELECT s.*, c.city_name FROM Stations s " +
-                     "LEFT JOIN Cities c ON s.city_id = c.city_id " +
-                     "WHERE s.city_id = ? AND s.status = 'ACTIVE' ORDER BY s.station_name";
+                "LEFT JOIN Cities c ON s.city_id = c.city_id " +
+                "WHERE s.city_id = ? AND s.status = 'ACTIVE' ORDER BY s.station_name";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -74,7 +73,7 @@ public class StationDAO {
         }
         return stations;
     }
-    
+
     /**
      * Get stations by multiple city IDs (for route with multiple cities)
      */
@@ -82,14 +81,15 @@ public class StationDAO {
         if (cityIds == null || cityIds.isEmpty()) {
             return new ArrayList<>();
         }
-        
+
         List<Station> stations = new ArrayList<>();
         StringBuilder sql = new StringBuilder("SELECT s.*, c.city_name FROM Stations s " +
-                     "LEFT JOIN Cities c ON s.city_id = c.city_id " +
-                     "WHERE s.city_id IN (");
-        
+                "LEFT JOIN Cities c ON s.city_id = c.city_id " +
+                "WHERE s.city_id IN (");
+
         for (int i = 0; i < cityIds.size(); i++) {
-            if (i > 0) sql.append(",");
+            if (i > 0)
+                sql.append(",");
             sql.append("?");
         }
         sql.append(") AND s.status = 'ACTIVE' ORDER BY c.city_number, s.station_name");
@@ -100,7 +100,7 @@ public class StationDAO {
             for (int i = 0; i < cityIds.size(); i++) {
                 stmt.setObject(i + 1, cityIds.get(i));
             }
-            
+
             ResultSet rs = stmt.executeQuery();
             while (rs.next()) {
                 Station station = mapResultSetToStation(rs);
@@ -117,8 +117,8 @@ public class StationDAO {
     public List<Station> getStationsByCity(String city) throws SQLException {
         List<Station> stations = new ArrayList<>();
         String sql = "SELECT s.*, c.city_name FROM Stations s " +
-                     "LEFT JOIN Cities c ON s.city_id = c.city_id " +
-                     "WHERE c.city_name = ? AND s.status = 'ACTIVE' ORDER BY s.station_name";
+                "LEFT JOIN Cities c ON s.city_id = c.city_id " +
+                "WHERE c.city_name = ? AND s.status = 'ACTIVE' ORDER BY s.station_name";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -144,7 +144,7 @@ public class StationDAO {
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            String searchPattern = "%" + keyword + "%";
+            String searchPattern = "%" + keyword.trim() + "%";
             stmt.setString(1, searchPattern);
             stmt.setString(2, searchPattern);
             stmt.setString(3, searchPattern);
@@ -162,7 +162,7 @@ public class StationDAO {
         if (station.getCityId() == null) {
             throw new SQLException("City ID is required for station");
         }
-        
+
         String sql = "INSERT INTO Stations (station_id, station_name, city_id, address, status) VALUES (?, ?, ?, ?, ?)";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
@@ -183,7 +183,8 @@ public class StationDAO {
     }
 
     public boolean isStationNameTaken(String stationName, UUID excludeStationId) throws SQLException {
-        // Use LOWER and LTRIM/RTRIM for consistent comparison (case-insensitive, trimmed)
+        // Use LOWER and LTRIM/RTRIM for consistent comparison (case-insensitive,
+        // trimmed)
         StringBuilder sql = new StringBuilder(
                 "SELECT COUNT(1) FROM Stations WHERE LOWER(LTRIM(RTRIM(station_name))) = LOWER(LTRIM(RTRIM(?)))");
         if (excludeStationId != null) {
@@ -211,7 +212,7 @@ public class StationDAO {
         if (station.getCityId() == null) {
             throw new SQLException("City ID is required for station");
         }
-        
+
         String sql = "UPDATE Stations SET station_name = ?, city_id = ?, address = ?, status = ?, updated_date = GETDATE() WHERE station_id = ?";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
@@ -259,8 +260,8 @@ public class StationDAO {
     public List<String> getAllCities() throws SQLException {
         List<String> cities = new ArrayList<>();
         String sql = "SELECT DISTINCT c.city_name FROM Stations s " +
-                     "JOIN Cities c ON s.city_id = c.city_id " +
-                     "WHERE s.status = 'ACTIVE' ORDER BY c.city_name";
+                "JOIN Cities c ON s.city_id = c.city_id " +
+                "WHERE s.status = 'ACTIVE' ORDER BY c.city_name";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql);
@@ -278,7 +279,7 @@ public class StationDAO {
 
         station.setStationId(UUIDUtils.getUUIDFromResultSet(rs, "station_id"));
         station.setStationName(rs.getString("station_name"));
-        
+
         // Try to get city_id first, fallback to city string if not available
         try {
             UUID cityId = UUIDUtils.getUUIDFromResultSet(rs, "city_id");
@@ -288,7 +289,7 @@ public class StationDAO {
         } catch (SQLException e) {
             // city_id column might not exist in older queries
         }
-        
+
         // Get city name for backward compatibility
         try {
             String cityName = rs.getString("city_name");
@@ -306,7 +307,7 @@ public class StationDAO {
                 // Ignore
             }
         }
-        
+
         station.setAddress(rs.getString("address"));
         station.setStatus(rs.getString("status"));
 
