@@ -53,14 +53,7 @@
                         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.13);
                     }
 
-                    .trip-type-buttons .btn {
-                        margin: 5px;
-                    }
-
-                    .trip-type-buttons .btn.active {
-                        background: linear-gradient(135deg, #66bb6a 0%, #81c784 100%);
-                        border-color: #66bb6a;
-                    }
+                    /* Trip type buttons removed as they were redundant */
 
                     .feature-icon {
                         font-size: 2rem;
@@ -204,23 +197,7 @@
                                     <div class="search-form">
                                         <form action="${pageContext.request.contextPath}/search/search" method="post"
                                             id="searchForm" onsubmit="return validateRouteSelection()">
-                                            <!-- Trip Type Selection -->
-                                            <div class="row mb-4">
-                                                <div class="col-12">
-                                                    <label class="form-label fw-bold">Trip Type</label>
-                                                    <div class="trip-type-buttons text-center">
-                                                        <button type="button" class="btn btn-outline-primary active"
-                                                            data-trip-type="oneway">
-                                                            <i class="fas fa-arrow-right me-2"></i>One Way
-                                                        </button>
-                                                        <button type="button" class="btn btn-outline-primary"
-                                                            data-trip-type="roundtrip">
-                                                            <i class="fas fa-exchange-alt me-2"></i>Round Trip
-                                                        </button>
-                                                    </div>
-                                                    <input type="hidden" id="tripType" name="tripType" value="oneway">
-                                                </div>
-                                            </div>
+                                            <!-- Trip type selection removed -->
 
                                             <div class="row g-3">
                                                 <!-- Departure City -->
@@ -458,31 +435,7 @@
                                 if (departureDateEl) departureDateEl.min = today;
                                 if (returnDateEl) returnDateEl.min = today;
 
-                                // Trip type buttons
-                                const tripTypeButtons = document.querySelectorAll('[data-trip-type]');
-                                const returnDateGroup = document.getElementById('returnDateGroup');
-                                const tripTypeInput = document.getElementById('tripType');
-
-                                tripTypeButtons.forEach(button => {
-                                    button.addEventListener('click', function () {
-                                        // Remove active class from all buttons
-                                        tripTypeButtons.forEach(btn => btn.classList.remove('active'));
-                                        // Add active class to clicked button
-                                        this.classList.add('active');
-
-                                        const tripType = this.getAttribute('data-trip-type');
-                                        tripTypeInput.value = tripType;
-
-                                        if (tripType === 'roundtrip') {
-                                            returnDateGroup.style.display = 'block';
-                                            // Return date is optional
-                                            document.getElementById('returnDate').required = false;
-                                        } else {
-                                            returnDateGroup.style.display = 'none';
-                                            document.getElementById('returnDate').required = false;
-                                        }
-                                    });
-                                });
+                                // Trip type selection removed; return date stays hidden by default
 
                                 // Initialize searchable dropdowns after cities loaded
                                 setTimeout(() => {
