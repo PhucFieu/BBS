@@ -98,8 +98,7 @@ public class UserDAO {
     }
 
     public boolean addUser(User user) throws SQLException {
-        String sql =
-                "INSERT INTO Users (user_id, username, password, full_name, email, phone_number, role, status, id_card, address, date_of_birth, gender) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO Users (user_id, username, password, full_name, email, phone_number, role, status, id_card, address, date_of_birth, gender) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -192,8 +191,7 @@ public class UserDAO {
     }
 
     public boolean updateUser(User user) throws SQLException {
-        String sql =
-                "UPDATE Users SET full_name = ?, email = ?, phone_number = ?, role = ?, status = ?, id_card = ?, address = ?, date_of_birth = ?, gender = ?, updated_date = GETDATE() WHERE user_id = ?";
+        String sql = "UPDATE Users SET full_name = ?, email = ?, phone_number = ?, role = ?, status = ?, id_card = ?, address = ?, date_of_birth = ?, gender = ?, updated_date = GETDATE() WHERE user_id = ?";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -251,8 +249,7 @@ public class UserDAO {
     }
 
     public boolean deleteUser(UUID userId) throws SQLException {
-        String sql =
-                "UPDATE Users SET status = 'INACTIVE', updated_date = GETDATE() WHERE user_id = ?";
+        String sql = "UPDATE Users SET status = 'INACTIVE', updated_date = GETDATE() WHERE user_id = ?";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -275,13 +272,12 @@ public class UserDAO {
 
     public List<User> searchUsers(String searchTerm) throws SQLException {
         List<User> users = new ArrayList<>();
-        String sql =
-                "SELECT * FROM Users WHERE (username LIKE ? OR full_name LIKE ? OR email LIKE ? OR phone_number LIKE ?) AND status = 'ACTIVE' ORDER BY username";
+        String sql = "SELECT * FROM Users WHERE (username LIKE ? OR full_name LIKE ? OR email LIKE ? OR phone_number LIKE ?) AND status = 'ACTIVE' ORDER BY username";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            String searchPattern = "%" + searchTerm + "%";
+            String searchPattern = "%" + searchTerm.trim() + "%";
             stmt.setString(1, searchPattern);
             stmt.setString(2, searchPattern);
             stmt.setString(3, searchPattern);
@@ -315,7 +311,7 @@ public class UserDAO {
                 stmt.setString(1, role);
             } else {
                 // With search term - search in multiple fields
-                String searchPattern = "%" + searchTerm + "%";
+                String searchPattern = "%" + searchTerm.trim() + "%";
                 stmt.setString(1, searchPattern);
                 stmt.setString(2, searchPattern);
                 stmt.setString(3, searchPattern);
@@ -432,8 +428,7 @@ public class UserDAO {
 
     public List<User> getRecentUsers(int limit) throws SQLException {
         List<User> users = new ArrayList<>();
-        String sql =
-                "SELECT TOP (?) * FROM Users WHERE status = 'ACTIVE' ORDER BY created_date DESC";
+        String sql = "SELECT TOP (?) * FROM Users WHERE status = 'ACTIVE' ORDER BY created_date DESC";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -505,8 +500,7 @@ public class UserDAO {
      * Deactivate user account (soft delete)
      */
     public boolean deactivateUser(UUID userId) throws SQLException {
-        String sql =
-                "UPDATE Users SET status = 'INACTIVE', updated_date = GETDATE() WHERE user_id = ?";
+        String sql = "UPDATE Users SET status = 'INACTIVE', updated_date = GETDATE() WHERE user_id = ?";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -521,8 +515,7 @@ public class UserDAO {
      * Reactivate a user account.
      */
     public boolean reactivateUser(UUID userId) throws SQLException {
-        String sql =
-                "UPDATE Users SET status = 'ACTIVE', updated_date = GETDATE() WHERE user_id = ?";
+        String sql = "UPDATE Users SET status = 'ACTIVE', updated_date = GETDATE() WHERE user_id = ?";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -533,10 +526,12 @@ public class UserDAO {
     }
 
     /**
-     * Automatically deactivate passenger accounts that have been inactive for the given number of
+     * Automatically deactivate passenger accounts that have been inactive for the
+     * given number of
      * months.
      *
-     * @param monthsThreshold number of months without login activity before marking inactive
+     * @param monthsThreshold number of months without login activity before marking
+     *                        inactive
      * @return number of affected rows
      */
     public int deactivateInactivePassengers(int monthsThreshold) throws SQLException {
