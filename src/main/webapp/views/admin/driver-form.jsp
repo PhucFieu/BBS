@@ -61,6 +61,7 @@
                     color: #fff;
                     transform: translateY(-1px);
                 }
+
                 .form-container {
                     background: linear-gradient(135deg, #66bb6a 0%, #81c784 100%);
                     border-radius: 15px;
@@ -187,28 +188,32 @@
                             <div class="alert alert-success alert-dismissible fade show" role="alert">
                                 <i class="fas fa-check-circle me-2"></i>
                                 <strong>Success!</strong> ${param.message}
-                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"
+                                    aria-label="Close"></button>
                             </div>
                         </c:if>
                         <c:if test="${not empty param.error}">
                             <div class="alert alert-danger alert-dismissible fade show" role="alert">
                                 <i class="fas fa-exclamation-circle me-2"></i>
                                 <strong>Error!</strong> ${param.error}
-                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"
+                                    aria-label="Close"></button>
                             </div>
                         </c:if>
                         <c:if test="${not empty param.warning}">
                             <div class="alert alert-warning alert-dismissible fade show" role="alert">
                                 <i class="fas fa-exclamation-triangle me-2"></i>
                                 <strong>Warning!</strong> ${param.warning}
-                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"
+                                    aria-label="Close"></button>
                             </div>
                         </c:if>
                         <c:if test="${not empty param.info}">
                             <div class="alert alert-info alert-dismissible fade show" role="alert">
                                 <i class="fas fa-info-circle me-2"></i>
                                 <strong>Info:</strong> ${param.info}
-                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"
+                                    aria-label="Close"></button>
                             </div>
                         </c:if>
 
@@ -326,6 +331,26 @@
                                         </div>
                                     </div>
 
+                                    <c:if test="${not empty driver}">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="form-group">
+                                                    <label for="status" class="form-label">
+                                                        <i class="fas fa-check-circle me-2"></i>Status *
+                                                    </label>
+                                                    <select class="form-select" id="status" name="status" required>
+                                                        <option value="ACTIVE" ${driver.status eq 'ACTIVE' ? 'selected'
+                                                            : '' }>ACTIVE</option>
+                                                        <option value="INACTIVE" ${driver.status eq 'INACTIVE'
+                                                            ? 'selected' : '' }>INACTIVE</option>
+                                                    </select>
+                                                    <small class="form-text text-muted">Select the driver's
+                                                        status</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </c:if>
+
                                     <!-- Information Card -->
                                     <div class="info-card">
                                         <h6 class="mb-2">
@@ -363,8 +388,8 @@
                     // Auto-hide alerts after 5 seconds
                     document.addEventListener('DOMContentLoaded', function () {
                         const alerts = document.querySelectorAll('.alert');
-                        alerts.forEach(function(alert) {
-                            setTimeout(function() {
+                        alerts.forEach(function (alert) {
+                            setTimeout(function () {
                                 const bsAlert = new bootstrap.Alert(alert);
                                 bsAlert.close();
                             }, 5000);
@@ -385,10 +410,19 @@
                         const phoneNumber = document.getElementById('phoneNumber').value.trim();
                         const licenseNumber = document.getElementById('licenseNumber').value.trim();
                         const experienceYears = document.getElementById('experienceYears').value;
+                        const statusField = document.getElementById('status');
+                        const status = statusField ? statusField.value : null;
 
                         if (!username || !fullName || !phoneNumber || !licenseNumber || !experienceYears) {
                             e.preventDefault();
                             alert('Please fill in all required fields.');
+                            return;
+                        }
+
+                        // Status validation (only when editing)
+                        if (statusField && (!status || (status !== 'ACTIVE' && status !== 'INACTIVE'))) {
+                            e.preventDefault();
+                            alert('Please select a valid status (ACTIVE or INACTIVE).');
                             return;
                         }
 
@@ -415,6 +449,15 @@
                         if (isNaN(years) || years < 0 || years > 50) {
                             e.preventDefault();
                             alert('Please enter a valid experience in years (0-50).');
+                            return;
+                        }
+                        
+                        // License number validation: must be exactly 12 digits
+                        const licenseNumberRegex = /^[0-9]{12}$/;
+                        if (!licenseNumberRegex.test(licenseNumber)) {
+                            e.preventDefault();
+                            alert('License number must be exactly 12 digits (numbers only).');
+                            document.getElementById('licenseNumber').focus();
                             return;
                         }
                     });
