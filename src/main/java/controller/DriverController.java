@@ -1578,8 +1578,9 @@ public class DriverController extends HttpServlet {
             // new
             // schedule start)
             double requiredGapHours = calculateRequiredGapHours(schedule);
-            Schedule violatingSchedule = scheduleDAO.checkDriverScheduleTimeGap(
-                    driverId, schedule.getDepartureDate(), schedule.getDepartureTime(), scheduleId,
+            Schedule violatingSchedule = scheduleDAO.checkDriverScheduleTimeGapWithArrival(
+                    driverId, schedule.getDepartureDate(), schedule.getDepartureTime(),
+                    schedule.getEstimatedArrivalTime(), scheduleId,
                     requiredGapHours);
             if (violatingSchedule != null) {
                 Driver driver = driverDAO.getDriverById(driverId);
@@ -1598,10 +1599,34 @@ public class DriverController extends HttpServlet {
                                 .equals(violatingSchedule.getDepartureTime())) {
                     violatingScheduleEnd = violatingScheduleEnd.plusDays(1);
                 }
+
                 java.time.LocalDateTime newScheduleStart = java.time.LocalDateTime.of(
                         schedule.getDepartureDate(), schedule.getDepartureTime());
-                java.time.Duration gap = java.time.Duration.between(violatingScheduleEnd, newScheduleStart);
-                double gapHours = gap.toMinutes() / 60.0;
+                java.time.LocalDateTime newScheduleEnd = java.time.LocalDateTime.of(
+                        schedule.getDepartureDate(), schedule.getEstimatedArrivalTime());
+                // Handle case where new schedule arrival time might be next day
+                if (schedule.getEstimatedArrivalTime().isBefore(schedule.getDepartureTime()) ||
+                        schedule.getEstimatedArrivalTime().equals(schedule.getDepartureTime())) {
+                    newScheduleEnd = newScheduleEnd.plusDays(1);
+                }
+
+                // Determine which gap is the issue (before or after)
+                java.time.LocalDateTime violatingScheduleStart = java.time.LocalDateTime.of(
+                        violatingSchedule.getDepartureDate(), violatingSchedule.getDepartureTime());
+
+                double gapHours;
+                String gapDirection;
+                if (violatingScheduleEnd.isBefore(newScheduleStart) || violatingScheduleEnd.equals(newScheduleStart)) {
+                    // Existing schedule ends before new schedule starts
+                    java.time.Duration gap = java.time.Duration.between(violatingScheduleEnd, newScheduleStart);
+                    gapHours = gap.toMinutes() / 60.0;
+                    gapDirection = "before";
+                } else {
+                    // New schedule ends before existing schedule starts
+                    java.time.Duration gap = java.time.Duration.between(newScheduleEnd, violatingScheduleStart);
+                    gapHours = gap.toMinutes() / 60.0;
+                    gapDirection = "after";
+                }
                 double newTripDurationHours = Math.max(0, requiredGapHours - 8.0);
 
                 String violatingScheduleDescription = String.format("%s (%s %s - %s)",
@@ -1612,15 +1637,28 @@ public class DriverController extends HttpServlet {
                         violatingSchedule.getDepartureTime(),
                         violatingSchedule.getEstimatedArrivalTime());
 
-                String errorMessage = String.format(
-                        "Cannot assign driver %s to this schedule. There must be at least %.1f hours (trip duration %.1f h + 8 h rest) between schedules. "
-                                + "The driver's previous schedule %s ends at %s, and this schedule starts at %s "
-                                + "(gap: %.1f hours).",
-                        driverName, requiredGapHours, newTripDurationHours,
-                        violatingScheduleDescription,
-                        violatingScheduleEnd.toString().replace("T", " "),
-                        newScheduleStart.toString().replace("T", " "),
-                        gapHours);
+                String errorMessage;
+                if ("before".equals(gapDirection)) {
+                    errorMessage = String.format(
+                            "Cannot assign driver %s to this schedule. There must be at least %.1f hours (trip duration %.1f h + 8 h rest) between schedules. "
+                                    + "The driver's previous schedule %s ends at %s, and this schedule starts at %s "
+                                    + "(gap: %.1f hours).",
+                            driverName, requiredGapHours, newTripDurationHours,
+                            violatingScheduleDescription,
+                            violatingScheduleEnd.toString().replace("T", " "),
+                            newScheduleStart.toString().replace("T", " "),
+                            gapHours);
+                } else {
+                    errorMessage = String.format(
+                            "Cannot assign driver %s to this schedule. There must be at least %.1f hours (trip duration %.1f h + 8 h rest) between schedules. "
+                                    + "This schedule ends at %s, and the driver's next schedule %s starts at %s "
+                                    + "(gap: %.1f hours).",
+                            driverName, requiredGapHours, newTripDurationHours,
+                            newScheduleEnd.toString().replace("T", " "),
+                            violatingScheduleDescription,
+                            violatingScheduleStart.toString().replace("T", " "),
+                            gapHours);
+                }
 
                 response.sendRedirect(
                         request.getContextPath() + "/admin/drivers/assign?scheduleId=" + scheduleId
