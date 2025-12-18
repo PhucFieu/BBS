@@ -143,14 +143,17 @@
                         .container {
                             padding: 0 1rem;
                         }
+
                         .card-body {
                             padding: 1rem;
                         }
+
                         .btn {
                             padding: 0.5rem 1rem;
                             font-size: 0.875rem;
                         }
                     }
+
                     .schedule-info {
                         background: linear-gradient(135deg, #66bb6a 0%, #81c784 100%);
                         border-radius: 15px;
@@ -215,28 +218,32 @@
                                 <div class="alert alert-success alert-dismissible fade show" role="alert">
                                     <i class="fas fa-check-circle me-2"></i>
                                     <strong>Success!</strong> ${param.message}
-                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"
+                                        aria-label="Close"></button>
                                 </div>
                             </c:if>
                             <c:if test="${not empty param.error}">
                                 <div class="alert alert-danger alert-dismissible fade show" role="alert">
                                     <i class="fas fa-exclamation-circle me-2"></i>
                                     <strong>Error!</strong> ${param.error}
-                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"
+                                        aria-label="Close"></button>
                                 </div>
                             </c:if>
                             <c:if test="${not empty param.warning}">
                                 <div class="alert alert-warning alert-dismissible fade show" role="alert">
                                     <i class="fas fa-exclamation-triangle me-2"></i>
                                     <strong>Warning!</strong> ${param.warning}
-                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"
+                                        aria-label="Close"></button>
                                 </div>
                             </c:if>
                             <c:if test="${not empty param.info}">
                                 <div class="alert alert-info alert-dismissible fade show" role="alert">
                                     <i class="fas fa-info-circle me-2"></i>
                                     <strong>Info:</strong> ${param.info}
-                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"
+                                        aria-label="Close"></button>
                                 </div>
                             </c:if>
 
@@ -295,6 +302,20 @@
                                             </c:if>
                                         </div>
                                     </div>
+                                    <div class="alert alert-info mt-3 mb-0" role="alert">
+                                        <i class="fas fa-clock me-2"></i>
+                                        Trip duration:
+                                        <strong>
+                                            <fmt:formatNumber value="${scheduleDurationHours}" maxFractionDigits="1" />
+                                            h
+                                        </strong>.
+                                        Minimum rest required before assigning this trip:
+                                        <strong>
+                                            <fmt:formatNumber value="${requiredGapHours}" maxFractionDigits="1" />
+                                            h
+                                        </strong>
+                                        (trip duration + 8 h rest).
+                                    </div>
                                 </div>
                             </c:if>
 
@@ -346,14 +367,20 @@
 
                                         <div class="row" id="driversContainer">
                                             <c:forEach var="driver" items="${drivers}">
+                                                <c:set var="minGap" value="${driverMinGap[driver.driverId]}" />
+                                                <c:set var="gapInsufficient"
+                                                    value="${minGap < requiredGapHours && minGap >= 0}" />
+                                                <c:set var="hasTimeConflict" value="${minGap < 0}" />
+                                                <c:set var="isBlocked" value="${gapInsufficient || hasTimeConflict}" />
                                                 <div class="col-lg-4 col-md-6 mb-3 driver-item"
                                                     data-name="${driver.fullName}"
                                                     data-license="${driver.licenseNumber}"
                                                     data-phone="${driver.phoneNumber}"
                                                     data-experience="${driver.experienceYears}">
-                                                    <div class="card driver-card h-100"
-                                                        onclick="selectDriver('${driver.driverId}', this)">
-                                                        <div class="card-header bg-info text-white">
+                                                    <div class="card driver-card h-100 ${isBlocked ? 'border-warning' : ''}"
+                                                        onclick="selectDriver('${driver.driverId}', this, ${isBlocked ? 'true' : 'false'})">
+                                                        <div
+                                                            class="card-header ${isBlocked ? 'bg-warning text-dark' : 'bg-info text-white'}">
                                                             <div
                                                                 class="d-flex justify-content-between align-items-center">
                                                                 <h6 class="mb-0">
@@ -365,6 +392,43 @@
                                                             </div>
                                                         </div>
                                                         <div class="card-body">
+                                                            <c:if test="${gapInsufficient}">
+                                                                <div class="alert alert-warning mb-3 py-2" role="alert">
+                                                                    <i class="fas fa-clock me-2"></i>
+                                                                    <strong>Warning:</strong> Gap between last schedule
+                                                                    completion and this schedule start is only
+                                                                    <c:choose>
+                                                                        <c:when test="${minGap >= 1.0}">
+                                                                            <fmt:formatNumber value="${minGap}"
+                                                                                maxFractionDigits="1" /> hours
+                                                                        </c:when>
+                                                                        <c:otherwise>
+                                                                            <fmt:formatNumber value="${minGap * 60}"
+                                                                                maxFractionDigits="0" /> minutes
+                                                                        </c:otherwise>
+                                                                    </c:choose>
+                                                                    . Minimum
+                                                                    <fmt:formatNumber value="${requiredGapHours}"
+                                                                        maxFractionDigits="1" />
+                                                                    hours required (trip duration + 8 h rest).
+                                                                </div>
+                                                            </c:if>
+                                                            <c:if test="${hasTimeConflict}">
+                                                                <div class="alert alert-danger mb-3 py-2" role="alert">
+                                                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                                                    <strong>Conflict:</strong> This schedule starts
+                                                                    before the driver's last schedule ends.
+                                                                </div>
+                                                            </c:if>
+                                                            <c:if test="${minGap >= requiredGapHours}">
+                                                                <div class="alert alert-success mb-3 py-2" role="alert">
+                                                                    <i class="fas fa-check-circle me-2"></i>
+                                                                    <strong>Available:</strong> Sufficient gap (
+                                                                    <fmt:formatNumber value="${minGap}"
+                                                                        maxFractionDigits="1" /> hours) between
+                                                                    schedules.
+                                                                </div>
+                                                            </c:if>
                                                             <div class="mb-2">
                                                                 <i class="fas fa-id-card me-2 text-muted"></i>
                                                                 <strong>License:</strong> ${driver.licenseNumber}
@@ -386,10 +450,12 @@
                                                             <div class="form-check">
                                                                 <input class="form-check-input" type="radio"
                                                                     name="driverSelection" value="${driver.driverId}"
-                                                                    id="driver_${driver.driverId}">
+                                                                    id="driver_${driver.driverId}" ${isBlocked
+                                                                    ? 'disabled' : '' }>
                                                                 <label class="form-check-label"
                                                                     for="driver_${driver.driverId}">
-                                                                    Select this driver
+                                                                    ${isBlocked ? 'Cannot select (rest requirement not
+                                                                    met)' : 'Select this driver'}
                                                                 </label>
                                                             </div>
                                                         </div>
@@ -423,111 +489,130 @@
                 </div>
 
                 <%@ include file="/views/partials/footer.jsp" %>
-                <script>
-                    // Auto-hide alerts after 5 seconds
-                    document.addEventListener('DOMContentLoaded', function () {
-                        const alerts = document.querySelectorAll('.alert');
-                        alerts.forEach(function(alert) {
-                            setTimeout(function() {
-                                const bsAlert = new bootstrap.Alert(alert);
-                                bsAlert.close();
-                            }, 5000);
-                        });
+                    <script>
+                        // Auto-hide alerts after 5 seconds
+                        document.addEventListener('DOMContentLoaded', function () {
+                            const alerts = document.querySelectorAll('.alert');
+                            alerts.forEach(function (alert) {
+                                setTimeout(function () {
+                                    const bsAlert = new bootstrap.Alert(alert);
+                                    bsAlert.close();
+                                }, 5000);
+                            });
 
-                        // Scroll to top if there's a message
-                        if (alerts.length > 0) {
-                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                            // Scroll to top if there's a message
+                            if (alerts.length > 0) {
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                            }
+                        });
+                    </script>
+                    <script>
+                        const requiredGapHours = Number('${requiredGapHours}');
+                        const requiredGapText = Number.isFinite(requiredGapHours)
+                            ? (Number.isInteger(requiredGapHours) ? requiredGapHours.toFixed(0) : requiredGapHours.toFixed(1))
+                            : 'the required';
+
+                        function selectDriver(driverId, cardElement, isBlocked) {
+                            // If driver is blocked, prevent selection
+                            if (isBlocked) {
+                                alert('This driver was recently assigned to a schedule. Please ensure at least ' + requiredGapText + ' hours (trip duration + 8 h rest) between assignments.');
+                                return;
+                            }
+
+                            // Remove selection from all cards
+                            document.querySelectorAll('.driver-card').forEach(card => {
+                                card.classList.remove('selected');
+                            });
+
+                            // Add selection to clicked card
+                            cardElement.classList.add('selected');
+
+                            // Set the selected driver ID
+                            document.getElementById('selectedDriverId').value = driverId;
+
+                            // Check the radio button
+                            document.getElementById('driver_' + driverId).checked = true;
+
+                            // Enable the assign button
+                            document.getElementById('assignBtn').disabled = false;
                         }
-                    });
-                </script>
-                <script>
-                    function selectDriver(driverId, cardElement) {
-                        // Remove selection from all cards
-                        document.querySelectorAll('.driver-card').forEach(card => {
-                            card.classList.remove('selected');
-                        });
 
-                        // Add selection to clicked card
-                        cardElement.classList.add('selected');
+                        function filterDrivers() {
+                            const searchTerm = document.getElementById('driverSearch').value.trim().toLowerCase();
+                            const experienceFilter = document.getElementById('experienceFilter').value;
 
-                        // Set the selected driver ID
-                        document.getElementById('selectedDriverId').value = driverId;
+                            const driverItems = document.querySelectorAll('.driver-item');
+                            let visibleCount = 0;
 
-                        // Check the radio button
-                        document.getElementById('driver_' + driverId).checked = true;
+                            driverItems.forEach(item => {
+                                const name = item.dataset.name.toLowerCase();
+                                const license = item.dataset.license.toLowerCase();
+                                const phone = item.dataset.phone.toLowerCase();
+                                const experience = parseInt(item.dataset.experience);
 
-                        // Enable the assign button
-                        document.getElementById('assignBtn').disabled = false;
-                    }
+                                const matchesSearch = name.includes(searchTerm) ||
+                                    license.includes(searchTerm) ||
+                                    phone.includes(searchTerm);
 
-                    function filterDrivers() {
-                        const searchTerm = document.getElementById('driverSearch').value.toLowerCase();
-                        const experienceFilter = document.getElementById('experienceFilter').value;
-
-                        const driverItems = document.querySelectorAll('.driver-item');
-                        let visibleCount = 0;
-
-                        driverItems.forEach(item => {
-                            const name = item.dataset.name.toLowerCase();
-                            const license = item.dataset.license.toLowerCase();
-                            const phone = item.dataset.phone.toLowerCase();
-                            const experience = parseInt(item.dataset.experience);
-
-                            const matchesSearch = name.includes(searchTerm) ||
-                                license.includes(searchTerm) ||
-                                phone.includes(searchTerm);
-
-                            let matchesExperience = true;
-                            if (experienceFilter) {
-                                switch (experienceFilter) {
-                                    case '0-2':
-                                        matchesExperience = experience >= 0 && experience <= 2;
-                                        break;
-                                    case '3-5':
-                                        matchesExperience = experience >= 3 && experience <= 5;
-                                        break;
-                                    case '6-10':
-                                        matchesExperience = experience >= 6 && experience <= 10;
-                                        break;
-                                    case '10+':
-                                        matchesExperience = experience > 10;
-                                        break;
+                                let matchesExperience = true;
+                                if (experienceFilter) {
+                                    switch (experienceFilter) {
+                                        case '0-2':
+                                            matchesExperience = experience >= 0 && experience <= 2;
+                                            break;
+                                        case '3-5':
+                                            matchesExperience = experience >= 3 && experience <= 5;
+                                            break;
+                                        case '6-10':
+                                            matchesExperience = experience >= 6 && experience <= 10;
+                                            break;
+                                        case '10+':
+                                            matchesExperience = experience > 10;
+                                            break;
+                                    }
                                 }
+
+                                if (matchesSearch && matchesExperience) {
+                                    item.style.display = 'block';
+                                    visibleCount++;
+                                } else {
+                                    item.style.display = 'none';
+                                }
+                            });
+
+                            // Show/hide no results message
+                            const noResults = document.getElementById('noResults');
+                            if (visibleCount === 0) {
+                                noResults.style.display = 'block';
+                            } else {
+                                noResults.style.display = 'none';
+                            }
+                        }
+
+                        function clearFilters() {
+                            document.getElementById('driverSearch').value = '';
+                            document.getElementById('experienceFilter').value = '';
+                            filterDrivers();
+                        }
+
+                        // Form validation
+                        document.getElementById('assignDriverForm').addEventListener('submit', function (e) {
+                            const selectedDriverId = document.getElementById('selectedDriverId').value;
+                            if (!selectedDriverId) {
+                                e.preventDefault();
+                                alert('Please select a driver before assigning.');
+                                return false;
                             }
 
-                            if (matchesSearch && matchesExperience) {
-                                item.style.display = 'block';
-                                visibleCount++;
-                            } else {
-                                item.style.display = 'none';
+                            // Check if selected driver is blocked
+                            const selectedRadio = document.querySelector('input[name="driverSelection"]:checked');
+                            if (selectedRadio && selectedRadio.disabled) {
+                                e.preventDefault();
+                                alert('This driver was recently assigned to a schedule. Please ensure the minimum rest requirement (trip duration + 8 h) before assigning.');
+                                return false;
                             }
                         });
-
-                        // Show/hide no results message
-                        const noResults = document.getElementById('noResults');
-                        if (visibleCount === 0) {
-                            noResults.style.display = 'block';
-                        } else {
-                            noResults.style.display = 'none';
-                        }
-                    }
-
-                    function clearFilters() {
-                        document.getElementById('driverSearch').value = '';
-                        document.getElementById('experienceFilter').value = '';
-                        filterDrivers();
-                    }
-
-                    // Form validation
-                    document.getElementById('assignDriverForm').addEventListener('submit', function (e) {
-                        const selectedDriverId = document.getElementById('selectedDriverId').value;
-                        if (!selectedDriverId) {
-                            e.preventDefault();
-                            alert('Please select a driver before assigning.');
-                            return false;
-                        }
-                    });
-                </script>
+                    </script>
             </body>
 
             </html>

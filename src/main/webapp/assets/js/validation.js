@@ -188,7 +188,6 @@ $(function () {
     let valid = true;
     let $busNumber = $("#busNumber");
     let $busType = $("#busType");
-    let $totalSeats = $("#totalSeats");
     let $driverName = $("#driverName");
     let $licensePlate = $("#licensePlate");
     if ($busNumber.val().trim().length < 2) {
@@ -203,18 +202,13 @@ $(function () {
     } else {
       clearError($busType);
     }
-    let seats = parseInt($totalSeats.val());
-    if (isNaN(seats) || seats < 1 || seats > 100) {
-      showError($totalSeats, "Total seats must be from 1 to 100");
-      valid = false;
-    } else {
-      clearError($totalSeats);
-    }
-    if ($driverName.val().trim().length < 2) {
-      showError($driverName, "Driver name must be at least 2 characters");
-      valid = false;
-    } else {
-      clearError($driverName);
+    if ($driverName.length) {
+      if ($driverName.val().trim().length < 2) {
+        showError($driverName, "Driver name must be at least 2 characters");
+        valid = false;
+      } else {
+        clearError($driverName);
+      }
     }
     let licensePlateRegex = /^[0-9]{2}[A-Z]-[0-9]{4,5}$/;
     if (!licensePlateRegex.test($licensePlate.val().trim())) {

@@ -199,14 +199,14 @@
       clear(boardingStationSelect);
       const boardingOption = document.createElement("option");
       boardingOption.value = "";
-      boardingOption.textContent = "-- Chọn điểm lên xe (tùy chọn) --";
+      boardingOption.textContent = "-- Select boarding point (optional) --";
       boardingStationSelect.appendChild(boardingOption);
 
       // Populate alighting station select
       clear(alightingStationSelect);
       const alightingOption = document.createElement("option");
       alightingOption.value = "";
-      alightingOption.textContent = "-- Chọn điểm xuống xe (tùy chọn) --";
+      alightingOption.textContent = "-- Select drop-off point (optional) --";
       alightingStationSelect.appendChild(alightingOption);
 
       stations.forEach((station, index) => {

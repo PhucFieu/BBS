@@ -163,7 +163,7 @@ public class DriverDAO {
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            String searchPattern = "%" + keyword + "%";
+            String searchPattern = "%" + keyword.trim() + "%";
             stmt.setString(1, searchPattern);
             stmt.setString(2, searchPattern);
             stmt.setString(3, searchPattern);
@@ -190,7 +190,7 @@ public class DriverDAO {
                         "WHERE (u.full_name LIKE ? OR d.license_number LIKE ? OR u.phone_number LIKE ?) ");
         List<Object> parameters = new ArrayList<>();
 
-        String searchPattern = "%" + keyword + "%";
+        String searchPattern = "%" + keyword.trim() + "%";
         parameters.add(searchPattern);
         parameters.add(searchPattern);
         parameters.add(searchPattern);
@@ -232,8 +232,7 @@ public class DriverDAO {
     }
 
     public boolean addDriver(Driver driver) throws SQLException {
-        String sql =
-                "INSERT INTO Drivers (driver_id, user_id, license_number, experience_years, status) VALUES (?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO Drivers (driver_id, user_id, license_number, experience_years, status) VALUES (?, ?, ?, ?, ?)";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -249,8 +248,7 @@ public class DriverDAO {
     }
 
     public boolean updateDriver(Driver driver) throws SQLException {
-        String sql =
-                "UPDATE Drivers SET license_number = ?, experience_years = ?, status = ?, updated_date = GETDATE() WHERE driver_id = ?";
+        String sql = "UPDATE Drivers SET license_number = ?, experience_years = ?, status = ?, updated_date = GETDATE() WHERE driver_id = ?";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -276,8 +274,7 @@ public class DriverDAO {
         }
 
         // Perform soft delete (set status to INACTIVE)
-        String sql =
-                "UPDATE Drivers SET status = 'INACTIVE', updated_date = GETDATE() WHERE driver_id = ?";
+        String sql = "UPDATE Drivers SET status = 'INACTIVE', updated_date = GETDATE() WHERE driver_id = ?";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {

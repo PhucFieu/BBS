@@ -17,9 +17,11 @@ document.addEventListener("DOMContentLoaded", function () {
         return false;
       }
 
-      if (licenseNumber.length < 5) {
+      // License number validation: must be exactly 12 digits
+      const licenseNumberRegex = /^[0-9]{12}$/;
+      if (!licenseNumberRegex.test(licenseNumber)) {
         e.preventDefault();
-        alert("License number must be at least 5 characters");
+        alert("License number must be exactly 12 digits (numbers only)");
         document.getElementById("licenseNumber").focus();
         return false;
       }

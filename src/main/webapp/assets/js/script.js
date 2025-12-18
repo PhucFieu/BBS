@@ -182,7 +182,7 @@ function initTableEnhancements() {
     const searchInput = table.parentElement.querySelector(".table-search");
     if (searchInput) {
       searchInput.addEventListener("input", function () {
-        const searchTerm = this.value.toLowerCase();
+        const searchTerm = this.value.trim().toLowerCase();
         rows.forEach((row) => {
           const text = row.textContent.toLowerCase();
           row.style.display = text.includes(searchTerm) ? "" : "none";
@@ -352,7 +352,7 @@ function initSearchAndFilter() {
   const searchInputs = document.querySelectorAll(".search-input");
   searchInputs.forEach((input) => {
     input.addEventListener("input", function () {
-      const searchTerm = this.value.toLowerCase();
+      const searchTerm = this.value.trim().toLowerCase();
       const targetTable = this.getAttribute("data-target");
       const table = document.querySelector(targetTable);
 
