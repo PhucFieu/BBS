@@ -1,6 +1,7 @@
 package controller;
 
 import java.io.IOException;
+import java.net.URLEncoder;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.UUID;
@@ -171,6 +172,7 @@ public class StaffManagementController extends HttpServlet {
         String idCard = request.getParameter("idCard");
         String address = request.getParameter("address");
         String gender = request.getParameter("gender");
+        String dateOfBirthStr = request.getParameter("dateOfBirth");
 
         // Validate input
         if (username == null || password == null || fullName == null) {
@@ -211,6 +213,20 @@ public class StaffManagementController extends HttpServlet {
             newStaff.setPhoneNumber(phoneNumber);
             newStaff.setIdCard(idCard);
             newStaff.setAddress(address);
+            if (dateOfBirthStr != null && !dateOfBirthStr.trim().isEmpty()) {
+                try {
+                    java.time.LocalDate dob = java.time.LocalDate.parse(dateOfBirthStr);
+                    if (dob.isAfter(java.time.LocalDate.now())) {
+                        response.sendRedirect(request.getContextPath()
+                                + "/admin/staffs/add?error=Date of birth cannot be in the future");
+                        return;
+                    }
+                    newStaff.setDateOfBirth(dob);
+                } catch (Exception ex) {
+                    response.sendRedirect(request.getContextPath() + "/admin/staffs/add?error=Invalid date of birth");
+                    return;
+                }
+            }
             newStaff.setGender(gender);
             newStaff.setRole("STAFF");
             newStaff.setStatus("ACTIVE");
@@ -224,9 +240,30 @@ public class StaffManagementController extends HttpServlet {
                 response.sendRedirect(
                         request.getContextPath() + "/admin/staffs/add?error=Failed to add staff");
             }
+        } catch (java.sql.SQLException e) {
+            // Map SQL exceptions (e.g., unique constraint violations) to a user-friendly
+            // message
+            String friendly;
+            String msg = e.getMessage() == null ? "" : e.getMessage().toLowerCase();
+            if (msg.contains("duplicate") || msg.contains("unique") || msg.contains("duplicate key")) {
+                friendly = "Duplicate data: username/email/phone number/ID card already exists. Please check and try again.";
+            } else {
+                friendly = "Database error. Please try again or contact the administrator.";
+            }
+
+            try {
+                response.sendRedirect(request.getContextPath() + "/admin/staffs/add?error="
+                        + URLEncoder.encode(friendly, "UTF-8"));
+            } catch (Exception ex) {
+                response.sendRedirect(request.getContextPath() + "/admin/staffs/add?error=Error");
+            }
         } catch (Exception e) {
-            response.sendRedirect(request.getContextPath() + "/admin/staffs/add?error="
-                    + e.getMessage());
+            try {
+                response.sendRedirect(request.getContextPath() + "/admin/staffs/add?error="
+                        + URLEncoder.encode("An error occurred. Please try again.", "UTF-8"));
+            } catch (Exception ex) {
+                response.sendRedirect(request.getContextPath() + "/admin/staffs/add?error=Error");
+            }
         }
     }
 
@@ -237,6 +274,8 @@ public class StaffManagementController extends HttpServlet {
         String fullName = request.getParameter("fullName");
         String email = request.getParameter("email");
         String phoneNumber = request.getParameter("phoneNumber");
+        String dateOfBirthStr = request.getParameter("dateOfBirth");
+        String gender = request.getParameter("gender");
         String status = request.getParameter("status");
 
         // Validate input
@@ -281,6 +320,24 @@ public class StaffManagementController extends HttpServlet {
             // Update staff
             existingStaff.setUsername(username);
             existingStaff.setFullName(fullName);
+            // Validate date of birth if provided
+            if (dateOfBirthStr != null && !dateOfBirthStr.trim().isEmpty()) {
+                try {
+                    java.time.LocalDate dob = java.time.LocalDate.parse(dateOfBirthStr);
+                    if (dob.isAfter(java.time.LocalDate.now())) {
+                        response.sendRedirect(request.getContextPath() + "/admin/staffs/edit?id="
+                                + userIdStr + "&error=Date of birth cannot be in the future");
+                        return;
+                    }
+                    existingStaff.setDateOfBirth(dob);
+                } catch (Exception ex) {
+                    response.sendRedirect(request.getContextPath() + "/admin/staffs/edit?id=" + userIdStr
+                            + "&error=Invalid date of birth");
+                    return;
+                }
+            }
+
+            existingStaff.setGender(gender);
             existingStaff.setEmail(email);
             existingStaff.setPhoneNumber(phoneNumber);
             existingStaff.setStatus(status);

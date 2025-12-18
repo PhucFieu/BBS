@@ -34,7 +34,7 @@ import model.Tickets;
 import model.User;
 import util.AuthUtils;
 
-@WebServlet(urlPatterns = {"/staff/*"})
+@WebServlet(urlPatterns = { "/staff/*" })
 public class StaffController extends HttpServlet {
     private ScheduleDAO scheduleDAO;
     private RouteDAO routeDAO;
@@ -252,8 +252,7 @@ public class StaffController extends HttpServlet {
             List<Schedule> schedules;
 
             if (routeIdStr != null && !routeIdStr.isEmpty()) {
-                schedules =
-                        scheduleDAO.getSchedulesByRouteAndDate(UUID.fromString(routeIdStr), date);
+                schedules = scheduleDAO.getSchedulesByRouteAndDate(UUID.fromString(routeIdStr), date);
             } else {
                 schedules = scheduleDAO.getSchedulesByDate(date);
             }
@@ -306,8 +305,7 @@ public class StaffController extends HttpServlet {
         List<Integer> bookedSeats = ticketDAO.getBookedSeats(scheduleId);
 
         // Get stations for this route
-        List<Station> stations =
-                routeStationDAO.getStationsByRouteAsStations(schedule.getRouteId());
+        List<Station> stations = routeStationDAO.getStationsByRouteAsStations(schedule.getRouteId());
 
         request.setAttribute("schedule", schedule);
         request.setAttribute("route", route);
@@ -345,11 +343,23 @@ public class StaffController extends HttpServlet {
             UUID scheduleId = UUID.fromString(scheduleIdStr);
             int seatNumber = Integer.parseInt(seatNumberStr);
 
+            // Normalize contact info
+            customerPhone = customerPhone != null ? customerPhone.trim() : "";
+            customerEmail = customerEmail != null ? customerEmail.trim() : "";
+
             // Check seat availability
             if (!ticketDAO.isSeatAvailable(scheduleId, seatNumber)) {
                 response.sendRedirect(request.getContextPath() + "/staff/book?scheduleId="
                         + scheduleIdStr +
                         "&error=" + encodeParam("Seat " + seatNumber + " is already booked"));
+                return;
+            }
+
+            // Prevent duplicate passenger contact on the same schedule
+            if (ticketDAO.hasContactConflict(scheduleId, customerPhone, customerEmail)) {
+                response.sendRedirect(request.getContextPath() + "/staff/book?scheduleId="
+                        + scheduleIdStr +
+                        "&error=" + encodeParam("Phone or email is already used for this trip"));
                 return;
             }
 
@@ -470,8 +480,7 @@ public class StaffController extends HttpServlet {
         }
 
         Schedule schedule = scheduleDAO.getScheduleById(ticket.getScheduleId());
-        List<Station> stations =
-                routeStationDAO.getStationsByRouteAsStations(schedule.getRouteId());
+        List<Station> stations = routeStationDAO.getStationsByRouteAsStations(schedule.getRouteId());
         List<Integer> bookedSeats = ticketDAO.getBookedSeats(ticket.getScheduleId());
 
         request.setAttribute("ticket", ticket);
@@ -509,7 +518,7 @@ public class StaffController extends HttpServlet {
             }
 
             // Check if can be modified
-            if ("CANCELLED".equals(ticket.getStatus()) || "CHECKED_IN".equals(ticket.getStatus())) {
+            if ("CANCELLED".equals(ticket.getStatus()) || ticket.getCheckedInAt() != null) {
                 response.sendRedirect(request.getContextPath() + "/staff/ticket-detail?id="
                         + ticketIdStr +
                         "&error="
@@ -589,7 +598,7 @@ public class StaffController extends HttpServlet {
             }
 
             // Check if can be cancelled
-            if ("CANCELLED".equals(ticket.getStatus()) || "CHECKED_IN".equals(ticket.getStatus())) {
+            if ("CANCELLED".equals(ticket.getStatus()) || ticket.getCheckedInAt() != null) {
                 response.sendRedirect(request.getContextPath() + "/staff/ticket-detail?id="
                         + ticketIdStr +
                         "&error="
@@ -648,8 +657,7 @@ public class StaffController extends HttpServlet {
         if (redirectTo != null && !redirectTo.isEmpty()) {
             defaultRedirect = redirectTo;
         } else if (scheduleIdStr != null) {
-            defaultRedirect =
-                    request.getContextPath() + "/staff/passenger-list?scheduleId=" + scheduleIdStr;
+            defaultRedirect = request.getContextPath() + "/staff/passenger-list?scheduleId=" + scheduleIdStr;
         }
 
         if (ticketIdStr == null) {
@@ -669,6 +677,12 @@ public class StaffController extends HttpServlet {
                 return;
             }
 
+            if (ticket.getCheckedInAt() != null) {
+                response.sendRedirect(defaultRedirect + (defaultRedirect.contains("?") ? "&" : "?") +
+                        "message=" + encodeParam("Passenger already checked in"));
+                return;
+            }
+
             // Check payment status
             if (!"PAID".equals(ticket.getPaymentStatus())) {
                 response.sendRedirect(
@@ -678,8 +692,27 @@ public class StaffController extends HttpServlet {
                 return;
             }
 
-            // Update ticket status to CHECKED_IN
-            ticket.setStatus("CHECKED_IN");
+            if ("CANCELLED".equals(ticket.getStatus())) {
+                response.sendRedirect(defaultRedirect + (defaultRedirect.contains("?") ? "&" : "?") +
+                        "error=" + encodeParam("Cannot check in a cancelled ticket"));
+                return;
+            }
+
+            // Prevent check-in after the schedule's estimated arrival time
+            Schedule schedule = scheduleDAO.getScheduleById(ticket.getScheduleId());
+            if (schedule != null && schedule.getDepartureDate() != null
+                    && schedule.getEstimatedArrivalTime() != null) {
+                LocalDateTime arrivalDateTime = LocalDateTime.of(schedule.getDepartureDate(),
+                        schedule.getEstimatedArrivalTime());
+                if (LocalDateTime.now().isAfter(arrivalDateTime)) {
+                    response.sendRedirect(defaultRedirect + (defaultRedirect.contains("?") ? "&" : "?") +
+                            "error=" + encodeParam("Cannot check in after the scheduled arrival time"));
+                    return;
+                }
+            }
+
+            // Keep status confirmed after check-in but record check-in metadata
+            ticket.setStatus("CONFIRMED");
             ticket.setCheckedInAt(LocalDateTime.now());
             ticket.setCheckedInByStaffId(currentUser.getUserId());
 
@@ -704,8 +737,7 @@ public class StaffController extends HttpServlet {
     private void showDailyTrips(HttpServletRequest request, HttpServletResponse response)
             throws SQLException, ServletException, IOException {
         String dateStr = request.getParameter("date");
-        LocalDate date =
-                dateStr != null && !dateStr.isEmpty() ? LocalDate.parse(dateStr) : LocalDate.now();
+        LocalDate date = dateStr != null && !dateStr.isEmpty() ? LocalDate.parse(dateStr) : LocalDate.now();
 
         List<Schedule> schedules = scheduleDAO.getSchedulesByDate(date);
 
@@ -740,7 +772,7 @@ public class StaffController extends HttpServlet {
                 cancelled++;
             } else {
                 totalPassengers++;
-                if ("CHECKED_IN".equals(t.getStatus())) {
+                if (t.getCheckedInAt() != null) {
                     checkedIn++;
                 } else {
                     notCheckedIn++;
@@ -872,6 +904,8 @@ public class StaffController extends HttpServlet {
 
             JsonArray passengersArray = new JsonArray();
             for (Tickets t : tickets) {
+                boolean isCheckedIn = t.getCheckedInAt() != null;
+
                 JsonObject obj = new JsonObject();
                 obj.addProperty("ticketId", t.getTicketId().toString());
                 obj.addProperty("ticketNumber", t.getTicketNumber());
@@ -886,13 +920,17 @@ public class StaffController extends HttpServlet {
                         t.getBoardingStationName() != null ? t.getBoardingStationName() : "");
                 obj.addProperty("alightingStation",
                         t.getAlightingStationName() != null ? t.getAlightingStationName() : "");
+                obj.addProperty("checkedIn", isCheckedIn);
+                if (isCheckedIn && t.getCheckedInAt() != null) {
+                    obj.addProperty("checkedInAt", t.getCheckedInAt().toString());
+                }
                 passengersArray.add(obj);
 
                 if ("CANCELLED".equals(t.getStatus())) {
                     cancelled++;
                 } else {
                     totalActive++;
-                    if ("CHECKED_IN".equals(t.getStatus())) {
+                    if (isCheckedIn) {
                         checkedIn++;
                     }
                 }
@@ -925,4 +963,3 @@ public class StaffController extends HttpServlet {
         return URLEncoder.encode(value == null ? "" : value, StandardCharsets.UTF_8);
     }
 }
-
