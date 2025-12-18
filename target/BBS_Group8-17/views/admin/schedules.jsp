@@ -143,14 +143,17 @@
                         .container {
                             padding: 0 1rem;
                         }
+
                         .card-body {
                             padding: 1rem;
                         }
+
                         .btn {
                             padding: 0.5rem 1rem;
                             font-size: 0.875rem;
                         }
                     }
+
                     .status-badge {
                         font-size: 0.85em;
                         padding: 0.4em 0.8em;
@@ -266,28 +269,32 @@
                                 <div class="alert alert-success alert-dismissible fade show" role="alert">
                                     <i class="fas fa-check-circle me-2"></i>
                                     <strong>Success!</strong> ${param.message}
-                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"
+                                        aria-label="Close"></button>
                                 </div>
                             </c:if>
                             <c:if test="${not empty param.error}">
                                 <div class="alert alert-danger alert-dismissible fade show" role="alert">
                                     <i class="fas fa-exclamation-circle me-2"></i>
                                     <strong>Error!</strong> ${param.error}
-                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"
+                                        aria-label="Close"></button>
                                 </div>
                             </c:if>
                             <c:if test="${not empty param.warning}">
                                 <div class="alert alert-warning alert-dismissible fade show" role="alert">
                                     <i class="fas fa-exclamation-triangle me-2"></i>
                                     <strong>Warning!</strong> ${param.warning}
-                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"
+                                        aria-label="Close"></button>
                                 </div>
                             </c:if>
                             <c:if test="${not empty param.info}">
                                 <div class="alert alert-info alert-dismissible fade show" role="alert">
                                     <i class="fas fa-info-circle me-2"></i>
                                     <strong>Info:</strong> ${param.info}
-                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"
+                                        aria-label="Close"></button>
                                 </div>
                             </c:if>
 
@@ -313,7 +320,6 @@
                                                             <th>Bus</th>
                                                             <th>Driver</th>
                                                             <th>Available Seats</th>
-                                                            <th>Stations</th>
                                                             <th>Status</th>
                                                             <th>Actions</th>
                                                         </tr>
@@ -321,7 +327,8 @@
                                                     <tbody id="schedulesContainer">
                                                         <c:forEach var="schedule" items="${schedules}">
                                                             <tr class="schedule-item" data-status="${schedule.status}"
-                                                                data-date="${schedule.departureDate}" data-route="${schedule.routeName}"
+                                                                data-date="${schedule.departureDate}"
+                                                                data-route="${schedule.routeName}"
                                                                 data-bus="${schedule.busNumber}">
                                                                 <td>
                                                                     <div class="fw-bold">
@@ -329,121 +336,129 @@
                                                                         ${schedule.routeName}
                                                                     </div>
                                                                     <small class="text-muted">
-                                                                        ${schedule.departureCity} → ${schedule.destinationCity}
+                                                                        ${schedule.departureCity} →
+                                                                        ${schedule.destinationCity}
                                                                     </small>
                                                                 </td>
                                                                 <td>
                                                                     <div class="fw-bold">${schedule.departureDate}</div>
                                                                     <small class="text-primary">
-                                                                        <i class="fas fa-clock me-1"></i>${schedule.departureTime}
+                                                                        <i
+                                                                            class="fas fa-clock me-1"></i>${schedule.departureTime}
                                                                     </small>
                                                                 </td>
                                                                 <td>
                                                                     <div class="fw-bold text-success">
-                                                                        <i class="fas fa-clock me-1"></i>${schedule.estimatedArrivalTime}
+                                                                        <i
+                                                                            class="fas fa-clock me-1"></i>${schedule.estimatedArrivalTime}
                                                                     </div>
                                                                 </td>
                                                                 <td>
-                                                                    <span class="badge bg-secondary">
-                                                                        <i class="fas fa-bus me-1"></i>${schedule.busNumber}
-                                                                    </span>
+                                                                    <div class="fw-bold">
+                                                                        <i
+                                                                            class="fas fa-bus me-1"></i>${schedule.busNumber}
+                                                                    </div>
+                                                                    <small class="text-muted">
+                                                                        <i
+                                                                            class="fas fa-tag me-1"></i>${schedule.busType}
+                                                                    </small>
+                                                                    <div class="mt-1">
+                                                                        <small class="badge bg-secondary">
+                                                                            <i
+                                                                                class="fas fa-id-card me-1"></i>${schedule.licensePlate}
+                                                                        </small>
+                                                                    </div>
                                                                 </td>
                                                                 <td>
                                                                     <c:choose>
                                                                         <c:when test="${not empty schedule.driverName}">
                                                                             <span class="text-success">
-                                                                                <i class="fas fa-user me-1"></i>${schedule.driverName}
+                                                                                <i
+                                                                                    class="fas fa-user me-1"></i>${schedule.driverName}
                                                                             </span>
                                                                         </c:when>
                                                                         <c:otherwise>
                                                                             <span class="text-muted">
-                                                                                <i class="fas fa-user-slash me-1"></i>Not assigned
+                                                                                <i
+                                                                                    class="fas fa-user-slash me-1"></i>Not
+                                                                                assigned
                                                                             </span>
                                                                         </c:otherwise>
                                                                     </c:choose>
                                                                 </td>
                                                                 <td>
                                                                     <span class="badge bg-info">
-                                                                        <i class="fas fa-chair me-1"></i>${schedule.availableSeats}
+                                                                        <i
+                                                                            class="fas fa-chair me-1"></i>${schedule.availableSeats}
                                                                     </span>
-                                                                </td>
-                                                                <td>
-                                                                    <c:set var="stationCountKey"
-                                                                        value="stationCount_${schedule.scheduleId}" />
-                                                                    <c:set var="stationCount"
-                                                                        value="${requestScope[stationCountKey]}" />
-                                                                    <c:choose>
-                                                                        <c:when test="${not empty stationCount}">
-                                                                            <span class="text-info">
-                                                                                <i class="fas fa-map-marker-alt me-1"></i>
-                                                                                ${stationCount} station${stationCount > 1 ? 's' : ''}
-                                                                            </span>
-                                                                        </c:when>
-                                                                        <c:otherwise>
-                                                                            <span class="text-muted">
-                                                                                <i class="fas fa-map-marker-alt me-1"></i>No stations
-                                                                            </span>
-                                                                        </c:otherwise>
-                                                                    </c:choose>
                                                                 </td>
                                                                 <td>
                                                                     <span class="badge status-badge 
                                                                         <c:choose>
-                                                                            <c:when test="${schedule.status == 'SCHEDULED'}">bg-success</c:when>
-                                                                            <c:when test="${schedule.status == 'DEPARTED'}">bg-warning</c:when>
-                                                                            <c:when test="${schedule.status == 'ARRIVED'}">bg-info</c:when>
-                                                                            <c:when test="${schedule.status == 'CANCELLED'}">bg-danger</c:when>
-                                                                            <c:otherwise>bg-secondary</c:otherwise>
-                                                                        </c:choose>">
-                                                                        ${schedule.status}
-                                                                    </span>
-                                                                </td>
-                                                                <td>
-                                                                    <div class="btn-group" role="group">
-                                                                        <a href="${pageContext.request.contextPath}/admin/schedules/edit?id=${schedule.scheduleId}"
-                                                                            class="btn btn-outline-primary btn-sm" title="Edit">
-                                                                            <i class="fas fa-edit"></i>
-                                                                        </a>
-                                                                        <c:choose>
-                                                                            <c:when test="${empty schedule.driverName}">
-                                                                                <a href="${pageContext.request.contextPath}/admin/drivers/assign?scheduleId=${schedule.scheduleId}"
-                                                                                    class="btn btn-outline-success btn-sm" title="Assign Driver">
-                                                                                    <i class="fas fa-user-plus"></i>
-                                                                                </a>
-                                                                            </c:when>
-                                                                            <c:otherwise>
-                                                                                <a href="${pageContext.request.contextPath}/admin/drivers/assign?scheduleId=${schedule.scheduleId}"
-                                                                                    class="btn btn-outline-warning btn-sm" title="Change Driver">
-                                                                                    <i class="fas fa-user-edit"></i>
-                                                                                </a>
-                                                                            </c:otherwise>
-                                                                        </c:choose>
-                                                                        <button type="button" class="btn btn-outline-danger btn-sm"
-                                                                            data-routename="${schedule.routeName}"
-                                                                            onclick="confirmDelete('${schedule.scheduleId}', this)"
-                                                                            title="Delete">
-                                                                            <i class="fas fa-trash"></i>
-                                                                        </button>
-                                                                    </div>
-                                                                </td>
-                                                            </tr>
-                                                        </c:forEach>
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </c:otherwise>
-                            </c:choose>
-
-                            <!-- No Results Message -->
-                            <div id="noResults" class="text-center py-5" style="display: none;">
-                                <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
-                                <h4 class="text-muted">No schedules found</h4>
-                                <p class="text-muted">Try adjusting your search criteria</p>
-                            </div>
+                                                                            <c:when test="
+                                                                        ${schedule.status=='SCHEDULED' }">bg-success
+                                                                        </c:when>
+                                                                        <c:when test="${schedule.status == 'DEPARTED'}">
+                                                                            bg-warning</c:when>
+                                                                        <c:when test="${schedule.status == 'ARRIVED'}">
+                                                                            bg-info</c:when>
+                                                                        <c:when
+                                                                            test="${schedule.status == 'CANCELLED'}">
+                                                                            bg-danger</c:when>
+                                                                        <c:otherwise>bg-secondary</c:otherwise>
+                            </c:choose>">
+                            ${schedule.status}
+                            </span>
+                            </td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <a href="${pageContext.request.contextPath}/admin/schedules/edit?id=${schedule.scheduleId}"
+                                        class="btn btn-outline-primary btn-sm" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="${pageContext.request.contextPath}/admin/schedules/replace-bus?id=${schedule.scheduleId}"
+                                        class="btn btn-outline-warning btn-sm" title="Replace Bus">
+                                        <i class="fas fa-exchange-alt"></i>
+                                    </a>
+                                    <c:choose>
+                                        <c:when test="${empty schedule.driverName}">
+                                            <a href="${pageContext.request.contextPath}/admin/drivers/assign?scheduleId=${schedule.scheduleId}"
+                                                class="btn btn-outline-success btn-sm" title="Assign Driver">
+                                                <i class="fas fa-user-plus"></i>
+                                            </a>
+                                        </c:when>
+                                        <c:otherwise>
+                                            <a href="${pageContext.request.contextPath}/admin/drivers/assign?scheduleId=${schedule.scheduleId}"
+                                                class="btn btn-outline-success btn-sm" title="Change Driver">
+                                                <i class="fas fa-user-edit"></i>
+                                            </a>
+                                        </c:otherwise>
+                                    </c:choose>
+                                    <button type="button" class="btn btn-outline-danger btn-sm"
+                                        data-routename="${schedule.routeName}"
+                                        onclick="confirmDelete('${schedule.scheduleId}', this)" title="Delete">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                            </tr>
+                            </c:forEach>
+                            </tbody>
+                            </table>
                         </div>
                     </div>
+                </div>
+                </c:otherwise>
+                </c:choose>
+
+                <!-- No Results Message -->
+                <div id="noResults" class="text-center py-5" style="display: none;">
+                    <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                    <h4 class="text-muted">No schedules found</h4>
+                    <p class="text-muted">Try adjusting your search criteria</p>
+                </div>
+                </div>
+                </div>
                 </div>
 
                 <!-- Delete Confirmation Modal -->
@@ -487,148 +502,194 @@
                     </div>
                 </div>
 
+                <!-- Delete Blocked Modal -->
+                <div class="modal fade" id="deleteBlockedModal" tabindex="-1" aria-labelledby="deleteBlockedModalLabel"
+                    aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header bg-warning text-white">
+                                <h5 class="modal-title" id="deleteBlockedModalLabel">
+                                    <i class="fas fa-ban me-2"></i>Cannot Delete Schedule
+                                </h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                                    aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="text-center mb-3">
+                                    <i class="fas fa-ticket-alt fa-3x text-warning mb-3"></i>
+                                </div>
+                                <p class="text-center mb-2 fw-semibold" id="deleteBlockedMessage">
+                                    Schedule has booked tickets. Please cancel or refund tickets before deleting.
+                                </p>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                    <i class="fas fa-times me-1"></i>Close
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <%@ include file="/views/partials/footer.jsp" %>
-                <script>
-                    // Auto-hide alerts after 5 seconds
-                    document.addEventListener('DOMContentLoaded', function () {
-                        const alerts = document.querySelectorAll('.alert');
-                        alerts.forEach(function(alert) {
-                            setTimeout(function() {
-                                const bsAlert = new bootstrap.Alert(alert);
-                                bsAlert.close();
-                            }, 5000);
-                        });
-
-                        // Scroll to top if there's a message
-                        if (alerts.length > 0) {
-                            window.scrollTo({ top: 0, behavior: 'smooth' });
-                        }
-                    });
-                </script>
-                <script>
-                    let currentScheduleId = null;
-                    let currentScheduleName = null;
-
-                    function confirmDelete(scheduleId, el) {
-                        // Support calling with (scheduleId, scheduleName) for backward-compatibility
-                        let scheduleName = '';
-                        if (el && typeof el.getAttribute === 'function') {
-                            scheduleName = el.getAttribute('data-routename') || '';
-                        } else if (typeof el === 'string') {
-                            scheduleName = el;
-                        }
-
-                        console.log('Preparing to delete schedule:', scheduleId, scheduleName);
-
-                        // Store current schedule info
-                        currentScheduleId = scheduleId;
-                        currentScheduleName = scheduleName;
-
-                        // Set the schedule name in the modal
-                        const scheduleNameElement = document.getElementById('scheduleNameToDelete');
-                        if (scheduleNameElement) {
-                            scheduleNameElement.textContent = scheduleName;
-                        }
-
-                        // Show the modal
-                        const deleteModalElement = document.getElementById('deleteModal');
-                        if (deleteModalElement) {
-                            const deleteModal = new bootstrap.Modal(deleteModalElement);
-                            deleteModal.show();
-                        }
-                    }
-
-                    function performDelete() {
-                        if (!currentScheduleId) {
-                            console.error('No schedule ID available for deletion');
-                            return;
-                        }
-
-                        console.log('Performing delete for schedule:', currentScheduleId);
-
-                        // Show loading state
-                        const confirmBtn = document.getElementById('confirmDeleteBtn');
-                        const originalText = confirmBtn.innerHTML;
-                        confirmBtn.disabled = true;
-                        confirmBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Deleting...';
-
-                        // Create form and submit
-                        const form = document.createElement('form');
-                        form.method = 'GET';
-                        form.action = '${pageContext.request.contextPath}/admin/schedules/delete';
-
-                        const idInput = document.createElement('input');
-                        idInput.type = 'hidden';
-                        idInput.name = 'id';
-                        idInput.value = currentScheduleId;
-
-                        form.appendChild(idInput);
-                        document.body.appendChild(form);
-                        form.submit();
-                    }
-
-                    // Add event listener for confirm delete button
-                    document.addEventListener('DOMContentLoaded', function () {
-                        const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
-                        if (confirmDeleteBtn) {
-                            confirmDeleteBtn.addEventListener('click', function (e) {
-                                e.preventDefault();
-                                performDelete();
+                    <script>
+                        // Auto-hide alerts after 5 seconds
+                        document.addEventListener('DOMContentLoaded', function () {
+                            const alerts = document.querySelectorAll('.alert');
+                            alerts.forEach(function (alert) {
+                                setTimeout(function () {
+                                    const bsAlert = new bootstrap.Alert(alert);
+                                    bsAlert.close();
+                                }, 5000);
                             });
+
+                            // Scroll to top if there's a message
+                            if (alerts.length > 0) {
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                            }
+                        });
+                    </script>
+                    <script>
+                        let currentScheduleId = null;
+                        let currentScheduleName = null;
+
+                        function confirmDelete(scheduleId, el) {
+                            // Support calling with (scheduleId, scheduleName) for backward-compatibility
+                            let scheduleName = '';
+                            if (el && typeof el.getAttribute === 'function') {
+                                scheduleName = el.getAttribute('data-routename') || '';
+                            } else if (typeof el === 'string') {
+                                scheduleName = el;
+                            }
+
+                            console.log('Preparing to delete schedule:', scheduleId, scheduleName);
+
+                            // Store current schedule info
+                            currentScheduleId = scheduleId;
+                            currentScheduleName = scheduleName;
+
+                            // Set the schedule name in the modal
+                            const scheduleNameElement = document.getElementById('scheduleNameToDelete');
+                            if (scheduleNameElement) {
+                                scheduleNameElement.textContent = scheduleName;
+                            }
+
+                            // Show the modal
+                            const deleteModalElement = document.getElementById('deleteModal');
+                            if (deleteModalElement) {
+                                const deleteModal = new bootstrap.Modal(deleteModalElement);
+                                deleteModal.show();
+                            }
                         }
-                    });
 
-                    function filterSchedules() {
-                        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-                        const statusFilter = document.getElementById('statusFilter').value;
-                        const dateFilter = document.getElementById('dateFilter').value;
+                        function performDelete() {
+                            if (!currentScheduleId) {
+                                console.error('No schedule ID available for deletion');
+                                return;
+                            }
 
-                        const scheduleItems = document.querySelectorAll('.schedule-item');
-                        const schedulesTable = document.getElementById('schedulesTable');
-                        let visibleCount = 0;
+                            console.log('Performing delete for schedule:', currentScheduleId);
 
-                        scheduleItems.forEach(item => {
-                            const route = item.dataset.route.toLowerCase();
-                            const bus = item.dataset.bus.toLowerCase();
-                            const status = item.dataset.status;
-                            const date = item.dataset.date;
+                            // Show loading state
+                            const confirmBtn = document.getElementById('confirmDeleteBtn');
+                            const originalText = confirmBtn.innerHTML;
+                            confirmBtn.disabled = true;
+                            confirmBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Deleting...';
 
-                            const matchesSearch = route.includes(searchTerm) || bus.includes(searchTerm);
-                            const matchesStatus = !statusFilter || status === statusFilter;
-                            const matchesDate = !dateFilter || date === dateFilter;
+                            // Create form and submit
+                            const form = document.createElement('form');
+                            form.method = 'GET';
+                            form.action = '${pageContext.request.contextPath}/admin/schedules/delete';
 
-                            if (matchesSearch && matchesStatus && matchesDate) {
-                                item.style.display = '';
-                                visibleCount++;
-                            } else {
-                                item.style.display = 'none';
+                            const idInput = document.createElement('input');
+                            idInput.type = 'hidden';
+                            idInput.name = 'id';
+                            idInput.value = currentScheduleId;
+
+                            form.appendChild(idInput);
+                            document.body.appendChild(form);
+                            form.submit();
+                        }
+
+                        // Add event listener for confirm delete button
+                        document.addEventListener('DOMContentLoaded', function () {
+                            const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+                            if (confirmDeleteBtn) {
+                                confirmDeleteBtn.addEventListener('click', function (e) {
+                                    e.preventDefault();
+                                    performDelete();
+                                });
+                            }
+
+                            // Show popup when deletion is blocked due to existing tickets
+                            const urlParams = new URLSearchParams(window.location.search);
+                            const errorParam = urlParams.get('error');
+                            if (errorParam && errorParam.toLowerCase().includes('cannot delete schedule')) {
+                                const msgEl = document.getElementById('deleteBlockedMessage');
+                                if (msgEl) {
+                                    msgEl.textContent = errorParam;
+                                }
+                                const modalEl = document.getElementById('deleteBlockedModal');
+                                if (modalEl) {
+                                    const blockedModal = new bootstrap.Modal(modalEl);
+                                    blockedModal.show();
+                                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                                }
                             }
                         });
 
-                        // Show/hide no results message and table
-                        const noResults = document.getElementById('noResults');
-                        if (visibleCount === 0) {
-                            if (schedulesTable) {
-                                schedulesTable.closest('.card').style.display = 'none';
+                        function filterSchedules() {
+                            const searchTerm = document.getElementById('searchInput').value.trim().toLowerCase();
+                            const statusFilter = document.getElementById('statusFilter').value;
+                            const dateFilter = document.getElementById('dateFilter').value;
+
+                            const scheduleItems = document.querySelectorAll('.schedule-item');
+                            const schedulesTable = document.getElementById('schedulesTable');
+                            let visibleCount = 0;
+
+                            scheduleItems.forEach(item => {
+                                const route = item.dataset.route.toLowerCase();
+                                const bus = item.dataset.bus.toLowerCase();
+                                const status = item.dataset.status;
+                                const date = item.dataset.date;
+
+                                const matchesSearch = route.includes(searchTerm) || bus.includes(searchTerm);
+                                const matchesStatus = !statusFilter || status === statusFilter;
+                                const matchesDate = !dateFilter || date === dateFilter;
+
+                                if (matchesSearch && matchesStatus && matchesDate) {
+                                    item.style.display = '';
+                                    visibleCount++;
+                                } else {
+                                    item.style.display = 'none';
+                                }
+                            });
+
+                            // Show/hide no results message and table
+                            const noResults = document.getElementById('noResults');
+                            if (visibleCount === 0) {
+                                if (schedulesTable) {
+                                    schedulesTable.closest('.card').style.display = 'none';
+                                }
+                                noResults.style.display = 'block';
+                            } else {
+                                if (schedulesTable) {
+                                    schedulesTable.closest('.card').style.display = 'block';
+                                }
+                                noResults.style.display = 'none';
                             }
-                            noResults.style.display = 'block';
-                        } else {
-                            if (schedulesTable) {
-                                schedulesTable.closest('.card').style.display = 'block';
-                            }
-                            noResults.style.display = 'none';
                         }
-                    }
 
-                    function clearFilters() {
-                        document.getElementById('searchInput').value = '';
-                        document.getElementById('statusFilter').value = '';
-                        document.getElementById('dateFilter').value = '';
-                        filterSchedules();
-                    }
+                        function clearFilters() {
+                            document.getElementById('searchInput').value = '';
+                            document.getElementById('statusFilter').value = '';
+                            document.getElementById('dateFilter').value = '';
+                            filterSchedules();
+                        }
 
-                </script>
+                    </script>
             </body>
 
             </html>
+
             </html>

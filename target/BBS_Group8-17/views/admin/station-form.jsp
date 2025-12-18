@@ -5,7 +5,7 @@
 
         <head>
             <jsp:include page="/views/partials/head.jsp">
-                <jsp:param name="title" value="Station Form - Admin Panel" />
+                <jsp:param name="title" value="Bus Station Form - Admin Panel" />
             </jsp:include>
             <style>
                 .form-container {
@@ -39,10 +39,10 @@
                                 <i class="fas fa-map-marker-alt me-2"></i>
                                 <c:choose>
                                     <c:when test="${not empty station}">
-                                        Edit Station
+                                        Edit Bus Station
                                     </c:when>
                                     <c:otherwise>
-                                        Add New Station
+                                        Add New Bus Station
                                     </c:otherwise>
                                 </c:choose>
                             </h3>
@@ -54,28 +54,32 @@
                                 <div class="alert alert-success alert-dismissible fade show" role="alert">
                                     <i class="fas fa-check-circle me-2"></i>
                                     <strong>Success!</strong> ${param.message}
-                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"
+                                        aria-label="Close"></button>
                                 </div>
                             </c:if>
                             <c:if test="${not empty param.error}">
                                 <div class="alert alert-danger alert-dismissible fade show" role="alert">
                                     <i class="fas fa-exclamation-circle me-2"></i>
                                     <strong>Error!</strong> ${param.error}
-                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"
+                                        aria-label="Close"></button>
                                 </div>
                             </c:if>
                             <c:if test="${not empty param.warning}">
                                 <div class="alert alert-warning alert-dismissible fade show" role="alert">
                                     <i class="fas fa-exclamation-triangle me-2"></i>
                                     <strong>Warning!</strong> ${param.warning}
-                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"
+                                        aria-label="Close"></button>
                                 </div>
                             </c:if>
                             <c:if test="${not empty param.info}">
                                 <div class="alert alert-info alert-dismissible fade show" role="alert">
                                     <i class="fas fa-info-circle me-2"></i>
                                     <strong>Info:</strong> ${param.info}
-                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"
+                                        aria-label="Close"></button>
                                 </div>
                             </c:if>
 
@@ -91,26 +95,33 @@
                                 <div class="row">
                                     <div class="col-md-12 mb-3">
                                         <label for="stationName" class="form-label">
-                                            <i class="fas fa-building me-1"></i>Station Name <span
+                                            <i class="fas fa-building me-1"></i>Bus Station Name <span
                                                 class="text-danger">*</span>
                                         </label>
                                         <input type="text" class="form-control" id="stationName" name="stationName"
                                             value="${station.stationName}" required>
                                         <div class="invalid-feedback">
-                                            Please provide a valid station name.
+                                            Please provide a valid bus station name.
                                         </div>
                                     </div>
                                 </div>
 
                                 <div class="row">
                                     <div class="col-md-6 mb-3">
-                                        <label for="city" class="form-label">
+                                        <label for="cityId" class="form-label">
                                             <i class="fas fa-city me-1"></i>City <span class="text-danger">*</span>
                                         </label>
-                                        <input type="text" class="form-control" id="city" name="city"
-                                            value="${station.city}" required>
+                                        <select class="form-select" id="cityId" name="cityId" required>
+                                            <option value="">-- Select City --</option>
+                                            <c:forEach var="city" items="${cities}">
+                                                <option value="${city.cityId}"
+                                                    ${not empty station && station.cityId == city.cityId ? 'selected' : ''}>
+                                                    ${city.cityNumber} - ${city.cityName}
+                                                </option>
+                                            </c:forEach>
+                                        </select>
                                         <div class="invalid-feedback">
-                                            Please provide a valid city.
+                                            Please select a city.
                                         </div>
                                     </div>
                                     <div class="col-md-6 mb-3">
@@ -144,7 +155,7 @@
                                 <div class="d-flex justify-content-between">
                                     <a href="${pageContext.request.contextPath}/admin/stations"
                                         class="btn btn-secondary">
-                                        <i class="fas fa-arrow-left me-1"></i>Back to Stations
+                                        <i class="fas fa-arrow-left me-1"></i>Back to Bus Stations
                                     </a>
                                     <div>
                                         <button type="button" class="btn btn-outline-secondary me-2"
@@ -155,10 +166,10 @@
                                             <i class="fas fa-save me-1"></i>
                                             <c:choose>
                                                 <c:when test="${not empty station}">
-                                                    Update Station
+                                                    Update Bus Station
                                                 </c:when>
                                                 <c:otherwise>
-                                                    Add Station
+                                                    Add Bus Station
                                                 </c:otherwise>
                                             </c:choose>
                                         </button>
@@ -173,8 +184,8 @@
                     // Auto-hide alerts after 5 seconds
                     document.addEventListener('DOMContentLoaded', function () {
                         const alerts = document.querySelectorAll('.alert');
-                        alerts.forEach(function(alert) {
-                            setTimeout(function() {
+                        alerts.forEach(function (alert) {
+                            setTimeout(function () {
                                 const bsAlert = new bootstrap.Alert(alert);
                                 bsAlert.close();
                             }, 5000);

@@ -6,7 +6,7 @@
         <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Station Management - Admin Dashboard</title>
+                <title>Bus Station Management - Admin Dashboard</title>
             <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
             <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
             <style>
@@ -216,14 +216,14 @@
                             <div class="row align-items-center">
                                 <div class="col-md-6">
                                     <h2 class="mb-0">
-                                        <i class="fas fa-map-marker-alt me-2"></i>Station Management
+                                        <i class="fas fa-map-marker-alt me-2"></i>Bus Station Management
                                     </h2>
                                     <p class="mb-0 mt-2">Manage bus stations and locations</p>
                                 </div>
                                 <div class="col-md-6 text-md-end">
                                     <a href="${pageContext.request.contextPath}/admin/stations/add"
                                         class="btn btn-light btn-lg">
-                                        <i class="fas fa-plus me-2"></i>Add New Station
+                                        <i class="fas fa-plus me-2"></i>Add New Bus Station
                                     </a>
                                 </div>
                             </div>
@@ -315,7 +315,7 @@
                                             <table class="table table-hover align-middle" id="stationsTable">
                                                 <thead class="table-light">
                                                     <tr>
-                                                        <th>Station Name</th>
+                                                <th>Bus Station Name</th>
                                                         <th>City</th>
                                                         <th>Address</th>
                                                         <th>Status</th>
@@ -425,21 +425,21 @@
                                 <i class="fas fa-times me-1"></i>Cancel
                             </button>
                             <a href="#" id="confirmDeleteBtn" class="btn btn-danger">
-                                <i class="fas fa-trash me-1"></i>Delete Station
+                                <i class="fas fa-trash me-1"></i>Delete Bus Station
                             </a>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Station Detail Modal -->
+            <!-- Bus Station Detail Modal -->
             <div class="modal fade" id="stationDetailModal" tabindex="-1" aria-labelledby="stationDetailModalLabel"
                 aria-hidden="true">
                 <div class="modal-dialog modal-dialog-centered modal-lg">
                     <div class="modal-content">
                         <div class="modal-header bg-primary text-white">
                             <h5 class="modal-title" id="stationDetailModalLabel">
-                                <i class="fas fa-map-marker-alt me-2"></i>Station Details
+                                <i class="fas fa-map-marker-alt me-2"></i>Bus Station Details
                             </h5>
                             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
                                 aria-label="Close"></button>
@@ -450,7 +450,7 @@
                                     <div class="d-flex align-items-center mb-2">
                                         <i class="fas fa-hashtag text-primary me-3" style="width: 20px;"></i>
                                         <div>
-                                            <small class="text-muted d-block">Station ID</small>
+                                            <small class="text-muted d-block">Bus Station ID</small>
                                             <strong id="detailStationId"></strong>
                                         </div>
                                     </div>
@@ -459,7 +459,7 @@
                                     <div class="d-flex align-items-center mb-2">
                                         <i class="fas fa-building text-primary me-3" style="width: 20px;"></i>
                                         <div>
-                                            <small class="text-muted d-block">Station Name</small>
+                                            <small class="text-muted d-block">Bus Station Name</small>
                                             <strong id="detailStationName"></strong>
                                         </div>
                                     </div>
