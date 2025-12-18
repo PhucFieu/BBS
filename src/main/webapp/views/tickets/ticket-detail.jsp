@@ -312,11 +312,12 @@
                                                     </div>
                                                     <div class="mt-2">
                                                         <c:choose>
-                                                <c:when test="${ticket.paymentStatus eq 'PAID'}">
+                                                            <c:when test="${ticket.paymentStatus eq 'PAID'}">
                                                                 <span class="badge bg-success fs-6">Paid</span>
                                                             </c:when>
                                                             <c:when test="${ticket.paymentStatus eq 'PENDING'}">
-                                                                <span class="badge bg-warning fs-6">Pending Payment</span>
+                                                                <span class="badge bg-warning fs-6">Pending
+                                                                    Payment</span>
                                                             </c:when>
                                                             <c:otherwise>
                                                                 <span
@@ -351,7 +352,8 @@
                                                             <i class="fas fa-sign-in-alt me-1"></i>
                                                             <c:out value="${ticket.boardingStationName}" />
                                                             <c:if test="${not empty ticket.boardingCity}">
-                                                                (<c:out value="${ticket.boardingCity}" />)
+                                                                (
+                                                                <c:out value="${ticket.boardingCity}" />)
                                                             </c:if>
                                                         </span>
                                                     </div>
@@ -361,7 +363,8 @@
                                                             <i class="fas fa-sign-out-alt me-1"></i>
                                                             <c:out value="${ticket.alightingStationName}" />
                                                             <c:if test="${not empty ticket.alightingCity}">
-                                                                (<c:out value="${ticket.alightingCity}" />)
+                                                                (
+                                                                <c:out value="${ticket.alightingCity}" />)
                                                             </c:if>
                                                         </span>
                                                     </div>
@@ -371,10 +374,20 @@
                                                             <i class="fas fa-bus me-1"></i>${ticket.busNumber}
                                                         </span>
                                                     </div>
+                                                    <c:if test="${not empty ticket.bus.licensePlate}">
+                                                        <div class="info-row">
+                                                            <span class="info-label">License Plate:</span>
+                                                            <span class="info-value">
+                                                                <i
+                                                                    class="fas fa-id-card me-1"></i>${ticket.bus.licensePlate}
+                                                            </span>
+                                                        </div>
+                                                    </c:if>
                                                     <div class="info-row">
                                                         <span class="info-label">Driver:</span>
                                                         <span class="info-value">
-                                                            <i class="fas fa-user me-1"></i>${ticket.driverName}
+                                                            <i class="fas fa-user me-1"></i>${not empty
+                                                            ticket.driverName ? ticket.driverName : 'Not assigned'}
                                                         </span>
                                                     </div>
                                                 </div>
@@ -424,7 +437,8 @@
                                             <div class="ticket-footer">
                                                 <p class="mb-0">
                                                     <i class="fas fa-info-circle me-1"></i>
-                                                    Please arrive at the station 30 minutes before departure for check-in.
+                                                    Please arrive at the station 30 minutes before departure for
+                                                    check-in.
                                                 </p>
                                             </div>
                                         </div>
@@ -441,11 +455,13 @@
                                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                         </div>
                                         <div class="modal-body">
-                                            <p>Are you sure you want to cancel ticket <strong id="ticketNumberToDelete"></strong>?</p>
+                                            <p>Are you sure you want to cancel ticket <strong
+                                                    id="ticketNumberToDelete"></strong>?</p>
                                             <p class="text-danger"><small>This action cannot be undone.</small></p>
                                         </div>
                                         <div class="modal-footer">
-                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel
+                                            <button type="button" class="btn btn-secondary"
+                                                data-bs-dismiss="modal">Cancel
                                             </button>
                                             <a href="#" id="confirmDeleteBtn" class="btn btn-danger">Cancel Ticket</a>
                                         </div>
@@ -455,7 +471,7 @@
 
                             <%@ include file="/views/partials/footer.jsp" %>
                                 <script
-                                src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+                                    src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
                                 <script>
                                     function confirmDelete(ticketId, el) {
                                         // Support calling with (ticketId, ticketNumber) for backward-compatibility
@@ -484,4 +500,3 @@
                     </body>
 
                     </html>
-

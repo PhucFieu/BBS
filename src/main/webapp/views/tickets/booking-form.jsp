@@ -596,14 +596,25 @@
                                             aria-label="Close"></button>
                                     </div>
                                 </c:if>
-                                <c:if test="${not empty param.error}">
-                                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                                        <i class="fas fa-exclamation-circle me-2"></i>
-                                        <strong>Error!</strong> ${param.error}
-                                        <button type="button" class="btn-close" data-bs-dismiss="alert"
-                                            aria-label="Close"></button>
-                                    </div>
-                                </c:if>
+                                <!-- Show error only once: prefer request attribute over param to avoid duplicates -->
+                                <c:choose>
+                                    <c:when test="${not empty error}">
+                                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                            <i class="fas fa-exclamation-circle me-2"></i>
+                                            <strong>Error!</strong> ${error}
+                                            <button type="button" class="btn-close" data-bs-dismiss="alert"
+                                                aria-label="Close"></button>
+                                        </div>
+                                    </c:when>
+                                    <c:when test="${not empty param.error}">
+                                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                            <i class="fas fa-exclamation-circle me-2"></i>
+                                            <strong>Error!</strong> ${param.error}
+                                            <button type="button" class="btn-close" data-bs-dismiss="alert"
+                                                aria-label="Close"></button>
+                                        </div>
+                                    </c:when>
+                                </c:choose>
                                 <c:if test="${not empty param.warning}">
                                     <div class="alert alert-warning alert-dismissible fade show" role="alert">
                                         <i class="fas fa-exclamation-triangle me-2"></i>
@@ -616,14 +627,6 @@
                                     <div class="alert alert-info alert-dismissible fade show" role="alert">
                                         <i class="fas fa-info-circle me-2"></i>
                                         <strong>Info:</strong> ${param.info}
-                                        <button type="button" class="btn-close" data-bs-dismiss="alert"
-                                            aria-label="Close"></button>
-                                    </div>
-                                </c:if>
-                                <c:if test="${not empty error}">
-                                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                                        <i class="fas fa-exclamation-circle me-2"></i>
-                                        <strong>Error!</strong> ${error}
                                         <button type="button" class="btn-close" data-bs-dismiss="alert"
                                             aria-label="Close"></button>
                                     </div>
@@ -684,19 +687,38 @@
 
                                     <!-- Filter Controls -->
                                     <div class="filter-controls">
-                                        <label class="form-label mb-2">
-                                            <i class="fas fa-filter me-2"></i>Filter schedules:
-                                        </label>
-                                        <div class="filter-buttons">
-                                            <button type="button" class="filter-btn active" data-filter="all">
-                                                <i class="fas fa-list me-1"></i>All
-                                            </button>
-                                            <button type="button" class="filter-btn" data-filter="valid">
-                                                <i class="fas fa-check-circle me-1"></i>Available
-                                            </button>
-                                            <button type="button" class="filter-btn" data-filter="expired">
-                                                <i class="fas fa-clock me-1"></i>Expired
-                                            </button>
+                                        <div class="row align-items-end mb-3">
+                                            <div class="col-md-4">
+                                                <label class="form-label mb-2">
+                                                    <i class="fas fa-calendar-day me-2"></i>Filter by date:
+                                                </label>
+                                                <div class="input-group">
+                                                    <input type="date" class="form-control" id="dateFilter"
+                                                        value="${departureDate}"
+                                                        min="<%= java.time.LocalDate.now().toString() %>"
+                                                        onchange="filterByDate()">
+                                                    <button type="button" class="btn btn-outline-secondary"
+                                                        onclick="clearDateFilter()" title="Clear date filter">
+                                                        <i class="fas fa-times"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-8">
+                                                <label class="form-label mb-2">
+                                                    <i class="fas fa-filter me-2"></i>Filter by status:
+                                                </label>
+                                                <div class="filter-buttons">
+                                                    <button type="button" class="filter-btn active" data-filter="all">
+                                                        <i class="fas fa-list me-1"></i>All
+                                                    </button>
+                                                    <button type="button" class="filter-btn" data-filter="valid">
+                                                        <i class="fas fa-check-circle me-1"></i>Available
+                                                    </button>
+                                                    <button type="button" class="filter-btn" data-filter="expired">
+                                                        <i class="fas fa-clock me-1"></i>Expired
+                                                    </button>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
 
@@ -1622,6 +1644,35 @@
                                                 console.error('Error loading route stations:', error);
                                                 showStationError('Unable to load stations. Please try again.');
                                             });
+                                    }
+
+                                    // Date filter functionality
+                                    function filterByDate() {
+                                        const dateFilter = document.getElementById('dateFilter');
+                                        const selectedDate = dateFilter ? dateFilter.value : '';
+
+                                        if (selectedDate && routeIdFromJSP) {
+                                            // Redirect to the same page with date filter
+                                            const url = new URL(window.location.href);
+                                            url.searchParams.set('routeId', routeIdFromJSP);
+                                            url.searchParams.set('departureDate', selectedDate);
+                                            window.location.href = url.toString();
+                                        }
+                                    }
+
+                                    function clearDateFilter() {
+                                        const dateFilter = document.getElementById('dateFilter');
+                                        if (dateFilter) {
+                                            dateFilter.value = '';
+                                        }
+
+                                        if (routeIdFromJSP) {
+                                            // Redirect to the same page without date filter
+                                            const url = new URL(window.location.href);
+                                            url.searchParams.set('routeId', routeIdFromJSP);
+                                            url.searchParams.delete('departureDate');
+                                            window.location.href = url.toString();
+                                        }
                                     }
 
                                     // Filter functionality

@@ -545,11 +545,33 @@
                     </div>
                     </div>
                     <div class="card-body">
-                        <div class="mb-3"><strong>User:</strong> ${ticket.userName}</div>
-                        <div class="mb-3"><strong>Route:</strong> ${ticket.routeName}</div>
-                        <div class="mb-3"><strong>Bus:</strong> ${ticket.busNumber}</div>
+                        <div class="mb-3"><strong>Route:</strong> ${ticket.routeName}<br>
+                            <small class="text-muted">${ticket.departureCity} → ${ticket.destinationCity}</small>
+                        </div>
+                        <div class="mb-3"><strong>Bus:</strong> ${ticket.busNumber}
+                            <c:if test="${not empty ticket.bus.licensePlate}">
+                                <br><small class="text-muted"><i
+                                        class="fas fa-id-card me-1"></i>${ticket.bus.licensePlate}</small>
+                            </c:if>
+                        </div>
                         <div class="mb-3"><strong>Seat:</strong> <span class="seat-info">${ticket.seatNumber}</span>
                         </div>
+                        <c:if test="${not empty ticket.driverName}">
+                            <div class="mb-3"><strong>Driver:</strong> <i
+                                    class="fas fa-user-tie me-1"></i>${ticket.driverName}</div>
+                        </c:if>
+                        <c:if test="${not empty ticket.boardingStationName}">
+                            <div class="mb-3"><strong>Boarding:</strong> ${ticket.boardingStationName}
+                                <c:if test="${not empty ticket.boardingCity}"><small
+                                        class="text-muted">(${ticket.boardingCity})</small></c:if>
+                            </div>
+                        </c:if>
+                        <c:if test="${not empty ticket.alightingStationName}">
+                            <div class="mb-3"><strong>Drop-off:</strong> ${ticket.alightingStationName}
+                                <c:if test="${not empty ticket.alightingCity}"><small
+                                        class="text-muted">(${ticket.alightingCity})</small></c:if>
+                            </div>
+                        </c:if>
                         <div class="mb-3"><strong>Departure:</strong><br>
                             <i class="fas fa-calendar me-1"></i>
                             <fmt:formatDate value="${ticket.departureDateSql}" pattern="dd/MM/yyyy" />
@@ -576,6 +598,9 @@
                                     <c:otherwise>${ticket.paymentStatus}</c:otherwise>
                                 </c:choose>
                             </span>
+                            <c:if test="${ticket.paymentStatus eq 'PAID'}">
+                                <span class="badge bg-light text-dark ms-2">Refundable</span>
+                            </c:if>
                         </div>
                     </div>
                     <div class="card-footer bg-transparent">
@@ -587,7 +612,11 @@
                                 data-username="<c:out value='${ticket.userName}'/>"
                                 data-passengername="<c:out value='${ticket.userName}'/>"
                                 data-routename="<c:out value='${ticket.routeName}'/>"
+                                data-departurecity="<c:out value='${ticket.departureCity}'/>"
+                                data-destinationcity="<c:out value='${ticket.destinationCity}'/>"
                                 data-busnumber="<c:out value='${ticket.busNumber}'/>"
+                                data-licenseplate="<c:out value='${ticket.bus.licensePlate}'/>"
+                                data-drivername="<c:out value='${ticket.driverName}'/>"
                                 data-seatnumber="${ticket.seatNumber}"
                                 data-departuredate="<fmt:formatDate value='${ticket.departureDateSql}' pattern='dd/MM/yyyy'/>"
                                 data-departuretime="<fmt:formatDate value='${ticket.departureTimeSql}' pattern='HH:mm'/>"
@@ -608,11 +637,26 @@
                                     class="btn btn-sm btn-warning btn-action" title="Edit">
                                     <i class="fas fa-edit"></i>
                                 </a>
-                                <button type="button" class="btn btn-sm btn-danger btn-action"
-                                    data-ticketnumber="${ticket.ticketNumber}"
-                                    onclick="confirmDelete('${ticket.ticketId}', this)" title="Cancel Ticket">
-                                    <i class="fas fa-times"></i>
-                                </button>
+                                <form method="post" action="${pageContext.request.contextPath}/admin/tickets/confirm"
+                                    style="display:inline;">
+                                    <input type="hidden" name="id" value="${ticket.ticketId}" />
+                                    <button type="submit" class="btn btn-sm btn-success btn-action"
+                                        title="Confirm Ticket" <c:if test="${ticket.status eq 'CONFIRMED'}">disabled
+                            </c:if>>
+                            <i class="fas fa-check"></i>
+                            </button>
+                            </form>
+                            <button type="button" class="btn btn-sm btn-outline-danger btn-action" title="Refund"
+                                data-bs-toggle="modal" data-bs-target="#refundModal" data-ticketid="${ticket.ticketId}"
+                                data-ticketnumber="${ticket.ticketNumber}" <c:if
+                                test="${ticket.paymentStatus ne 'PAID'}">disabled</c:if>>
+                                <i class="fas fa-undo-alt"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-danger btn-action"
+                                data-ticketnumber="${ticket.ticketNumber}"
+                                onclick="confirmDelete('${ticket.ticketId}', this)" title="Cancel Ticket">
+                                <i class="fas fa-times"></i>
+                            </button>
                             </c:if>
                         </div>
                     </div>
@@ -700,7 +744,11 @@
                                                 data-username="<c:out value='${ticket.userName}'/>"
                                                 data-passengername="<c:out value='${ticket.userName}'/>"
                                                 data-routename="<c:out value='${ticket.routeName}'/>"
+                                                data-departurecity="<c:out value='${ticket.departureCity}'/>"
+                                                data-destinationcity="<c:out value='${ticket.destinationCity}'/>"
                                                 data-busnumber="<c:out value='${ticket.busNumber}'/>"
+                                                data-licenseplate="<c:out value='${ticket.bus.licensePlate}'/>"
+                                                data-drivername="<c:out value='${ticket.driverName}'/>"
                                                 data-seatnumber="${ticket.seatNumber}"
                                                 data-departuredate="<fmt:formatDate value='${ticket.departureDateSql}' pattern='dd/MM/yyyy'/>"
                                                 data-departuretime="<fmt:formatDate value='${ticket.departureTimeSql}' pattern='HH:mm'/>"
@@ -721,12 +769,30 @@
                                                     class="btn btn-sm btn-warning btn-action" title="Edit">
                                                     <i class="fas fa-edit"></i>
                                                 </a>
-                                                <button type="button" class="btn btn-sm btn-danger btn-action"
-                                                    data-ticketnumber="${ticket.ticketNumber}"
-                                                    onclick="confirmDelete('${ticket.ticketId}', this)"
-                                                    title="Cancel Ticket">
-                                                    <i class="fas fa-times"></i>
-                                                </button>
+                                                <form method="post"
+                                                    action="${pageContext.request.contextPath}/admin/tickets/confirm"
+                                                    style="display:inline;">
+                                                    <input type="hidden" name="id" value="${ticket.ticketId}" />
+                                                    <button type="submit" class="btn btn-sm btn-success btn-action"
+                                                        title="Confirm Ticket" <c:if
+                                                        test="${ticket.status eq 'CONFIRMED'}">disabled
+                                            </c:if>>
+                                            <i class="fas fa-check"></i>
+                                            </button>
+                                            </form>
+                                            <button type="button" class="btn btn-sm btn-outline-danger btn-action"
+                                                title="Refund" data-bs-toggle="modal" data-bs-target="#refundModal"
+                                                data-ticketid="${ticket.ticketId}"
+                                                data-ticketnumber="${ticket.ticketNumber}" <c:if
+                                                test="${ticket.paymentStatus ne 'PAID'}">disabled</c:if>>
+                                                <i class="fas fa-undo-alt"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-danger btn-action"
+                                                data-ticketnumber="${ticket.ticketNumber}"
+                                                onclick="confirmDelete('${ticket.ticketId}', this)"
+                                                title="Cancel Ticket">
+                                                <i class="fas fa-times"></i>
+                                            </button>
                                             </c:if>
                                         </td>
                                     </tr>
@@ -772,8 +838,14 @@
                                         <dd class="col-7" id="detailPassengerName"></dd>
                                         <dt class="col-5">Route:</dt>
                                         <dd class="col-7" id="detailRouteName"></dd>
+                                        <dt class="col-5">Cities:</dt>
+                                        <dd class="col-7" id="detailCities"></dd>
                                         <dt class="col-5">Bus:</dt>
                                         <dd class="col-7" id="detailBusNumber"></dd>
+                                        <dt class="col-5">License Plate:</dt>
+                                        <dd class="col-7" id="detailLicensePlate"></dd>
+                                        <dt class="col-5">Driver:</dt>
+                                        <dd class="col-7" id="detailDriverName"></dd>
                                         <dt class="col-5">Seat:</dt>
                                         <dd class="col-7" id="detailSeatNumber"></dd>
                                         <dt class="col-5">Departure:</dt>
@@ -828,6 +900,35 @@
                         </div>
                     </div>
 
+                    <!-- Refund Confirmation Modal -->
+                    <div class="modal fade" id="refundModal" tabindex="-1" aria-labelledby="refundModalLabel"
+                        aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="refundModalLabel">Process Refund</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <form method="post" action="${pageContext.request.contextPath}/admin/tickets/refund">
+                                    <div class="modal-body">
+                                        <p>Refund ticket <strong id="refundTicketNumber"></strong></p>
+                                        <div class="mb-3">
+                                            <label for="refundReason" class="form-label">Reason (optional)</label>
+                                            <textarea class="form-control" id="refundReason" name="reason" rows="3"
+                                                placeholder="Enter reason for refund"></textarea>
+                                        </div>
+                                        <input type="hidden" id="refundTicketId" name="id" />
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary"
+                                            data-bs-dismiss="modal">Close</button>
+                                        <button type="submit" class="btn btn-danger">Refund Ticket</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
                     <%@ include file="/views/partials/footer.jsp" %>
                         <script>
                             function confirmDelete(ticketId, el) {
@@ -869,7 +970,22 @@
                                     document.getElementById('detailUserName').textContent = button.getAttribute('data-username') || '-';
                                     document.getElementById('detailPassengerName').textContent = button.getAttribute('data-passengername') || '-';
                                     document.getElementById('detailRouteName').textContent = button.getAttribute('data-routename');
+
+                                    // Cities (departure -> destination)
+                                    var depCity = button.getAttribute('data-departurecity') || '';
+                                    var destCity = button.getAttribute('data-destinationcity') || '';
+                                    document.getElementById('detailCities').textContent = (depCity && destCity) ? depCity + ' → ' + destCity : '-';
+
                                     document.getElementById('detailBusNumber').textContent = button.getAttribute('data-busnumber');
+
+                                    // License Plate
+                                    var licensePlate = button.getAttribute('data-licenseplate') || '';
+                                    document.getElementById('detailLicensePlate').textContent = licensePlate || '-';
+
+                                    // Driver
+                                    var driverName = button.getAttribute('data-drivername') || '';
+                                    document.getElementById('detailDriverName').textContent = driverName || '-';
+
                                     document.getElementById('detailSeatNumber').textContent = button.getAttribute('data-seatnumber');
                                     document.getElementById('detailDepartureDate').textContent = button.getAttribute('data-departuredate');
                                     document.getElementById('detailDepartureTime').textContent = ' ' + button.getAttribute('data-departuretime');
@@ -894,7 +1010,9 @@
                                         status === 'CONFIRMED' ? '<span class="badge bg-success">Confirmed</span>' :
                                             status === 'PENDING' ? '<span class="badge bg-warning">Pending</span>' :
                                                 status === 'CANCELLED' ? '<span class="badge bg-danger">Cancelled</span>' :
-                                                    '<span class="badge bg-secondary">' + status + '</span>';
+                                                    status === 'CHECKED_IN' ? '<span class="badge bg-info">Checked In</span>' :
+                                                        status === 'COMPLETED' ? '<span class="badge bg-primary">Completed</span>' :
+                                                            '<span class="badge bg-secondary">' + status + '</span>';
 
                                     // Payment status
                                     var paymentStatus = button.getAttribute('data-paymentstatus');
@@ -903,6 +1021,60 @@
                                             paymentStatus === 'PENDING' ? '<span class="badge bg-warning">Pending Payment</span>' :
                                                 '<span class="badge bg-secondary">' + paymentStatus + '</span>';
                                 });
+
+                                // If URL contains showTicketNumber, fetch ticket JSON and show modal
+                                const params = new URLSearchParams(window.location.search);
+                                const showTicketNumber = params.get('showTicketNumber');
+                                if (showTicketNumber) {
+                                    fetch('${pageContext.request.contextPath}/tickets/json?ticketNumber=' + encodeURIComponent(showTicketNumber))
+                                        .then(res => res.json())
+                                        .then(ticket => {
+                                            if (!ticket || !ticket.ticketNumber) return;
+                                            // populate fields
+                                            document.getElementById('detailTicketNumber').textContent = ticket.ticketNumber || '';
+                                            document.getElementById('detailUserName').textContent = ticket.userName || (ticket.user ? (ticket.user.fullName || '') : '');
+                                            document.getElementById('detailPassengerName').textContent = ticket.customerName || ticket.userName || '';
+                                            document.getElementById('detailRouteName').textContent = ticket.routeName || '';
+                                            document.getElementById('detailCities').textContent = (ticket.departureCity && ticket.destinationCity) ? ticket.departureCity + ' → ' + ticket.destinationCity : '';
+                                            document.getElementById('detailBusNumber').textContent = ticket.busNumber || (ticket.bus ? (ticket.bus.busNumber || '') : '');
+                                            document.getElementById('detailLicensePlate').textContent = (ticket.bus && ticket.bus.licensePlate) ? ticket.bus.licensePlate : '';
+                                            document.getElementById('detailDriverName').textContent = ticket.driverName || '';
+                                            document.getElementById('detailSeatNumber').textContent = ticket.seatNumber || '';
+                                            document.getElementById('detailDepartureDate').textContent = ticket.departureDate || '';
+                                            document.getElementById('detailDepartureTime').textContent = ticket.departureTime || '';
+                                            document.getElementById('detailBoarding').textContent = (ticket.boardingStationName || '-') + (ticket.boardingCity ? ' (' + ticket.boardingCity + ')' : '');
+                                            document.getElementById('detailDropoff').textContent = (ticket.alightingStationName || '-') + (ticket.alightingCity ? ' (' + ticket.alightingCity + ')' : '');
+                                            document.getElementById('detailTicketPrice').textContent = (ticket.ticketPrice ? Number(ticket.ticketPrice).toLocaleString('vi-VN') + ' ₫' : '');
+                                            var status = ticket.status || '';
+                                            document.getElementById('detailStatus').innerHTML =
+                                                status === 'CONFIRMED' ? '<span class="badge bg-success">Confirmed</span>' :
+                                                    status === 'PENDING' ? '<span class="badge bg-warning">Pending</span>' :
+                                                        status === 'CANCELLED' ? '<span class="badge bg-danger">Cancelled</span>' :
+                                                            status === 'CHECKED_IN' ? '<span class="badge bg-info">Checked In</span>' :
+                                                                status === 'COMPLETED' ? '<span class="badge bg-primary">Completed</span>' :
+                                                                    '<span class="badge bg-secondary">' + status + '</span>';
+                                            var paymentStatus = ticket.paymentStatus || '';
+                                            document.getElementById('detailPaymentStatus').innerHTML =
+                                                paymentStatus === 'PAID' ? '<span class="badge bg-success">Paid</span>' :
+                                                    paymentStatus === 'PENDING' ? '<span class="badge bg-warning">Pending Payment</span>' :
+                                                        '<span class="badge bg-secondary">' + paymentStatus + '</span>';
+
+                                            new bootstrap.Modal(document.getElementById('ticketDetailModal')).show();
+                                        }).catch(err => console.error('Failed to fetch ticket for popup', err));
+                                }
+
+                                // Refund modal: populate fields when shown
+                                var refundModalEl = document.getElementById('refundModal');
+                                if (refundModalEl) {
+                                    refundModalEl.addEventListener('show.bs.modal', function (event) {
+                                        var button = event.relatedTarget;
+                                        var ticketId = button.getAttribute('data-ticketid') || '';
+                                        var ticketNumber = button.getAttribute('data-ticketnumber') || '';
+                                        document.getElementById('refundTicketId').value = ticketId;
+                                        document.getElementById('refundTicketNumber').textContent = ticketNumber;
+                                        document.getElementById('refundReason').value = '';
+                                    });
+                                }
                             });
                         </script>
 
