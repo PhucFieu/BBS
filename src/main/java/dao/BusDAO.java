@@ -105,8 +105,7 @@ public class BusDAO {
     }
 
     public boolean addBus(Bus bus) throws SQLException {
-        String sql =
-                "INSERT INTO Buses (bus_id, bus_number, bus_type, total_seats, license_plate, status) VALUES (?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO Buses (bus_id, bus_number, bus_type, total_seats, license_plate, status) VALUES (?, ?, ?, ?, ?, ?)";
         try (
                 Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql);) {
@@ -121,8 +120,7 @@ public class BusDAO {
     }
 
     public boolean updateBus(Bus bus) throws SQLException {
-        String sql =
-                "UPDATE Buses SET bus_number = ?, bus_type = ?, total_seats = ?, license_plate = ?, status = ?, updated_date = GETDATE() WHERE bus_id = ?";
+        String sql = "UPDATE Buses SET bus_number = ?, bus_type = ?, total_seats = ?, license_plate = ?, status = ?, updated_date = GETDATE() WHERE bus_id = ?";
         try (
                 Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql);) {
@@ -137,8 +135,7 @@ public class BusDAO {
     }
 
     public boolean deleteBus(UUID busId) throws SQLException {
-        String sql =
-                "UPDATE Buses SET status = 'INACTIVE', updated_date = GETDATE() WHERE bus_id = ? AND status = 'ACTIVE'";
+        String sql = "UPDATE Buses SET status = 'INACTIVE', updated_date = GETDATE() WHERE bus_id = ? AND status = 'ACTIVE'";
         try (
                 Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql);) {
@@ -148,8 +145,7 @@ public class BusDAO {
     }
 
     public boolean isBusInUse(UUID busId) throws SQLException {
-        String sql =
-                "SELECT COUNT(*) FROM Schedules WHERE bus_id = ? AND departure_date >= CAST(GETDATE() AS DATE)";
+        String sql = "SELECT COUNT(*) FROM Schedules WHERE bus_id = ? AND departure_date >= CAST(GETDATE() AS DATE)";
         try (
                 Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql);) {
@@ -250,13 +246,12 @@ public class BusDAO {
 
     public List<Bus> searchBuses(String searchTerm) throws SQLException {
         List<Bus> buses = new ArrayList<>();
-        String sql =
-                "SELECT * FROM Buses WHERE (bus_number LIKE ? OR bus_type LIKE ? OR license_plate LIKE ?) AND status != 'INACTIVE' ORDER BY bus_number";
+        String sql = "SELECT * FROM Buses WHERE (bus_number LIKE ? OR bus_type LIKE ? OR license_plate LIKE ?) AND status != 'INACTIVE' ORDER BY bus_number";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            String searchPattern = "%" + searchTerm + "%";
+            String searchPattern = "%" + searchTerm.trim() + "%";
             stmt.setString(1, searchPattern);
             stmt.setString(2, searchPattern);
             stmt.setString(3, searchPattern);
@@ -286,7 +281,8 @@ public class BusDAO {
 
     public boolean isBusNumberExists(String busNumber, UUID excludeBusId)
             throws SQLException {
-        // Use UPPER and LTRIM/RTRIM (SQL Server doesn't have single TRIM function in all versions)
+        // Use UPPER and LTRIM/RTRIM (SQL Server doesn't have single TRIM function in
+        // all versions)
         // Also collapse multiple spaces by comparing normalized values
         StringBuilder sql = new StringBuilder(
                 "SELECT COUNT(*) FROM Buses WHERE UPPER(LTRIM(RTRIM(bus_number))) = UPPER(LTRIM(RTRIM(?)))");
