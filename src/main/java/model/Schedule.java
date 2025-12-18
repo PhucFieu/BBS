@@ -4,10 +4,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.UUID;
-/**
- *
- * @author PhúcNH CE190359
- */
+
 public class Schedule {
     private UUID scheduleId;
     private UUID routeId;
@@ -29,6 +26,8 @@ public class Schedule {
     private String departureCity;
     private String destinationCity;
     private String busNumber;
+    private String busType;
+    private String licensePlate;
     private String driverName;
 
     // Constructors
@@ -180,6 +179,22 @@ public class Schedule {
 
     public void setBusNumber(String busNumber) {
         this.busNumber = busNumber;
+    }
+
+    public String getBusType() {
+        return busType;
+    }
+
+    public void setBusType(String busType) {
+        this.busType = busType;
+    }
+
+    public String getLicensePlate() {
+        return licensePlate;
+    }
+
+    public void setLicensePlate(String licensePlate) {
+        this.licensePlate = licensePlate;
     }
 
     public String getDriverName() {

@@ -1,11 +1,11 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
-    <%@ taglib prefix="c" uri="jakarta.tags.core" %>
+    <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
         <!DOCTYPE html>
         <html lang="en">
 
         <head>
             <jsp:include page="/views/partials/head.jsp">
-                <jsp:param name="title" value="Station Management - BusTicket System" />
+                <jsp:param name="title" value="Station Management - Bus Booking System" />
             </jsp:include>
             <style>
                 .station-card {
@@ -30,7 +30,7 @@
                     width: 60px;
                     height: 60px;
                     border-radius: 50%;
-                    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+                    background: linear-gradient(135deg, #66bb6a 0%, #81c784 100%);
                     display: flex;
                     align-items: center;
                     justify-content: center;
@@ -84,22 +84,22 @@
                                 <input type="text" class="form-control" id="city" name="city" value="${param.city}"
                                     placeholder="E.g: Hanoi">
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md=3">
                                 <label for="status" class="form-label">Status</label>
                                 <select class="form-select" id="status" name="status">
                                     <option value="">All</option>
                                     <option value="ACTIVE" ${param.status eq 'ACTIVE' ? 'selected' : '' }>Active
                                     </option>
                                     <option value="INACTIVE" ${param.status eq 'INACTIVE' ? 'selected' : '' }>Inactive
-                                        động</option>
+                                    </option>
                                 </select>
                             </div>
                             <div class="col-md-2 d-flex align-items-end">
                                 <button type="submit" class="btn btn-outline-primary me-2">
-                                    <i class="fas fa-search me-1"></i>Tìm kiếm
+                                    <i class="fas fa-search me-1"></i>Search
                                 </button>
                                 <a href="${pageContext.request.contextPath}/stations" class="btn btn-outline-secondary">
-                                    <i class="fas fa-refresh me-1"></i>Làm mới
+                                    <i class="fas fa-refresh me-1"></i>Refresh
                                 </a>
                             </div>
                         </form>
@@ -110,8 +110,8 @@
                         <c:when test="${empty stations}">
                             <div class="text-center py-5">
                                 <i class="fas fa-map-marker-alt fa-3x text-muted mb-3"></i>
-                                <h5 class="text-muted">Không có trạm xe nào</h5>
-                                <p class="text-muted">Hãy thêm trạm xe đầu tiên để bắt đầu</p>
+                                <h5 class="text-muted">No stations available</h5>
+                                <p class="text-muted">Add the first station to get started</p>
                             </div>
                         </c:when>
                         <c:otherwise>
@@ -130,11 +130,10 @@
                                                         <span class="badge bg-secondary">${station.city}</span>
                                                         <c:choose>
                                                             <c:when test="${station.status eq 'ACTIVE'}">
-                                                                <span class="badge bg-success ms-1">Hoạt động</span>
+                                                                <span class="badge bg-success ms-1">Active</span>
                                                             </c:when>
                                                             <c:otherwise>
-                                                                <span class="badge bg-secondary ms-1">Không hoạt
-                                                                    động</span>
+                                                                <span class="badge bg-secondary ms-1">Inactive</span>
                                                             </c:otherwise>
                                                         </c:choose>
                                                     </div>
@@ -152,16 +151,17 @@
                                             <div class="card-footer bg-transparent">
                                                 <div class="d-flex justify-content-between">
                                                     <a href="${pageContext.request.contextPath}/stations/${station.stationId}"
-                                                        class="btn btn-sm btn-info btn-action" title="Xem chi tiết">
+                                                        class="btn btn-sm btn-info btn-action" title="View details">
                                                         <i class="fas fa-eye"></i>
                                                     </a>
                                                     <a href="${pageContext.request.contextPath}/stations/edit?id=${station.stationId}"
-                                                        class="btn btn-sm btn-warning btn-action" title="Sửa">
+                                                        class="btn btn-sm btn-warning btn-action" title="Edit">
                                                         <i class="fas fa-edit"></i>
                                                     </a>
                                                     <button type="button" class="btn btn-sm btn-danger btn-action"
-                                                        onclick="confirmDelete('${station.stationId}', '${station.stationName}')"
-                                                        title="Xóa">
+                                                        data-stationname="${station.stationName}"
+                                                        onclick="confirmDelete('${station.stationId}', this)"
+                                                        title="Delete">
                                                         <i class="fas fa-trash"></i>
                                                     </button>
                                                 </div>
@@ -177,11 +177,11 @@
                                     <thead class="table-dark">
                                         <tr>
                                             <th>ID</th>
-                                            <th>Tên trạm</th>
-                                            <th>Thành phố</th>
-                                            <th>Địa chỉ</th>
-                                            <th>Trạng thái</th>
-                                            <th>Thao tác</th>
+                                            <th>Station Name</th>
+                                            <th>City</th>
+                                            <th>Address</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -194,25 +194,26 @@
                                                 <td>
                                                     <c:choose>
                                                         <c:when test="${station.status eq 'ACTIVE'}">
-                                                            <span class="badge bg-success">Hoạt động</span>
+                                                            <span class="badge bg-success">Active</span>
                                                         </c:when>
                                                         <c:otherwise>
-                                                            <span class="badge bg-secondary">Không hoạt động</span>
+                                                            <span class="badge bg-secondary">Inactive</span>
                                                         </c:otherwise>
                                                     </c:choose>
                                                 </td>
                                                 <td>
                                                     <a href="${pageContext.request.contextPath}/stations/${station.stationId}"
-                                                        class="btn btn-sm btn-info btn-action" title="Xem chi tiết">
+                                                        class="btn btn-sm btn-info btn-action" title="View details">
                                                         <i class="fas fa-eye"></i>
                                                     </a>
                                                     <a href="${pageContext.request.contextPath}/stations/edit?id=${station.stationId}"
-                                                        class="btn btn-sm btn-warning btn-action" title="Sửa">
+                                                        class="btn btn-sm btn-warning btn-action" title="Edit">
                                                         <i class="fas fa-edit"></i>
                                                     </a>
                                                     <button type="button" class="btn btn-sm btn-danger btn-action"
-                                                        onclick="confirmDelete('${station.stationId}', '${station.stationName}')"
-                                                        title="Xóa">
+                                                        data-stationname="${station.stationName}"
+                                                        onclick="confirmDelete('${station.stationId}', this)"
+                                                        title="Delete">
                                                         <i class="fas fa-trash"></i>
                                                     </button>
                                                 </td>
@@ -243,24 +244,33 @@
                     <div class="modal-dialog">
                         <div class="modal-content">
                             <div class="modal-header">
-                                <h5 class="modal-title">Xác nhận xóa</h5>
+                                <h5 class="modal-title">Confirm Deletion</h5>
                                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                             </div>
                             <div class="modal-body">
-                                <p>Bạn có chắc chắn muốn xóa trạm xe <strong id="stationNameToDelete"></strong>?</p>
-                                <p class="text-danger"><small>Hành động này không thể hoàn tác.</small></p>
+                                <p>Are you sure you want to delete station <strong id="stationNameToDelete"></strong>?
+                                </p>
+                                <p class="text-danger"><small>This action cannot be undone.</small></p>
                             </div>
                             <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                                <a href="#" id="confirmDeleteBtn" class="btn btn-danger">Xóa</a>
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                <a href="#" id="confirmDeleteBtn" class="btn btn-danger">Delete</a>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+                <%@ include file="/views/partials/footer.jsp" %>
                 <script>
-                    function confirmDelete(stationId, stationName) {
+                    function confirmDelete(stationId, el) {
+                        // Support calling with (stationId, stationName) for backward-compatibility
+                        let stationName = '';
+                        if (el && typeof el.getAttribute === 'function') {
+                            stationName = el.getAttribute('data-stationname') || '';
+                        } else if (typeof el === 'string') {
+                            stationName = el;
+                        }
+
                         document.getElementById('stationNameToDelete').textContent = stationName;
                         document.getElementById('confirmDeleteBtn').href =
                             '${pageContext.request.contextPath}/stations/delete?id=' + stationId;

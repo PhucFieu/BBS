@@ -325,16 +325,21 @@
                                         </td>
                                         <td>
                                             <div class="btn-group" role="group">
-                                                <button type="button" class="btn btn-sm btn-info btn-action"
-                                                    title="View Passengers" data-schedule-id="${trip.scheduleId}"
-                                                    data-route="${trip.routeName}"
+                                                <a href="${pageContext.request.contextPath}/driver/check-in?scheduleId=${trip.scheduleId}"
+                                                    class="btn btn-sm btn-info btn-action" title="View Passengers"
+                                                    data-schedule-id="${trip.scheduleId}" data-route="${trip.routeName}"
                                                     data-direction="${trip.departureCity} → ${trip.destinationCity}"
                                                     data-departure="${trip.departureDate}"
                                                     data-departure-time="${trip.departureTime}"
                                                     data-arrival="${trip.estimatedArrivalTime}"
-                                                    data-bus="${trip.busNumber}" onclick="showTripDetails(this)">
+                                                    data-bus="${trip.busNumber}">
                                                     <i class="fas fa-users"></i>
-                                                </button>
+                                                </a>
+                                                <!-- New: direct Check-in page link -->
+                                                <a href="${pageContext.request.contextPath}/driver/check-in?scheduleId=${trip.scheduleId}"
+                                                    class="btn btn-sm btn-success btn-action" title="Go to Check-in">
+                                                    <i class="fas fa-user-check"></i>
+                                                </a>
                                                 <a href="${pageContext.request.contextPath}/driver/update-status?scheduleId=${trip.scheduleId}"
                                                     class="btn btn-sm btn-warning btn-action" title="Update Status">
                                                     <i class="fas fa-edit"></i>
@@ -396,6 +401,7 @@
                                 <table class="table table-striped align-middle mb-0">
                                     <thead class="table-light">
                                         <tr>
+                                            <th>Check-in</th>
                                             <th>#</th>
                                             <th>Passenger</th>
                                             <th>Seat</th>
@@ -418,6 +424,7 @@
                 <script>
                     const contextPath = '${pageContext.request.contextPath}';
                     let tripDetailsModal;
+                    let currentScheduleId = null;
 
                     document.addEventListener('DOMContentLoaded', function () {
                         const modalElement = document.getElementById('tripDetailsModal');
@@ -433,6 +440,7 @@
                         document.getElementById('tripDetailsEmpty').classList.add('d-none');
                         document.getElementById('tripDetailsTable').classList.add('d-none');
                         document.getElementById('tripDetailsBody').innerHTML = '';
+                        currentScheduleId = null;
                     }
 
                     async function showTripDetails(button) {
@@ -444,6 +452,7 @@
 
                         const scheduleId = button.getAttribute('data-schedule-id');
                         const routeName = button.getAttribute('data-route') || '';
+                        currentScheduleId = scheduleId;
 
                         // Set modal title - show route name if available
                         if (routeName) {
@@ -484,12 +493,52 @@
                         }
                     }
 
+                    function buildStatusBadge(passenger) {
+                        const badge = document.createElement('span');
+                        if (passenger.checkedIn) {
+                            badge.className = 'badge bg-success';
+                            badge.textContent = 'Checked-in';
+                        } else if (passenger.paymentStatus === 'PAID' && passenger.canCheckIn) {
+                            // Ticket is paid and ready for check-in
+                            badge.className = 'badge bg-info text-white';
+                            badge.textContent = 'Paid';
+                        } else if (passenger.paymentStatus === 'PENDING') {
+                            // Ticket payment is pending - cannot check-in
+                            badge.className = 'badge bg-warning text-dark';
+                            badge.textContent = 'Pending';
+                        } else {
+                            badge.className = 'badge bg-secondary';
+                            badge.textContent = 'Unavailable';
+                        }
+                        return badge;
+                    }
+
                     function populateTripDetailsTable(passengers) {
                         const tableContainer = document.getElementById('tripDetailsTable');
                         const tbody = document.getElementById('tripDetailsBody');
 
                         passengers.forEach((passenger, index) => {
                             const row = document.createElement('tr');
+                            if (passenger.checkedIn) {
+                                row.classList.add('table-success');
+                            }
+
+                            const checkCell = document.createElement('td');
+                            const checkWrapper = document.createElement('div');
+                            checkWrapper.className = 'form-check';
+                            const checkbox = document.createElement('input');
+                            checkbox.type = 'checkbox';
+                            checkbox.className = 'form-check-input';
+                            checkbox.title = 'Tick to check-in';
+                            checkbox.dataset.ticketId = passenger.ticketId || '';
+                            checkbox.checked = !!passenger.checkedIn;
+                            checkbox.disabled = !passenger.canCheckIn || checkbox.checked || !checkbox.dataset.ticketId;
+                            const statusBadge = buildStatusBadge(passenger);
+                            statusBadge.classList.add('mt-1', 'd-inline-block');
+                            checkWrapper.appendChild(checkbox);
+                            checkWrapper.appendChild(statusBadge);
+                            checkCell.appendChild(checkWrapper);
+                            row.appendChild(checkCell);
 
                             const indexCell = document.createElement('td');
                             indexCell.textContent = index + 1;
@@ -531,6 +580,12 @@
                             fillStationCell(alightingCell, passenger.alightingStation, passenger.alightingCity);
                             row.appendChild(alightingCell);
 
+                            if (!checkbox.disabled) {
+                                checkbox.addEventListener('change', function () {
+                                    handleCheckInToggle(checkbox, statusBadge, row);
+                                });
+                            }
+
                             tbody.appendChild(row);
                         });
 
@@ -558,6 +613,47 @@
                         }
                     }
 
+                    async function handleCheckInToggle(checkbox, statusBadge, rowElement) {
+                        if (!checkbox.dataset.ticketId) {
+                            checkbox.checked = false;
+                            return;
+                        }
+
+                        checkbox.disabled = true;
+                        try {
+                            const body = new URLSearchParams();
+                            body.append('ticketId', checkbox.dataset.ticketId);
+                            if (currentScheduleId) {
+                                body.append('scheduleId', currentScheduleId);
+                            }
+
+                            const response = await fetch(contextPath + '/driver/check-in-ajax', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/x-www-form-urlencoded',
+                                    'Accept': 'application/json'
+                                },
+                                body: body.toString()
+                            });
+
+                            const data = await response.json();
+                            if (!response.ok || !data.success) {
+                                throw new Error(data.message || 'Failed to check in passenger.');
+                            }
+
+                            checkbox.checked = true;
+                            const badge = buildStatusBadge({ checkedIn: true });
+                            statusBadge.replaceWith(badge);
+                            if (rowElement) {
+                                rowElement.classList.add('table-success');
+                            }
+                        } catch (error) {
+                            checkbox.checked = false;
+                            checkbox.disabled = false;
+                            alert(error.message || 'Unable to check in passenger.');
+                        }
+                    }
+
                     function showTripDetailsError(message) {
                         const errorAlert = document.getElementById('tripDetailsError');
                         errorAlert.textContent = message;
@@ -569,7 +665,7 @@
                     }
 
                     function filterTrips() {
-                        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+                        const searchTerm = document.getElementById('searchInput').value.trim().toLowerCase();
                         const statusFilter = document.getElementById('statusFilter').value;
                         const dateFilter = document.getElementById('dateFilter').value;
 

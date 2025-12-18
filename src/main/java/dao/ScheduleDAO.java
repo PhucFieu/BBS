@@ -23,7 +23,7 @@ public class ScheduleDAO {
         List<Schedule> schedules = new ArrayList<>();
         String sql = "SELECT s.*, r.route_name, "
                 + "depc.city_name AS departure_city, destc.city_name AS destination_city, "
-                + "b.bus_number, u.full_name as driver_name "
+                + "b.bus_number, b.bus_type, b.license_plate, u.full_name as driver_name "
                 + "FROM Schedules s "
                 + "JOIN Routes r ON s.route_id = r.route_id "
                 + "LEFT JOIN Cities depc ON r.departure_city_id = depc.city_id "
@@ -56,7 +56,7 @@ public class ScheduleDAO {
         List<Schedule> schedules = new ArrayList<>();
         String sql = "SELECT s.*, r.route_name, "
                 + "depc.city_name AS departure_city, destc.city_name AS destination_city, "
-                + "b.bus_number, u.full_name as driver_name "
+                + "b.bus_number, b.bus_type, b.license_plate, u.full_name as driver_name "
                 + "FROM Schedules s "
                 + "JOIN Routes r ON s.route_id = r.route_id "
                 + "LEFT JOIN Cities depc ON r.departure_city_id = depc.city_id "
@@ -83,7 +83,7 @@ public class ScheduleDAO {
     public Schedule getScheduleById(UUID scheduleId) throws SQLException {
         String sql = "SELECT s.*, r.route_name, "
                 + "depc.city_name AS departure_city, destc.city_name AS destination_city, "
-                + "b.bus_number, u.full_name as driver_name "
+                + "b.bus_number, b.bus_type, b.license_plate, u.full_name as driver_name "
                 + "FROM Schedules s "
                 + "JOIN Routes r ON s.route_id = r.route_id "
                 + "LEFT JOIN Cities depc ON r.departure_city_id = depc.city_id "
@@ -111,7 +111,7 @@ public class ScheduleDAO {
         List<Schedule> schedules = new ArrayList<>();
         String sql = "SELECT s.*, r.route_name, "
                 + "depc.city_name AS departure_city, destc.city_name AS destination_city, "
-                + "b.bus_number, u.full_name as driver_name "
+                + "b.bus_number, b.bus_type, b.license_plate, u.full_name as driver_name "
                 + "FROM Schedules s "
                 + "JOIN Routes r ON s.route_id = r.route_id "
                 + "LEFT JOIN Cities depc ON r.departure_city_id = depc.city_id "
@@ -141,7 +141,7 @@ public class ScheduleDAO {
         List<Schedule> schedules = new ArrayList<>();
         String sql = "SELECT s.*, r.route_name, "
                 + "depc.city_name AS departure_city, destc.city_name AS destination_city, "
-                + "b.bus_number, u.full_name as driver_name "
+                + "b.bus_number, b.bus_type, b.license_plate, u.full_name as driver_name "
                 + "FROM Schedules s "
                 + "JOIN Routes r ON s.route_id = r.route_id "
                 + "LEFT JOIN Cities depc ON r.departure_city_id = depc.city_id "
@@ -171,7 +171,7 @@ public class ScheduleDAO {
         List<Schedule> schedules = new ArrayList<>();
         String sql = "SELECT s.*, r.route_name, "
                 + "depc.city_name AS departure_city, destc.city_name AS destination_city, "
-                + "b.bus_number, u.full_name as driver_name "
+                + "b.bus_number, b.bus_type, b.license_plate, u.full_name as driver_name "
                 + "FROM Schedules s "
                 + "JOIN Routes r ON s.route_id = r.route_id "
                 + "LEFT JOIN Cities depc ON r.departure_city_id = depc.city_id "
@@ -203,7 +203,7 @@ public class ScheduleDAO {
         List<Schedule> schedules = new ArrayList<>();
         String sql = "SELECT s.*, r.route_name, "
                 + "depc.city_name AS departure_city, destc.city_name AS destination_city, "
-                + "b.bus_number, u.full_name as driver_name "
+                + "b.bus_number, b.bus_type, b.license_plate, u.full_name as driver_name "
                 + "FROM Schedules s "
                 + "JOIN Routes r ON s.route_id = r.route_id "
                 + "LEFT JOIN Cities depc ON r.departure_city_id = depc.city_id "
@@ -237,7 +237,7 @@ public class ScheduleDAO {
         List<Schedule> schedules = new ArrayList<>();
         String sql = "SELECT s.*, r.route_name, "
                 + "depc.city_name AS departure_city, destc.city_name AS destination_city, "
-                + "b.bus_number, u.full_name as driver_name "
+                + "b.bus_number, b.bus_type, b.license_plate, u.full_name as driver_name "
                 + "FROM Schedules s "
                 + "JOIN Routes r ON s.route_id = r.route_id "
                 + "LEFT JOIN Cities depc ON r.departure_city_id = depc.city_id "
@@ -265,8 +265,7 @@ public class ScheduleDAO {
     }
 
     public boolean addSchedule(Schedule schedule) throws SQLException {
-        String sql =
-                "INSERT INTO Schedules (schedule_id, route_id, bus_id, departure_date, departure_time, estimated_arrival_time, available_seats, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO Schedules (schedule_id, route_id, bus_id, departure_date, departure_time, estimated_arrival_time, available_seats, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -294,8 +293,7 @@ public class ScheduleDAO {
             int estimatedDurationHours,
             int totalSeats) throws SQLException {
         // Try to find existing schedule first
-        String findSql =
-                "SELECT schedule_id FROM Schedules WHERE route_id = ? AND bus_id = ? AND departure_date = ? AND departure_time = CAST(? AS TIME) AND status = 'SCHEDULED'";
+        String findSql = "SELECT schedule_id FROM Schedules WHERE route_id = ? AND bus_id = ? AND departure_date = ? AND departure_time = CAST(? AS TIME) AND status = 'SCHEDULED'";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement findStmt = conn.prepareStatement(findSql)) {
@@ -313,11 +311,9 @@ public class ScheduleDAO {
         }
 
         // Create a new schedule
-        java.time.LocalTime estimatedArrival =
-                departureTime.plusHours(Math.max(0, estimatedDurationHours));
-        model.Schedule schedule =
-                new model.Schedule(routeId, busId, departureDate, departureTime, estimatedArrival,
-                        totalSeats);
+        java.time.LocalTime estimatedArrival = departureTime.plusHours(Math.max(0, estimatedDurationHours));
+        model.Schedule schedule = new model.Schedule(routeId, busId, departureDate, departureTime, estimatedArrival,
+                totalSeats);
 
         boolean inserted = addSchedule(schedule);
         if (!inserted) {
@@ -328,8 +324,7 @@ public class ScheduleDAO {
     }
 
     public boolean updateSchedule(Schedule schedule) throws SQLException {
-        String sql =
-                "UPDATE Schedules SET route_id = ?, bus_id = ?, departure_date = ?, departure_time = ?, estimated_arrival_time = ?, available_seats = ?, status = ?, updated_date = GETDATE() WHERE schedule_id = ?";
+        String sql = "UPDATE Schedules SET route_id = ?, bus_id = ?, departure_date = ?, departure_time = ?, estimated_arrival_time = ?, available_seats = ?, status = ?, updated_date = GETDATE() WHERE schedule_id = ?";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -351,7 +346,7 @@ public class ScheduleDAO {
         List<Schedule> schedules = new ArrayList<>();
         String sql = "SELECT s.*, r.route_name, "
                 + "depc.city_name AS departure_city, destc.city_name AS destination_city, "
-                + "b.bus_number, u.full_name as driver_name "
+                + "b.bus_number, b.bus_type, b.license_plate, u.full_name as driver_name "
                 + "FROM Schedules s "
                 + "JOIN Routes r ON s.route_id = r.route_id "
                 + "LEFT JOIN Cities depc ON r.departure_city_id = depc.city_id "
@@ -380,8 +375,7 @@ public class ScheduleDAO {
     }
 
     public boolean deleteSchedule(UUID scheduleId) throws SQLException {
-        String sql =
-                "UPDATE Schedules SET status = 'CANCELLED', updated_date = GETDATE() WHERE schedule_id = ?";
+        String sql = "UPDATE Schedules SET status = 'CANCELLED', updated_date = GETDATE() WHERE schedule_id = ?";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -392,8 +386,7 @@ public class ScheduleDAO {
     }
 
     public boolean updateAvailableSeats(UUID scheduleId, int seatsToReserve) throws SQLException {
-        String sql =
-                "UPDATE Schedules SET available_seats = available_seats - ?, updated_date = GETDATE() WHERE schedule_id = ? AND available_seats >= ?";
+        String sql = "UPDATE Schedules SET available_seats = available_seats - ?, updated_date = GETDATE() WHERE schedule_id = ? AND available_seats >= ?";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -421,13 +414,12 @@ public class ScheduleDAO {
     }
 
     public void debugAllSchedules() throws SQLException {
-        String sql =
-                "SELECT s.schedule_id, s.route_id, s.bus_id, r.route_name, b.bus_number, s.departure_date, s.status "
-                        +
-                        "FROM Schedules s " +
-                        "JOIN Routes r ON s.route_id = r.route_id " +
-                        "JOIN Buses b ON s.bus_id = b.bus_id " +
-                        "ORDER BY s.departure_date";
+        String sql = "SELECT s.schedule_id, s.route_id, s.bus_id, r.route_name, b.bus_number, s.departure_date, s.status "
+                +
+                "FROM Schedules s " +
+                "JOIN Routes r ON s.route_id = r.route_id " +
+                "JOIN Buses b ON s.bus_id = b.bus_id " +
+                "ORDER BY s.departure_date";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql);
@@ -469,6 +461,8 @@ public class ScheduleDAO {
         schedule.setDepartureCity(rs.getString("departure_city"));
         schedule.setDestinationCity(rs.getString("destination_city"));
         schedule.setBusNumber(rs.getString("bus_number"));
+        schedule.setBusType(rs.getString("bus_type"));
+        schedule.setLicensePlate(rs.getString("license_plate"));
         schedule.setDriverName(rs.getString("driver_name"));
 
         Timestamp createdDate = rs.getTimestamp("created_date");
@@ -491,7 +485,7 @@ public class ScheduleDAO {
         List<Schedule> schedules = new ArrayList<>();
         String sql = "SELECT s.*, r.route_name, "
                 + "depc.city_name AS departure_city, destc.city_name AS destination_city, "
-                + "b.bus_number, u.full_name as driver_name "
+                + "b.bus_number, b.bus_type, b.license_plate, u.full_name as driver_name "
                 + "FROM Schedules s "
                 + "JOIN Routes r ON s.route_id = r.route_id "
                 + "LEFT JOIN Cities depc ON r.departure_city_id = depc.city_id "
@@ -523,8 +517,7 @@ public class ScheduleDAO {
      */
     public boolean updateScheduleStatus(UUID scheduleId, String status, String notes)
             throws SQLException {
-        String sql =
-                "UPDATE Schedules SET status = ?, updated_date = GETDATE() WHERE schedule_id = ?";
+        String sql = "UPDATE Schedules SET status = ?, updated_date = GETDATE() WHERE schedule_id = ?";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -603,10 +596,9 @@ public class ScheduleDAO {
             return false;
         }
 
-        Schedule conflictingSchedule =
-                findDriverScheduleConflict(driverId, targetSchedule.getRouteId(),
-                        targetSchedule.getDepartureDate(), targetSchedule.getDepartureTime(),
-                        targetSchedule.getEstimatedArrivalTime(), scheduleId);
+        Schedule conflictingSchedule = findDriverScheduleConflict(driverId, targetSchedule.getRouteId(),
+                targetSchedule.getDepartureDate(), targetSchedule.getDepartureTime(),
+                targetSchedule.getEstimatedArrivalTime(), scheduleId);
         if (conflictingSchedule != null) {
             return false;
         }
@@ -628,8 +620,7 @@ public class ScheduleDAO {
         removeDriverFromSchedule(scheduleId);
 
         // Add new assignment
-        String sql =
-                "INSERT INTO ScheduleDrivers (schedule_id, driver_id, assigned_date) VALUES (?, ?, GETDATE())";
+        String sql = "INSERT INTO ScheduleDrivers (schedule_id, driver_id, assigned_date) VALUES (?, ?, GETDATE())";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -723,13 +714,15 @@ public class ScheduleDAO {
 
     /**
      * Check if there's a duplicate schedule (same route, same date, same time)
-     * This prevents creating duplicate schedules for the same route on the same day and time
+     * This prevents creating duplicate schedules for the same route on the same day
+     * and time
      */
     public boolean hasDuplicateSchedule(UUID routeId, LocalDate departureDate,
             LocalTime departureTime, UUID excludeScheduleId) throws SQLException {
         StringBuilder sql = new StringBuilder(
                 "SELECT COUNT(*) FROM Schedules WHERE route_id = ? "
-                        + "AND departure_date = ? AND departure_time = ? AND status != 'CANCELLED'");
+                        + "AND departure_date = ? AND CAST(departure_time AS TIME) = CAST(? AS TIME) "
+                        + "AND status != 'CANCELLED'");
 
         if (excludeScheduleId != null) {
             sql.append(" AND schedule_id <> ?");
@@ -771,7 +764,7 @@ public class ScheduleDAO {
         StringBuilder sql = new StringBuilder(
                 "SELECT TOP 1 s.*, r.route_name, "
                         + "depc.city_name AS departure_city, destc.city_name AS destination_city, "
-                        + "b.bus_number, u.full_name as driver_name "
+                        + "b.bus_number, b.bus_type, b.license_plate, u.full_name as driver_name "
                         + "FROM ScheduleDrivers sd "
                         + "JOIN Schedules s ON sd.schedule_id = s.schedule_id "
                         + "JOIN Routes r ON s.route_id = r.route_id "
@@ -814,11 +807,14 @@ public class ScheduleDAO {
     }
 
     /**
-     * Check if driver can be assigned to a new schedule (must wait 8 hours after last assignment)
-     * Returns the number of hours remaining before driver can be assigned, or -1 if driver can be
+     * Check if driver can be assigned to a new schedule (must wait 8 hours after
+     * last assignment)
+     * Returns the number of hours remaining before driver can be assigned, or -1 if
+     * driver can be
      * assigned now
      * 
-     * @deprecated Use checkDriverScheduleTimeGap instead - checks gap based on schedule completion
+     * @deprecated Use checkDriverScheduleTimeGap instead - checks gap based on
+     *             schedule completion
      *             time, not assignment time
      */
     @Deprecated
@@ -852,27 +848,53 @@ public class ScheduleDAO {
                 }
             }
         }
-        // Driver can be assigned now (no previous assignment or more than 8 hours have passed)
+        // Driver can be assigned now (no previous assignment or more than 8 hours have
+        // passed)
         return -1;
     }
 
     /**
-     * Check if there's at least 8 hours gap between the end of driver's existing schedules
-     * and the start of the new schedule being assigned.
-     * Returns the schedule that violates the 8-hour gap rule, or null if no violation.
-     * The gap is calculated from when the existing schedule completes (departure_date +
-     * estimated_arrival_time)
-     * to when the new schedule starts (departure_date + departure_time).
+     * Check if there's sufficient gap between the new schedule and all existing
+     * driver schedules.
+     * Returns the schedule that violates the gap rule, or null if no violation.
+     * 
+     * For schedules that END before the new schedule STARTS:
+     * Check that: existing_end + requiredGapHours <= new_start
+     * 
+     * For schedules that START after the new schedule ENDS:
+     * Check that: new_end + requiredGapHours <= existing_start
+     * 
+     * This allows assigning drivers to schedules regardless of whether their
+     * existing
+     * schedules have completed, as long as the time gaps are sufficient.
+     * 
+     * @param newEstimatedArrivalTime The estimated arrival time of the new schedule
+     *                                (can be null,
+     *                                will use departure time + 4 hours as default)
      */
     public Schedule checkDriverScheduleTimeGap(UUID driverId, LocalDate newDepartureDate,
             LocalTime newDepartureTime, UUID excludeScheduleId, double requiredGapHours)
             throws SQLException {
+        return checkDriverScheduleTimeGapWithArrival(driverId, newDepartureDate, newDepartureTime,
+                null, excludeScheduleId, requiredGapHours);
+    }
 
-        // Get all schedules assigned to this driver (excluding the one we're assigning if it
-        // exists)
+    /**
+     * Check if there's sufficient gap between the new schedule and all existing
+     * driver schedules.
+     * This overload accepts the new schedule's estimated arrival time for
+     * bidirectional gap checking.
+     */
+    public Schedule checkDriverScheduleTimeGapWithArrival(UUID driverId, LocalDate newDepartureDate,
+            LocalTime newDepartureTime, LocalTime newEstimatedArrivalTime,
+            UUID excludeScheduleId, double requiredGapHours)
+            throws SQLException {
+
+        // Get all schedules assigned to this driver (excluding the one we're assigning
+        // if it exists)
         String sql = "SELECT s.*, r.route_name, "
                 + "depc.city_name AS departure_city, destc.city_name AS destination_city, "
-                + "b.bus_number, u.full_name as driver_name " +
+                + "b.bus_number, b.bus_type, b.license_plate, u.full_name as driver_name " +
                 "FROM ScheduleDrivers sd " +
                 "JOIN Schedules s ON sd.schedule_id = s.schedule_id " +
                 "JOIN Routes r ON s.route_id = r.route_id " +
@@ -887,7 +909,7 @@ public class ScheduleDAO {
             sql += "AND s.schedule_id <> ? ";
         }
 
-        sql += "ORDER BY s.departure_date, s.estimated_arrival_time DESC";
+        sql += "ORDER BY s.departure_date, s.departure_time";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -902,36 +924,66 @@ public class ScheduleDAO {
                 java.time.LocalDateTime newScheduleStart = java.time.LocalDateTime.of(
                         newDepartureDate, newDepartureTime);
 
+                // Calculate new schedule end datetime
+                // If arrival time not provided, estimate based on departure time + 4 hours
+                java.time.LocalTime effectiveArrivalTime = newEstimatedArrivalTime != null
+                        ? newEstimatedArrivalTime
+                        : newDepartureTime.plusHours(4);
+                java.time.LocalDate newArrivalDate = newDepartureDate;
+                if (effectiveArrivalTime.isBefore(newDepartureTime) ||
+                        effectiveArrivalTime.equals(newDepartureTime)) {
+                    newArrivalDate = newArrivalDate.plusDays(1);
+                }
+                java.time.LocalDateTime newScheduleEnd = java.time.LocalDateTime.of(
+                        newArrivalDate, effectiveArrivalTime);
+
+                long requiredGapMinutes = (long) Math.ceil(requiredGapHours * 60);
+
                 while (rs.next()) {
                     Schedule existingSchedule = mapResultSetToSchedule(rs);
 
-                    // Calculate existing schedule end datetime
-                    // estimated_arrival_time might be next day, so we need to handle that
+                    // Calculate existing schedule times
                     java.time.LocalDate existingDepartureDate = existingSchedule.getDepartureDate();
-                    java.time.LocalTime existingArrivalTime =
-                            existingSchedule.getEstimatedArrivalTime();
-
-                    // If arrival time is earlier than departure time, it's next day
+                    java.time.LocalTime existingArrivalTime = existingSchedule.getEstimatedArrivalTime();
                     java.time.LocalTime existingDepartureTime = existingSchedule.getDepartureTime();
+
+                    // Calculate existing schedule end (handle overnight trips)
                     java.time.LocalDate existingArrivalDate = existingDepartureDate;
                     if (existingArrivalTime.isBefore(existingDepartureTime) ||
                             existingArrivalTime.equals(existingDepartureTime)) {
                         existingArrivalDate = existingArrivalDate.plusDays(1);
                     }
 
+                    java.time.LocalDateTime existingScheduleStart = java.time.LocalDateTime.of(
+                            existingDepartureDate, existingDepartureTime);
                     java.time.LocalDateTime existingScheduleEnd = java.time.LocalDateTime.of(
                             existingArrivalDate, existingArrivalTime);
 
-                    // Calculate time gap between existing schedule end and new schedule start
-                    java.time.Duration gap = java.time.Duration.between(
-                            existingScheduleEnd, newScheduleStart);
-
-                    // Check if gap is less than required rest time
-                    long gapMinutes = gap.toMinutes();
-                    long requiredGapMinutes = (long) Math.ceil(requiredGapHours * 60);
-                    if (gapMinutes < requiredGapMinutes) {
-                        // Violation: gap shorter than required rest window
+                    // Check for direct time overlap (conflict)
+                    boolean overlaps = existingScheduleStart.isBefore(newScheduleEnd) &&
+                            newScheduleStart.isBefore(existingScheduleEnd);
+                    if (overlaps) {
                         return existingSchedule;
+                    }
+
+                    // Check gap for preceding schedules (existing ends before new starts)
+                    if (existingScheduleEnd.isBefore(newScheduleStart)
+                            || existingScheduleEnd.equals(newScheduleStart)) {
+                        java.time.Duration gap = java.time.Duration.between(existingScheduleEnd, newScheduleStart);
+                        long gapMinutes = gap.toMinutes();
+                        if (gapMinutes >= 0 && gapMinutes < requiredGapMinutes) {
+                            return existingSchedule;
+                        }
+                    }
+
+                    // Check gap for following schedules (new ends before existing starts)
+                    if (newScheduleEnd.isBefore(existingScheduleStart)
+                            || newScheduleEnd.equals(existingScheduleStart)) {
+                        java.time.Duration gap = java.time.Duration.between(newScheduleEnd, existingScheduleStart);
+                        long gapMinutes = gap.toMinutes();
+                        if (gapMinutes >= 0 && gapMinutes < requiredGapMinutes) {
+                            return existingSchedule;
+                        }
                     }
                 }
             }
@@ -941,17 +993,30 @@ public class ScheduleDAO {
     }
 
     /**
-     * Calculate the minimum gap in hours between the end of driver's last schedule
-     * and the start of the new schedule. Returns negative value if gap is less than 8 hours.
-     * Returns Double.MAX_VALUE if driver has no existing schedules.
+     * Calculate the minimum gap in hours between the end of driver's closest
+     * preceding schedule
+     * and the start of the new schedule. This method finds schedules that END
+     * before the new
+     * schedule starts and returns the gap from the most recent one.
+     * Returns negative value if there's an overlapping schedule.
+     * Returns 999.0 if driver has no preceding schedules that affect this
+     * assignment.
+     * 
+     * This allows assigning drivers to future schedules even if they have pending
+     * schedules,
+     * as long as there's sufficient gap time between schedules.
      */
     public double calculateMinGapBeforeNewSchedule(UUID driverId, LocalDate newDepartureDate,
             LocalTime newDepartureTime, UUID excludeScheduleId) throws SQLException {
 
-        // Get the latest schedule assigned to this driver
-        String sql = "SELECT TOP 1 s.*, r.route_name, "
+        // Calculate new schedule start datetime
+        java.time.LocalDateTime newScheduleStart = java.time.LocalDateTime.of(
+                newDepartureDate, newDepartureTime);
+
+        // Get all schedules assigned to this driver (excluding the one we're checking)
+        String sql = "SELECT s.*, r.route_name, "
                 + "depc.city_name AS departure_city, destc.city_name AS destination_city, "
-                + "b.bus_number, u.full_name as driver_name " +
+                + "b.bus_number, b.bus_type, b.license_plate, u.full_name as driver_name " +
                 "FROM ScheduleDrivers sd " +
                 "JOIN Schedules s ON sd.schedule_id = s.schedule_id " +
                 "JOIN Routes r ON s.route_id = r.route_id " +
@@ -966,7 +1031,7 @@ public class ScheduleDAO {
             sql += "AND s.schedule_id <> ? ";
         }
 
-        sql += "ORDER BY s.departure_date DESC, s.estimated_arrival_time DESC";
+        sql += "ORDER BY s.departure_date, s.departure_time";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -977,60 +1042,82 @@ public class ScheduleDAO {
             }
 
             try (ResultSet rs = stmt.executeQuery()) {
-                if (!rs.next()) {
-                    // Driver has no existing schedules, can be assigned
-                    // Return a large positive value (999 hours) to indicate available
+                Schedule closestPrecedingSchedule = null;
+                java.time.LocalDateTime closestPrecedingEnd = null;
+
+                while (rs.next()) {
+                    Schedule existingSchedule = mapResultSetToSchedule(rs);
+
+                    // Calculate existing schedule end datetime
+                    java.time.LocalDate existingDepartureDate = existingSchedule.getDepartureDate();
+                    java.time.LocalTime existingArrivalTime = existingSchedule.getEstimatedArrivalTime();
+                    java.time.LocalTime existingDepartureTime = existingSchedule.getDepartureTime();
+
+                    // If arrival time is earlier than or equal to departure time, it's next day
+                    java.time.LocalDate existingArrivalDate = existingDepartureDate;
+                    if (existingArrivalTime.isBefore(existingDepartureTime) ||
+                            existingArrivalTime.equals(existingDepartureTime)) {
+                        existingArrivalDate = existingArrivalDate.plusDays(1);
+                    }
+
+                    java.time.LocalDateTime existingScheduleEnd = java.time.LocalDateTime.of(
+                            existingArrivalDate, existingArrivalTime);
+
+                    java.time.LocalDateTime existingScheduleStart = java.time.LocalDateTime.of(
+                            existingDepartureDate, existingDepartureTime);
+
+                    // Check if schedules overlap (conflict check)
+                    // Overlap occurs if: existingStart < newEnd AND newStart < existingEnd
+                    // But we'll use checkDriverScheduleTimeGap for actual conflict detection
+                    // Here we just need to find the closest preceding schedule
+
+                    // If existing schedule ends before new schedule starts
+                    if (existingScheduleEnd.isBefore(newScheduleStart)
+                            || existingScheduleEnd.equals(newScheduleStart)) {
+                        // This schedule ends before the new one starts - it's a candidate
+                        if (closestPrecedingEnd == null || existingScheduleEnd.isAfter(closestPrecedingEnd)) {
+                            closestPrecedingSchedule = existingSchedule;
+                            closestPrecedingEnd = existingScheduleEnd;
+                        }
+                    } else if (existingScheduleStart.isBefore(newScheduleStart)
+                            && existingScheduleEnd.isAfter(newScheduleStart)) {
+                        // Overlapping schedule - return negative to indicate conflict
+                        return -1.0;
+                    }
+                }
+
+                if (closestPrecedingSchedule == null) {
+                    // No preceding schedules, driver is available
                     return 999.0;
                 }
 
-                Schedule lastSchedule = mapResultSetToSchedule(rs);
-
-                // Calculate last schedule end datetime
-                java.time.LocalDate lastDepartureDate = lastSchedule.getDepartureDate();
-                java.time.LocalTime lastArrivalTime = lastSchedule.getEstimatedArrivalTime();
-                java.time.LocalTime lastDepartureTime = lastSchedule.getDepartureTime();
-
-                // If arrival time is earlier than or equal to departure time, it's next day
-                java.time.LocalDate lastArrivalDate = lastDepartureDate;
-                if (lastArrivalTime.isBefore(lastDepartureTime) ||
-                        lastArrivalTime.equals(lastDepartureTime)) {
-                    lastArrivalDate = lastArrivalDate.plusDays(1);
-                }
-
-                java.time.LocalDateTime lastScheduleEnd = java.time.LocalDateTime.of(
-                        lastArrivalDate, lastArrivalTime);
-
-                // Calculate new schedule start datetime
-                java.time.LocalDateTime newScheduleStart = java.time.LocalDateTime.of(
-                        newDepartureDate, newDepartureTime);
-
-                // Calculate time gap
-                java.time.Duration gap = java.time.Duration.between(
-                        lastScheduleEnd, newScheduleStart);
-
-                // Return gap in hours (negative if gap is negative, meaning new schedule starts
-                // before last ends)
-                double gapHours = gap.toHours() + (gap.toMinutes() % 60) / 60.0;
+                // Calculate time gap from closest preceding schedule end to new schedule start
+                java.time.Duration gap = java.time.Duration.between(closestPrecedingEnd, newScheduleStart);
+                double gapHours = gap.toMinutes() / 60.0;
                 return gapHours;
             }
         }
     }
 
     /**
-     * Check if there's at least 8 hours gap between the end of bus's existing schedules
+     * Check if there's at least 8 hours gap between the end of bus's existing
+     * schedules
      * and the start of the new schedule being assigned.
-     * Returns the schedule that violates the 8-hour gap rule, or null if no violation.
-     * The gap is calculated from when the existing schedule completes (departure_date +
+     * Returns the schedule that violates the 8-hour gap rule, or null if no
+     * violation.
+     * The gap is calculated from when the existing schedule completes
+     * (departure_date +
      * estimated_arrival_time)
      * to when the new schedule starts (departure_date + departure_time).
      */
     public Schedule checkBusScheduleTimeGap(UUID busId, LocalDate newDepartureDate,
             LocalTime newDepartureTime, UUID excludeScheduleId) throws SQLException {
 
-        // Get all schedules assigned to this bus (excluding the one we're assigning if it exists)
+        // Get all schedules assigned to this bus (excluding the one we're assigning if
+        // it exists)
         String sql = "SELECT s.*, r.route_name, "
                 + "depc.city_name AS departure_city, destc.city_name AS destination_city, "
-                + "b.bus_number, u.full_name as driver_name " +
+                + "b.bus_number, b.bus_type, b.license_plate, u.full_name as driver_name " +
                 "FROM Schedules s " +
                 "JOIN Routes r ON s.route_id = r.route_id " +
                 "LEFT JOIN Cities depc ON r.departure_city_id = depc.city_id " +
@@ -1066,8 +1153,7 @@ public class ScheduleDAO {
                     // Calculate existing schedule end datetime
                     // estimated_arrival_time might be next day, so we need to handle that
                     java.time.LocalDate existingDepartureDate = existingSchedule.getDepartureDate();
-                    java.time.LocalTime existingArrivalTime =
-                            existingSchedule.getEstimatedArrivalTime();
+                    java.time.LocalTime existingArrivalTime = existingSchedule.getEstimatedArrivalTime();
 
                     // If arrival time is earlier than departure time, it's next day
                     java.time.LocalTime existingDepartureTime = existingSchedule.getDepartureTime();
@@ -1099,7 +1185,8 @@ public class ScheduleDAO {
 
     /**
      * Calculate the minimum gap in hours between the end of bus's last schedule
-     * and the start of the new schedule. Returns negative value if gap is less than 8 hours.
+     * and the start of the new schedule. Returns negative value if gap is less than
+     * 8 hours.
      * Returns 999.0 if bus has no existing schedules.
      */
     public double calculateMinGapBeforeNewScheduleForBus(UUID busId, LocalDate newDepartureDate,
@@ -1108,7 +1195,7 @@ public class ScheduleDAO {
         // Get the latest schedule assigned to this bus
         String sql = "SELECT TOP 1 s.*, r.route_name, "
                 + "depc.city_name AS departure_city, destc.city_name AS destination_city, "
-                + "b.bus_number, u.full_name as driver_name " +
+                + "b.bus_number, b.bus_type, b.license_plate, u.full_name as driver_name " +
                 "FROM Schedules s " +
                 "JOIN Routes r ON s.route_id = r.route_id " +
                 "LEFT JOIN Cities depc ON r.departure_city_id = depc.city_id " +

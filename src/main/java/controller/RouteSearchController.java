@@ -12,6 +12,7 @@ import java.util.stream.Collectors;
 import dao.RouteDAO;
 import dao.ScheduleDAO;
 import dao.StationDAO;
+import dao.CityDAO;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -20,6 +21,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import model.Routes;
 import model.Schedule;
 import model.Station;
+import model.City;
 
 @WebServlet("/search/*")
 public class RouteSearchController extends HttpServlet {
@@ -27,12 +29,14 @@ public class RouteSearchController extends HttpServlet {
     private RouteDAO routeDAO;
     private ScheduleDAO scheduleDAO;
     private StationDAO stationDAO;
+    private CityDAO cityDAO;
 
     @Override
     public void init() throws ServletException {
         routeDAO = new RouteDAO();
         scheduleDAO = new ScheduleDAO();
         stationDAO = new StationDAO();
+        cityDAO = new CityDAO();
     }
 
     @Override
@@ -56,6 +60,9 @@ public class RouteSearchController extends HttpServlet {
             } else if (pathInfo.equals("/routes-by-cities")) {
                 // Get available routes by cities (AJAX)
                 getRoutesByCities(request, response);
+            } else if (pathInfo.equals("/cities")) {
+                // Get all cities for dropdown (AJAX)
+                getAllCities(request, response);
             } else {
                 response.sendError(HttpServletResponse.SC_NOT_FOUND);
             }
@@ -179,8 +186,7 @@ public class RouteSearchController extends HttpServlet {
             List<Schedule> schedules;
             if (departureDate != null) {
                 // Filter by date if provided
-                schedules
-                        = scheduleDAO.getSchedulesByRouteAndDate(route.getRouteId(), departureDate);
+                schedules = scheduleDAO.getSchedulesByRouteAndDate(route.getRouteId(), departureDate);
             } else {
                 // Get all schedules if no date specified
                 schedules = scheduleDAO.getSchedulesByRoute(route.getRouteId());
@@ -249,16 +255,14 @@ public class RouteSearchController extends HttpServlet {
             }
 
             // Search for return routes (reversed)
-            List<Routes> returnRoutes
-                    = routeDAO.searchRoutes(destinationCity.trim(), departureCity.trim());
+            List<Routes> returnRoutes = routeDAO.searchRoutes(destinationCity.trim(), departureCity.trim());
 
             // Get schedules for return routes and filter out expired ones
             for (Routes route : returnRoutes) {
                 List<Schedule> returnSchedules;
                 if (returnDate != null) {
                     // Filter by return date if provided
-                    returnSchedules
-                            = scheduleDAO.getSchedulesByRouteAndDate(route.getRouteId(), returnDate);
+                    returnSchedules = scheduleDAO.getSchedulesByRouteAndDate(route.getRouteId(), returnDate);
                 } else {
                     // Get all schedules if no return date specified
                     returnSchedules = scheduleDAO.getSchedulesByRoute(route.getRouteId());
@@ -350,7 +354,6 @@ public class RouteSearchController extends HttpServlet {
 
         // Return lightweight payload to avoid Java Time serialization issues
         class CityDTO {
-
             String city;
 
             CityDTO(String city) {
@@ -385,8 +388,7 @@ public class RouteSearchController extends HttpServlet {
 
         try {
             // Search for routes
-            List<Routes> routes
-                    = routeDAO.searchRoutes(departureCity.trim(), destinationCity.trim());
+            List<Routes> routes = routeDAO.searchRoutes(departureCity.trim(), destinationCity.trim());
 
             // For each route, get available dates from schedules
             List<java.util.Map<String, Object>> routesData = new ArrayList<>();
@@ -426,6 +428,31 @@ public class RouteSearchController extends HttpServlet {
             result.put("routes", routesData);
 
             response.getWriter().write(new com.google.gson.Gson().toJson(result));
+        } catch (Exception e) {
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            response.getWriter().write("{\"error\":\"" + e.getMessage().replace("\"", "'") + "\"}");
+        }
+    }
+
+    private void getAllCities(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException, SQLException {
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+
+        try {
+            List<City> cities = cityDAO.getAllCities();
+
+            // Create simplified city DTOs for JSON response
+            List<java.util.Map<String, Object>> citiesData = new ArrayList<>();
+            for (City city : cities) {
+                java.util.Map<String, Object> cityData = new java.util.HashMap<>();
+                cityData.put("cityId", city.getCityId().toString());
+                cityData.put("cityName", city.getCityName());
+                cityData.put("cityNumber", city.getCityNumber());
+                citiesData.add(cityData);
+            }
+
+            response.getWriter().write(new com.google.gson.Gson().toJson(citiesData));
         } catch (Exception e) {
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             response.getWriter().write("{\"error\":\"" + e.getMessage().replace("\"", "'") + "\"}");

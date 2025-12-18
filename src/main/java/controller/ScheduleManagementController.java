@@ -24,13 +24,14 @@ import model.Bus;
 import model.Routes;
 import model.Schedule;
 
-@WebServlet(urlPatterns = {"/schedules/*", "/admin/schedules/*"})
+@WebServlet(urlPatterns = { "/schedules/*", "/admin/schedules/*" })
 public class ScheduleManagementController extends HttpServlet {
     private AdminBaseController baseController;
 
     @Override
     public void init() throws ServletException {
-        baseController = new AdminBaseController() {};
+        baseController = new AdminBaseController() {
+        };
         baseController.initializeDAOs();
     }
 
@@ -56,6 +57,8 @@ public class ScheduleManagementController extends HttpServlet {
                     showEditScheduleForm(request, response);
                 } else if ("/delete".equals(pathInfo)) {
                     deleteSchedule(request, response);
+                } else if ("/replace-bus".equals(pathInfo)) {
+                    showReplaceBusForm(request, response);
                 } else {
                     response.sendError(HttpServletResponse.SC_NOT_FOUND);
                 }
@@ -90,6 +93,8 @@ public class ScheduleManagementController extends HttpServlet {
                     addSchedule(request, response);
                 } else if ("/edit".equals(pathInfo)) {
                     updateSchedule(request, response);
+                } else if ("/replace-bus".equals(pathInfo)) {
+                    replaceBus(request, response);
                 } else {
                     response.sendError(HttpServletResponse.SC_NOT_FOUND);
                 }
@@ -176,6 +181,8 @@ public class ScheduleManagementController extends HttpServlet {
 
         // Check if bulk mode
         String bulkMode = request.getParameter("bulkMode");
+        String bulkPattern = request.getParameter("bulkPattern"); // "daily" or "weekdays"
+        boolean isDailyPattern = "daily".equalsIgnoreCase(bulkPattern);
         boolean isBulkMode = "on".equals(bulkMode) || "true".equals(bulkMode);
 
         // Validate input with specific error messages
@@ -245,12 +252,6 @@ public class ScheduleManagementController extends HttpServlet {
                     return;
                 }
 
-                if (selectedDays == null || selectedDays.length == 0) {
-                    response.sendRedirect(request.getContextPath()
-                            + "/admin/schedules/add?error=Missing information: Please select at least one day of week");
-                    return;
-                }
-
                 LocalDate dateFrom = LocalDate.parse(dateFromStr);
                 LocalDate dateTo = LocalDate.parse(dateToStr);
 
@@ -260,25 +261,41 @@ public class ScheduleManagementController extends HttpServlet {
                     return;
                 }
 
-                // Convert selected days to DayOfWeek enum values
-                List<DayOfWeek> selectedDaysOfWeek = new ArrayList<>();
-                for (String day : selectedDays) {
-                    selectedDaysOfWeek.add(DayOfWeek.of(Integer.parseInt(day)));
-                }
-
-                // Generate all dates in range that match selected days of week
-                LocalDate currentDate = dateFrom;
-                while (!currentDate.isAfter(dateTo)) {
-                    if (selectedDaysOfWeek.contains(currentDate.getDayOfWeek())) {
+                if (isDailyPattern) {
+                    // Every day in range
+                    LocalDate currentDate = dateFrom;
+                    while (!currentDate.isAfter(dateTo)) {
                         datesToSchedule.add(currentDate);
+                        currentDate = currentDate.plusDays(1);
                     }
-                    currentDate = currentDate.plusDays(1);
-                }
+                } else {
+                    // Weekday selection required
+                    if (selectedDays == null || selectedDays.length == 0) {
+                        response.sendRedirect(request.getContextPath()
+                                + "/admin/schedules/add?error=Missing information: Please select at least one day of week");
+                        return;
+                    }
 
-                if (datesToSchedule.isEmpty()) {
-                    response.sendRedirect(request.getContextPath()
-                            + "/admin/schedules/add?error=No matching dates found for the selected days of week in the given range");
-                    return;
+                    // Convert selected days to DayOfWeek enum values
+                    List<DayOfWeek> selectedDaysOfWeek = new ArrayList<>();
+                    for (String day : selectedDays) {
+                        selectedDaysOfWeek.add(DayOfWeek.of(Integer.parseInt(day)));
+                    }
+
+                    // Generate all dates in range that match selected days of week
+                    LocalDate currentDate = dateFrom;
+                    while (!currentDate.isAfter(dateTo)) {
+                        if (selectedDaysOfWeek.contains(currentDate.getDayOfWeek())) {
+                            datesToSchedule.add(currentDate);
+                        }
+                        currentDate = currentDate.plusDays(1);
+                    }
+
+                    if (datesToSchedule.isEmpty()) {
+                        response.sendRedirect(request.getContextPath()
+                                + "/admin/schedules/add?error=No matching dates found for the selected days of week in the given range");
+                        return;
+                    }
                 }
             } else {
                 // Single date mode
@@ -297,6 +314,14 @@ public class ScheduleManagementController extends HttpServlet {
             List<String> errors = new ArrayList<>();
 
             for (LocalDate departureDate : datesToSchedule) {
+                // Check for duplicate schedule (same route, same date, same time)
+                if (scheduleDAO.hasDuplicateSchedule(routeId, departureDate, departureTime, null)) {
+                    skipCount++;
+                    errors.add(departureDate
+                            + ": Duplicate schedule - same route, date, and time already exists");
+                    continue;
+                }
+
                 // Check if bus can be assigned (3-hour rule)
                 Schedule violatingSchedule = scheduleDAO.checkBusScheduleTimeGap(
                         busId, departureDate, departureTime, null);
@@ -404,6 +429,12 @@ public class ScheduleManagementController extends HttpServlet {
         String departureTimeStr = request.getParameter("departureTime");
         String availableSeatsStr = request.getParameter("availableSeats");
 
+        // Check if bulk mode
+        String bulkMode = request.getParameter("bulkMode");
+        String bulkPattern = request.getParameter("bulkPattern"); // "daily" or "weekdays"
+        boolean isDailyPattern = "daily".equalsIgnoreCase(bulkPattern);
+        boolean isBulkMode = "on".equals(bulkMode) || "true".equals(bulkMode);
+
         // Validate input with specific error messages
         if (scheduleIdStr == null || scheduleIdStr.trim().isEmpty()) {
             response.sendRedirect(
@@ -423,12 +454,6 @@ public class ScheduleManagementController extends HttpServlet {
                             + "&error=Missing information: Please select a bus");
             return;
         }
-        if (departureDateStr == null || departureDateStr.trim().isEmpty()) {
-            response.sendRedirect(
-                    request.getContextPath() + "/admin/schedules/edit?id=" + scheduleIdStr
-                            + "&error=Missing information: Please select departure date");
-            return;
-        }
         if (departureTimeStr == null || departureTimeStr.trim().isEmpty()) {
             response.sendRedirect(
                     request.getContextPath() + "/admin/schedules/edit?id=" + scheduleIdStr
@@ -446,9 +471,93 @@ public class ScheduleManagementController extends HttpServlet {
             UUID scheduleId = UUID.fromString(scheduleIdStr);
             UUID routeId = UUID.fromString(routeIdStr);
             UUID busId = UUID.fromString(busIdStr);
-            LocalDate departureDate = LocalDate.parse(departureDateStr);
             LocalTime departureTime = LocalTime.parse(departureTimeStr);
             int availableSeats = Integer.parseInt(availableSeatsStr);
+
+            // Get existing schedule first
+            Schedule existingSchedule = scheduleDAO.getScheduleById(scheduleId);
+            if (existingSchedule == null) {
+                response.sendRedirect(
+                        request.getContextPath()
+                                + "/admin/schedules?error=Error: Schedule not found with the given ID");
+                return;
+            }
+
+            // Determine dates to process
+            List<LocalDate> datesToProcess = new ArrayList<>();
+
+            if (isBulkMode) {
+                // Bulk mode: get date range and selected days of week
+                String dateFromStr = request.getParameter("dateFrom");
+                String dateToStr = request.getParameter("dateTo");
+                String[] selectedDays = request.getParameterValues("daysOfWeek");
+
+                if (dateFromStr == null || dateFromStr.trim().isEmpty() ||
+                        dateToStr == null || dateToStr.trim().isEmpty()) {
+                    response.sendRedirect(request.getContextPath()
+                            + "/admin/schedules/edit?id=" + scheduleIdStr
+                            + "&error=Missing information: Please select date range for bulk update");
+                    return;
+                }
+
+                LocalDate dateFrom = LocalDate.parse(dateFromStr);
+                LocalDate dateTo = LocalDate.parse(dateToStr);
+
+                if (dateFrom.isAfter(dateTo)) {
+                    response.sendRedirect(request.getContextPath()
+                            + "/admin/schedules/edit?id=" + scheduleIdStr
+                            + "&error=Error: Start date must be before or equal to end date");
+                    return;
+                }
+
+                if (isDailyPattern) {
+                    // Every day in range
+                    LocalDate currentDate = dateFrom;
+                    while (!currentDate.isAfter(dateTo)) {
+                        datesToProcess.add(currentDate);
+                        currentDate = currentDate.plusDays(1);
+                    }
+                } else {
+                    // Weekday selection required
+                    if (selectedDays == null || selectedDays.length == 0) {
+                        response.sendRedirect(request.getContextPath()
+                                + "/admin/schedules/edit?id=" + scheduleIdStr
+                                + "&error=Missing information: Please select at least one day of week");
+                        return;
+                    }
+
+                    // Convert selected days to DayOfWeek enum values
+                    List<DayOfWeek> selectedDaysOfWeek = new ArrayList<>();
+                    for (String day : selectedDays) {
+                        selectedDaysOfWeek.add(DayOfWeek.of(Integer.parseInt(day)));
+                    }
+
+                    // Generate all dates in range that match selected days of week
+                    LocalDate currentDate = dateFrom;
+                    while (!currentDate.isAfter(dateTo)) {
+                        if (selectedDaysOfWeek.contains(currentDate.getDayOfWeek())) {
+                            datesToProcess.add(currentDate);
+                        }
+                        currentDate = currentDate.plusDays(1);
+                    }
+
+                    if (datesToProcess.isEmpty()) {
+                        response.sendRedirect(request.getContextPath()
+                                + "/admin/schedules/edit?id=" + scheduleIdStr
+                                + "&error=No matching dates found for the selected days of week in the given range");
+                        return;
+                    }
+                }
+            } else {
+                // Single date mode
+                if (departureDateStr == null || departureDateStr.trim().isEmpty()) {
+                    response.sendRedirect(
+                            request.getContextPath() + "/admin/schedules/edit?id=" + scheduleIdStr
+                                    + "&error=Missing information: Please select departure date");
+                    return;
+                }
+                datesToProcess.add(LocalDate.parse(departureDateStr));
+            }
 
             // Ensure route exists to derive duration
             Routes selectedRoute = baseController.routeDAO.getRouteById(routeId);
@@ -465,112 +574,146 @@ public class ScheduleManagementController extends HttpServlet {
             Bus bus = busDAO.getBusByIdForAdmin(busId);
             if (bus == null) {
                 response.sendRedirect(request.getContextPath()
-                        + "/admin/schedules/edit?id=" + scheduleId
+                        + "/admin/schedules/edit?id=" + scheduleIdStr
                         + "&error=Error: Bus not found with the given ID");
                 return;
             }
             if ("MAINTENANCE".equals(bus.getStatus())) {
                 response.sendRedirect(request.getContextPath()
-                        + "/admin/schedules/edit?id=" + scheduleId
+                        + "/admin/schedules/edit?id=" + scheduleIdStr
                         + "&error=Error: Cannot assign bus that is under maintenance. Please select a different bus.");
                 return;
             }
 
-            // Check if bus can be assigned (3-hour rule: gap between schedule end and new schedule
-            // start)
+            // Process schedules: update existing one and create new ones if in bulk mode
+            int updateCount = 0;
+            int createCount = 0;
+            int skipCount = 0;
+            List<String> errors = new ArrayList<>();
+            LocalDate firstDate = datesToProcess.get(0);
+
+            // Update the existing schedule with the first date
+            // Check for duplicate schedule (same route, same date, same time) - exclude
+            // current
+            // schedule
+            if (scheduleDAO.hasDuplicateSchedule(routeId, firstDate, departureTime, scheduleId)) {
+                response.sendRedirect(request.getContextPath()
+                        + "/admin/schedules/edit?id=" + scheduleIdStr
+                        + "&error=Error: Duplicate schedule - same route, date, and time already exists. Please select a different time or date.");
+                return;
+            }
+
+            // Check if bus can be assigned (3-hour rule)
             Schedule violatingSchedule = scheduleDAO.checkBusScheduleTimeGap(
-                    busId, departureDate, departureTime, scheduleId);
+                    busId, firstDate, departureTime, scheduleId);
             if (violatingSchedule != null) {
                 String busNumber = bus.getBusNumber() != null ? bus.getBusNumber() : "this bus";
-
-                // Calculate the gap to show in error message
-                java.time.LocalDateTime violatingScheduleEnd = java.time.LocalDateTime.of(
-                        violatingSchedule.getDepartureDate(),
-                        violatingSchedule.getEstimatedArrivalTime());
-                // Handle case where arrival time might be next day
-                if (violatingSchedule.getEstimatedArrivalTime()
-                        .isBefore(violatingSchedule.getDepartureTime()) ||
-                        violatingSchedule.getEstimatedArrivalTime()
-                                .equals(violatingSchedule.getDepartureTime())) {
-                    violatingScheduleEnd = violatingScheduleEnd.plusDays(1);
-                }
-                java.time.LocalDateTime newScheduleStart = java.time.LocalDateTime.of(
-                        departureDate, departureTime);
-                java.time.Duration gap =
-                        java.time.Duration.between(violatingScheduleEnd, newScheduleStart);
-                double gapHours = gap.toHours() + (gap.toMinutes() % 60) / 60.0;
-
-                String violatingScheduleDescription = String.format("%s (%s %s - %s)",
-                        violatingSchedule.getRouteName() != null
-                                ? violatingSchedule.getRouteName()
-                                : "another schedule",
-                        violatingSchedule.getDepartureDate(),
-                        violatingSchedule.getDepartureTime(),
-                        violatingSchedule.getEstimatedArrivalTime());
-
                 String errorMessage = String.format(
-                        "Cannot assign bus %s to this schedule. There must be at least 3 hours gap between schedules. "
-                                + "The bus's previous schedule %s ends at %s, and this schedule starts at %s "
-                                + "(gap: %.1f hours). Rule: 3 hours minimum gap between schedule completion and next schedule start.",
-                        busNumber, violatingScheduleDescription,
-                        violatingScheduleEnd.toString().replace("T", " "),
-                        newScheduleStart.toString().replace("T", " "),
-                        gapHours);
-
+                        "Cannot assign bus %s to this schedule. There must be at least 3 hours gap between schedules.",
+                        busNumber);
                 response.sendRedirect(request.getContextPath()
-                        + "/admin/schedules/edit?id=" + scheduleId
-                        + "&error="
-                        + java.net.URLEncoder.encode(errorMessage,
+                        + "/admin/schedules/edit?id=" + scheduleIdStr
+                        + "&error=" + java.net.URLEncoder.encode(errorMessage,
                                 java.nio.charset.StandardCharsets.UTF_8));
                 return;
             }
 
-            // Check for bus time conflicts on the same route
-            if (scheduleDAO.hasBusScheduleConflict(routeId, busId, departureDate, departureTime,
-                    arrivalTime, scheduleId)) {
-                response.sendRedirect(request.getContextPath()
-                        + "/admin/schedules/edit?id=" + scheduleId
-                        + "&error=Error: Selected bus already has a schedule for this route during the chosen time. Please select a different bus or time.");
-                return;
-            }
-
-            // Check for bus time conflicts across all routes (overlapping times)
-            if (scheduleDAO.hasBusTimeConflict(busId, departureDate, departureTime, arrivalTime,
+            // Check for bus time conflicts
+            if (scheduleDAO.hasBusTimeConflict(busId, firstDate, departureTime, arrivalTime,
                     scheduleId)) {
                 response.sendRedirect(request.getContextPath()
-                        + "/admin/schedules/edit?id=" + scheduleId
+                        + "/admin/schedules/edit?id=" + scheduleIdStr
                         + "&error=Error: Selected bus already has a conflicting schedule during the chosen time. Please select a different bus or time.");
                 return;
             }
 
-            // Get existing schedule
-            Schedule existingSchedule = scheduleDAO.getScheduleById(scheduleId);
-            if (existingSchedule == null) {
-                response.sendRedirect(
-                        request.getContextPath()
-                                + "/admin/schedules?error=Error: Schedule not found with the given ID");
-                return;
-            }
-
-            // Update schedule
+            // Update existing schedule
             existingSchedule.setRouteId(routeId);
             existingSchedule.setBusId(busId);
-            existingSchedule.setDepartureDate(departureDate);
+            existingSchedule.setDepartureDate(firstDate);
             existingSchedule.setDepartureTime(departureTime);
             existingSchedule.setEstimatedArrivalTime(arrivalTime);
             existingSchedule.setAvailableSeats(availableSeats);
 
-            boolean success = scheduleDAO.updateSchedule(existingSchedule);
-
-            if (success) {
-                response.sendRedirect(
-                        request.getContextPath()
-                                + "/admin/schedules?message=Schedule updated successfully! The schedule information has been saved");
+            if (scheduleDAO.updateSchedule(existingSchedule)) {
+                updateCount++;
             } else {
                 response.sendRedirect(request.getContextPath()
                         + "/admin/schedules/edit?id=" + scheduleIdStr
                         + "&error=Error: Failed to update schedule. Please try again or contact administrator");
+                return;
             }
+
+            // If bulk mode and more than one date, create additional schedules
+            if (isBulkMode && datesToProcess.size() > 1) {
+                for (int i = 1; i < datesToProcess.size(); i++) {
+                    LocalDate departureDate = datesToProcess.get(i);
+
+                    // Check for duplicate schedule
+                    if (scheduleDAO.hasDuplicateSchedule(routeId, departureDate, departureTime,
+                            null)) {
+                        skipCount++;
+                        errors.add(departureDate + ": Duplicate schedule");
+                        continue;
+                    }
+
+                    // Check if bus can be assigned (3-hour rule)
+                    Schedule violating = scheduleDAO.checkBusScheduleTimeGap(
+                            busId, departureDate, departureTime, null);
+                    if (violating != null) {
+                        skipCount++;
+                        errors.add(departureDate + ": Bus conflict");
+                        continue;
+                    }
+
+                    // Check for bus time conflicts
+                    if (scheduleDAO.hasBusTimeConflict(busId, departureDate, departureTime,
+                            arrivalTime,
+                            null)) {
+                        skipCount++;
+                        errors.add(departureDate + ": Bus conflict");
+                        continue;
+                    }
+
+                    // Create new schedule
+                    Schedule newSchedule = new Schedule();
+                    newSchedule.setScheduleId(UUID.randomUUID());
+                    newSchedule.setRouteId(routeId);
+                    newSchedule.setBusId(busId);
+                    newSchedule.setDepartureDate(departureDate);
+                    newSchedule.setDepartureTime(departureTime);
+                    newSchedule.setEstimatedArrivalTime(arrivalTime);
+                    newSchedule.setAvailableSeats(availableSeats);
+                    newSchedule.setStatus("SCHEDULED");
+
+                    if (scheduleDAO.addSchedule(newSchedule)) {
+                        createCount++;
+                    } else {
+                        skipCount++;
+                        errors.add(departureDate + ": Failed to create");
+                    }
+                }
+            }
+
+            // Build result message
+            StringBuilder message = new StringBuilder();
+            if (updateCount > 0) {
+                message.append("Schedule updated successfully!");
+            }
+            if (createCount > 0) {
+                if (updateCount > 0) {
+                    message.append(" ");
+                }
+                message.append("Created ").append(createCount).append(" additional schedule(s)!");
+            }
+            if (skipCount > 0) {
+                message.append(" Skipped ").append(skipCount).append(" date(s) due to conflicts.");
+            }
+
+            response.sendRedirect(request.getContextPath()
+                    + "/admin/schedules?message="
+                    + java.net.URLEncoder.encode(message.toString(),
+                            java.nio.charset.StandardCharsets.UTF_8));
         } catch (NumberFormatException e) {
             response.sendRedirect(
                     request.getContextPath() + "/admin/schedules/edit?id=" + scheduleIdStr
@@ -593,6 +736,7 @@ public class ScheduleManagementController extends HttpServlet {
     private void deleteSchedule(HttpServletRequest request, HttpServletResponse response)
             throws SQLException, IOException {
         ScheduleDAO scheduleDAO = baseController.scheduleDAO;
+        dao.TicketDAO ticketDAO = new dao.TicketDAO();
         String scheduleIdStr = request.getParameter("id");
 
         if (scheduleIdStr == null || scheduleIdStr.trim().isEmpty()) {
@@ -604,6 +748,20 @@ public class ScheduleManagementController extends HttpServlet {
 
         try {
             UUID scheduleId = UUID.fromString(scheduleIdStr);
+
+            // Check if schedule has any booked tickets
+            boolean hasTickets = ticketDAO.hasScheduleTickets(scheduleId);
+            if (hasTickets) {
+                // Prevent cancelling/deleting a schedule that has booked tickets.
+                // Require admin to first cancel or reassign tickets manually.
+                response.sendRedirect(request.getContextPath()
+                        + "/admin/schedules?error="
+                        + java.net.URLEncoder.encode(
+                                "Cannot cancel or delete schedule: there are booked tickets. Please refund or transfer tickets first.",
+                                java.nio.charset.StandardCharsets.UTF_8));
+                return;
+            }
+
             boolean success = scheduleDAO.deleteSchedule(scheduleId);
 
             if (success) {
@@ -623,6 +781,188 @@ public class ScheduleManagementController extends HttpServlet {
                     request.getContextPath()
                             + "/admin/schedules?error=Error: An unexpected error occurred while deleting the schedule. "
                             + e.getMessage());
+        }
+    }
+
+    /**
+     * Show form to replace bus for a schedule (when bus has accident)
+     */
+    private void showReplaceBusForm(HttpServletRequest request, HttpServletResponse response)
+            throws SQLException, ServletException, IOException {
+        ScheduleDAO scheduleDAO = baseController.scheduleDAO;
+        BusDAO busDAO = baseController.busDAO;
+
+        String scheduleIdStr = request.getParameter("id");
+        if (scheduleIdStr == null || scheduleIdStr.trim().isEmpty()) {
+            response.sendRedirect(
+                    request.getContextPath()
+                            + "/admin/schedules?error=Missing information: Schedule ID is required");
+            return;
+        }
+
+        try {
+            UUID scheduleId = UUID.fromString(scheduleIdStr);
+            Schedule schedule = scheduleDAO.getScheduleById(scheduleId);
+
+            if (schedule == null) {
+                response.sendRedirect(
+                        request.getContextPath()
+                                + "/admin/schedules?error=Error: Schedule not found with the given ID");
+                return;
+            }
+
+            // Get all available buses (excluding the current bus)
+            List<Bus> availableBuses = busDAO.getAllBuses().stream()
+                    .filter(bus -> !bus.getBusId().equals(schedule.getBusId())
+                            && "ACTIVE".equals(bus.getStatus())
+                            && !"MAINTENANCE".equals(bus.getStatus()))
+                    .collect(java.util.stream.Collectors.toList());
+
+            request.setAttribute("schedule", schedule);
+            request.setAttribute("availableBuses", availableBuses);
+            request.setAttribute("currentBus", busDAO.getBusByIdForAdmin(schedule.getBusId()));
+            request.getRequestDispatcher("/views/admin/replace-bus.jsp").forward(request, response);
+        } catch (IllegalArgumentException e) {
+            response.sendRedirect(
+                    request.getContextPath()
+                            + "/admin/schedules?error=Error: Invalid schedule ID format. Please check again");
+        }
+    }
+
+    /**
+     * Replace bus for a schedule (when bus has accident)
+     */
+    private void replaceBus(HttpServletRequest request, HttpServletResponse response)
+            throws SQLException, IOException {
+        ScheduleDAO scheduleDAO = baseController.scheduleDAO;
+        BusDAO busDAO = baseController.busDAO;
+
+        String scheduleIdStr = request.getParameter("scheduleId");
+        String newBusIdStr = request.getParameter("newBusId");
+        String reason = request.getParameter("reason");
+
+        if (scheduleIdStr == null || scheduleIdStr.trim().isEmpty()) {
+            response.sendRedirect(
+                    request.getContextPath()
+                            + "/admin/schedules?error=Missing information: Schedule ID is required");
+            return;
+        }
+        if (newBusIdStr == null || newBusIdStr.trim().isEmpty()) {
+            response.sendRedirect(
+                    request.getContextPath()
+                            + "/admin/schedules/replace-bus?id=" + scheduleIdStr
+                            + "&error=Missing information: Please select a new bus");
+            return;
+        }
+
+        try {
+            UUID scheduleId = UUID.fromString(scheduleIdStr);
+            UUID newBusId = UUID.fromString(newBusIdStr);
+
+            Schedule schedule = scheduleDAO.getScheduleById(scheduleId);
+            if (schedule == null) {
+                response.sendRedirect(
+                        request.getContextPath()
+                                + "/admin/schedules?error=Error: Schedule not found with the given ID");
+                return;
+            }
+
+            // Check if new bus exists and is available
+            Bus newBus = busDAO.getBusByIdForAdmin(newBusId);
+            if (newBus == null) {
+                response.sendRedirect(
+                        request.getContextPath()
+                                + "/admin/schedules/replace-bus?id=" + scheduleIdStr
+                                + "&error=Error: New bus not found with the given ID");
+                return;
+            }
+            if ("MAINTENANCE".equals(newBus.getStatus())) {
+                response.sendRedirect(
+                        request.getContextPath()
+                                + "/admin/schedules/replace-bus?id=" + scheduleIdStr
+                                + "&error=Error: Cannot assign bus that is under maintenance. Please select a different bus.");
+                return;
+            }
+
+            // Check if new bus has enough seats
+            if (newBus.getTotalSeats() < schedule.getAvailableSeats()) {
+                response.sendRedirect(
+                        request.getContextPath()
+                                + "/admin/schedules/replace-bus?id=" + scheduleIdStr
+                                + "&error=Error: New bus does not have enough seats. Required: "
+                                + schedule.getAvailableSeats()
+                                + ", Available: " + newBus.getTotalSeats());
+                return;
+            }
+
+            // Check if new bus can be assigned (3-hour rule)
+            Schedule violatingSchedule = scheduleDAO.checkBusScheduleTimeGap(
+                    newBusId, schedule.getDepartureDate(), schedule.getDepartureTime(), scheduleId);
+            if (violatingSchedule != null) {
+                String busNumber = newBus.getBusNumber() != null ? newBus.getBusNumber() : "this bus";
+                response.sendRedirect(
+                        request.getContextPath()
+                                + "/admin/schedules/replace-bus?id=" + scheduleIdStr
+                                + "&error=Error: Cannot assign bus " + busNumber
+                                + ". There must be at least 3 hours gap between schedules. Please select a different bus.");
+                return;
+            }
+
+            // Check for bus time conflicts
+            if (scheduleDAO.hasBusTimeConflict(newBusId, schedule.getDepartureDate(),
+                    schedule.getDepartureTime(), schedule.getEstimatedArrivalTime(), scheduleId)) {
+                response.sendRedirect(
+                        request.getContextPath()
+                                + "/admin/schedules/replace-bus?id=" + scheduleIdStr
+                                + "&error=Error: Selected bus already has a conflicting schedule during the chosen time. Please select a different bus.");
+                return;
+            }
+
+            // Get old bus ID before updating
+            UUID oldBusId = schedule.getBusId();
+
+            // Update schedule with new bus
+            schedule.setBusId(newBusId);
+            // Update available seats to match new bus capacity (keep booked seats)
+            dao.TicketDAO ticketDAO = new dao.TicketDAO();
+            int bookedSeats = ticketDAO.getBookedSeatsCount(scheduleId);
+            schedule.setAvailableSeats(newBus.getTotalSeats() - bookedSeats);
+
+            boolean success = scheduleDAO.updateSchedule(schedule);
+
+            if (success) {
+                // Optionally mark old bus as needing maintenance if reason indicates accident
+                if (reason != null && (reason.toLowerCase().contains("accident")
+                        || reason.toLowerCase().contains("tai nạn")
+                        || reason.toLowerCase().contains("hư"))) {
+                    Bus oldBus = busDAO.getBusByIdForAdmin(oldBusId);
+                    if (oldBus != null && "ACTIVE".equals(oldBus.getStatus())) {
+                        oldBus.setStatus("MAINTENANCE");
+                        busDAO.updateBus(oldBus);
+                    }
+                }
+
+                String message = "Bus replaced successfully! Schedule now uses bus " + newBus.getBusNumber();
+                response.sendRedirect(
+                        request.getContextPath()
+                                + "/admin/schedules?message="
+                                + java.net.URLEncoder.encode(message,
+                                        java.nio.charset.StandardCharsets.UTF_8));
+            } else {
+                response.sendRedirect(
+                        request.getContextPath()
+                                + "/admin/schedules/replace-bus?id=" + scheduleIdStr
+                                + "&error=Error: Failed to replace bus. Please try again or contact administrator");
+            }
+        } catch (IllegalArgumentException e) {
+            response.sendRedirect(
+                    request.getContextPath()
+                            + "/admin/schedules?error=Error: Invalid ID format. Please check schedule ID and bus ID");
+        } catch (Exception e) {
+            response.sendRedirect(
+                    request.getContextPath()
+                            + "/admin/schedules/replace-bus?id=" + scheduleIdStr
+                            + "&error=Error: An unexpected error occurred. " + e.getMessage());
         }
     }
 
@@ -713,4 +1053,3 @@ public class ScheduleManagementController extends HttpServlet {
         }
     }
 }
-
