@@ -280,7 +280,7 @@ public class StaffDAO {
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            String searchPattern = "%" + searchTerm + "%";
+            String searchPattern = "%" + searchTerm.trim() + "%";
             stmt.setString(1, searchPattern);
             stmt.setString(2, searchPattern);
             stmt.setString(3, searchPattern);
