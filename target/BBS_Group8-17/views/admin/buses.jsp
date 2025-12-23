@@ -585,7 +585,7 @@
                 }
 
                 function filterBuses() {
-                    const searchTerm = document.getElementById('searchTerm').value.toLowerCase();
+                    const searchTerm = document.getElementById('searchTerm').value.trim().toLowerCase();
                     const busType = document.getElementById('busType').value;
                     const status = document.getElementById('status').value;
 

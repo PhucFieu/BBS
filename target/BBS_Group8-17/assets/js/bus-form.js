@@ -1,29 +1,25 @@
 // Bus Form JavaScript
 document.addEventListener("DOMContentLoaded", function () {
-  // Auto-calculate total seats based on bus type
+  const seatMapping = {
+    "Bus 45 seats": 45,
+    "Bus 35 seats": 35,
+    "Bus 25 seats": 25,
+    "Bus 16 seats": 16,
+  };
+
+  // Auto-display total seats based on bus type
   const busTypeSelect = document.getElementById("busType");
+  const totalSeatsDisplay = document.getElementById("totalSeatsDisplay");
+
+  const updateTotalSeatsDisplay = (busType) => {
+    if (!totalSeatsDisplay) return;
+    totalSeatsDisplay.value = seatMapping[busType] || "";
+  };
+
   if (busTypeSelect) {
+    updateTotalSeatsDisplay(busTypeSelect.value);
     busTypeSelect.addEventListener("change", function () {
-      const busType = this.value;
-      const totalSeatsInput = document.getElementById("totalSeats");
-      if (totalSeatsInput) {
-        switch (busType) {
-          case "Bus 45 seats":
-            totalSeatsInput.value = 45;
-            break;
-          case "Bus 35 seats":
-            totalSeatsInput.value = 35;
-            break;
-          case "Bus 25 seats":
-            totalSeatsInput.value = 25;
-            break;
-          case "Bus 16 seats":
-            totalSeatsInput.value = 16;
-            break;
-          default:
-            totalSeatsInput.value = "";
-        }
-      }
+      updateTotalSeatsDisplay(this.value);
     });
   }
 
@@ -41,7 +37,6 @@ document.addEventListener("DOMContentLoaded", function () {
     busForm.addEventListener("submit", function (e) {
       const busNumber = document.getElementById("busNumber").value.trim();
       const busType = document.getElementById("busType").value;
-      const totalSeats = document.getElementById("totalSeats").value;
       const licensePlate = document.getElementById("licensePlate").value.trim();
 
       if (busNumber.length < 2) {
@@ -55,13 +50,6 @@ document.addEventListener("DOMContentLoaded", function () {
         e.preventDefault();
         alert("Please select a bus type");
         document.getElementById("busType").focus();
-        return false;
-      }
-
-      if (totalSeats < 1 || totalSeats > 100) {
-        e.preventDefault();
-        alert("Total seats must be between 1 and 100");
-        document.getElementById("totalSeats").focus();
         return false;
       }
 
