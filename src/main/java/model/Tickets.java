@@ -6,8 +6,8 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.UUID;
 import java.util.Date;
+import java.util.UUID;
 
 public class Tickets {
 
@@ -47,7 +47,7 @@ public class Tickets {
     private String alightingStationName;
     private String boardingCity;
     private String alightingCity;
-    
+
     // Walk-in customer information (for tickets created by staff)
     private String customerName;
     private String customerPhone;
@@ -425,7 +425,8 @@ public class Tickets {
     }
 
     /**
-     * Get display name for customer (use customerName if available, otherwise userName)
+     * Get display name for customer (use customerName if available, otherwise
+     * userName)
      */
     public String getDisplayCustomerName() {
         if (customerName != null && !customerName.trim().isEmpty()) {

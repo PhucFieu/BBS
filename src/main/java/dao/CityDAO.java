@@ -71,7 +71,7 @@ public class CityDAO {
         if (cityName == null || cityName.trim().isEmpty()) {
             return null;
         }
-        
+
         String normalizedName = normalizeCityName(cityName);
         String sql = "SELECT * FROM Cities WHERE status = 'ACTIVE' AND " +
                 "(LOWER(REPLACE(REPLACE(REPLACE(city_name, ' ', ''), 'Ồ', 'o'), 'í', 'i')) LIKE ? OR " +
@@ -83,11 +83,11 @@ public class CityDAO {
 
             String searchPattern = "%" + normalizedName.toLowerCase() + "%";
             String originalPattern = "%" + cityName.trim() + "%";
-            
+
             stmt.setString(1, searchPattern);
             stmt.setString(2, originalPattern.toLowerCase());
             stmt.setString(3, originalPattern);
-            
+
             ResultSet rs = stmt.executeQuery();
             if (rs.next()) {
                 return mapResultSetToCity(rs);
@@ -97,7 +97,8 @@ public class CityDAO {
     }
 
     /**
-     * Chuẩn hóa tên thành phố để tìm kiếm (loại bỏ dấu, khoảng trắng, chuyển thành chữ thường)
+     * Chuẩn hóa tên thành phố để tìm kiếm (loại bỏ dấu, khoảng trắng, chuyển thành
+     * chữ thường)
      */
     private String normalizeCityName(String cityName) {
         if (cityName == null) {
@@ -125,7 +126,7 @@ public class CityDAO {
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            String searchPattern = "%" + keyword + "%";
+            String searchPattern = "%" + keyword.trim() + "%";
             stmt.setString(1, searchPattern);
             stmt.setString(2, searchPattern);
 
@@ -265,7 +266,7 @@ public class CityDAO {
         List<City> cities = new ArrayList<>();
         int minNum = Math.min(fromCityNumber, toCityNumber);
         int maxNum = Math.max(fromCityNumber, toCityNumber);
-        
+
         String sql = "SELECT * FROM Cities WHERE status = 'ACTIVE' AND city_number >= ? AND city_number <= ? ORDER BY city_number";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
@@ -273,7 +274,7 @@ public class CityDAO {
 
             stmt.setInt(1, minNum);
             stmt.setInt(2, maxNum);
-            
+
             ResultSet rs = stmt.executeQuery();
             while (rs.next()) {
                 City city = mapResultSetToCity(rs);
@@ -304,4 +305,3 @@ public class CityDAO {
         return city;
     }
 }
-

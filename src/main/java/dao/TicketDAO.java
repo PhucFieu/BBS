@@ -20,29 +20,28 @@ public class TicketDAO {
 
     public List<Tickets> getAllTickets() throws SQLException {
         List<Tickets> tickets = new ArrayList<>();
-        String sql =
-                "SELECT t.*, u.user_id, u.full_name as user_name, u.username, u.email as user_email, u.phone_number, "
-                        + "r.route_id, r.route_name, depc.city_name AS departure_city, destc.city_name AS destination_city, r.distance, "
-                        + "b.bus_id, b.bus_number, b.bus_type, "
-                        + "s.departure_date, s.departure_time, dr.full_name as driver_name, "
-                        + "bs.station_name as boarding_station_name, bsc.city_name as boarding_city, "
-                        + "as_st.station_name as alighting_station_name, ascit.city_name as alighting_city "
-                        + "FROM Tickets t "
-                        + "JOIN Users u ON t.user_id = u.user_id "
-                        + "JOIN Schedules s ON t.schedule_id = s.schedule_id "
-                        + "JOIN Routes r ON s.route_id = r.route_id "
-                        + "JOIN Buses b ON s.bus_id = b.bus_id "
-                        + "LEFT JOIN ScheduleDrivers sd ON s.schedule_id = sd.schedule_id "
-                        + "LEFT JOIN Drivers d ON sd.driver_id = d.driver_id "
-                        + "LEFT JOIN Users dr ON d.user_id = dr.user_id "
-                        + "LEFT JOIN Stations bs ON t.boarding_station_id = bs.station_id "
-                        + "LEFT JOIN Stations as_st ON t.alighting_station_id = as_st.station_id "
-                        + "LEFT JOIN Cities depc ON r.departure_city_id = depc.city_id "
-                        + "LEFT JOIN Cities destc ON r.destination_city_id = destc.city_id "
-                        + "LEFT JOIN Cities bsc ON bs.city_id = bsc.city_id "
-                        + "LEFT JOIN Cities ascit ON as_st.city_id = ascit.city_id "
-                        + "WHERE t.status IN ('CONFIRMED', 'PENDING', 'COMPLETED') "
-                        + "ORDER BY t.booking_date DESC";
+        String sql = "SELECT t.*, u.user_id, u.full_name as user_name, u.username, u.email as user_email, u.phone_number, "
+                + "r.route_id, r.route_name, depc.city_name AS departure_city, destc.city_name AS destination_city, r.distance, "
+                + "b.bus_id, b.bus_number, b.bus_type, b.license_plate, "
+                + "s.departure_date, s.departure_time, dr.full_name as driver_name, "
+                + "bs.station_name as boarding_station_name, bsc.city_name as boarding_city, "
+                + "as_st.station_name as alighting_station_name, ascit.city_name as alighting_city "
+                + "FROM Tickets t "
+                + "JOIN Users u ON t.user_id = u.user_id "
+                + "JOIN Schedules s ON t.schedule_id = s.schedule_id "
+                + "JOIN Routes r ON s.route_id = r.route_id "
+                + "JOIN Buses b ON s.bus_id = b.bus_id "
+                + "LEFT JOIN ScheduleDrivers sd ON s.schedule_id = sd.schedule_id "
+                + "LEFT JOIN Drivers d ON sd.driver_id = d.driver_id "
+                + "LEFT JOIN Users dr ON d.user_id = dr.user_id "
+                + "LEFT JOIN Stations bs ON t.boarding_station_id = bs.station_id "
+                + "LEFT JOIN Stations as_st ON t.alighting_station_id = as_st.station_id "
+                + "LEFT JOIN Cities depc ON r.departure_city_id = depc.city_id "
+                + "LEFT JOIN Cities destc ON r.destination_city_id = destc.city_id "
+                + "LEFT JOIN Cities bsc ON bs.city_id = bsc.city_id "
+                + "LEFT JOIN Cities ascit ON as_st.city_id = ascit.city_id "
+                + "WHERE t.status IN ('CONFIRMED', 'PENDING', 'COMPLETED', 'CANCELLED') "
+                + "ORDER BY t.booking_date DESC";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql);
@@ -57,28 +56,27 @@ public class TicketDAO {
     }
 
     public Tickets getTicketById(UUID ticketId) throws SQLException {
-        String sql =
-                "SELECT t.*, u.user_id, u.full_name as user_name, u.username, u.email as user_email, u.phone_number, "
-                        + "r.route_id, r.route_name, depc.city_name AS departure_city, destc.city_name AS destination_city, r.distance, "
-                        + "b.bus_id, b.bus_number, b.bus_type, "
-                        + "s.departure_date, s.departure_time, dr.full_name as driver_name, "
-                        + "bs.station_name as boarding_station_name, bsc.city_name as boarding_city, "
-                        + "as_st.station_name as alighting_station_name, ascit.city_name as alighting_city "
-                        + "FROM Tickets t "
-                        + "JOIN Users u ON t.user_id = u.user_id "
-                        + "JOIN Schedules s ON t.schedule_id = s.schedule_id "
-                        + "JOIN Routes r ON s.route_id = r.route_id "
-                        + "JOIN Buses b ON s.bus_id = b.bus_id "
-                        + "LEFT JOIN ScheduleDrivers sd ON s.schedule_id = sd.schedule_id "
-                        + "LEFT JOIN Drivers d ON sd.driver_id = d.driver_id "
-                        + "LEFT JOIN Users dr ON d.user_id = dr.user_id "
-                        + "LEFT JOIN Stations bs ON t.boarding_station_id = bs.station_id "
-                        + "LEFT JOIN Stations as_st ON t.alighting_station_id = as_st.station_id "
-                        + "LEFT JOIN Cities depc ON r.departure_city_id = depc.city_id "
-                        + "LEFT JOIN Cities destc ON r.destination_city_id = destc.city_id "
-                        + "LEFT JOIN Cities bsc ON bs.city_id = bsc.city_id "
-                        + "LEFT JOIN Cities ascit ON as_st.city_id = ascit.city_id "
-                        + "WHERE t.ticket_id = ? AND t.status IN ('CONFIRMED','COMPLETED','CHECKED_IN','PENDING')";
+        String sql = "SELECT t.*, u.user_id, u.full_name as user_name, u.username, u.email as user_email, u.phone_number, "
+                + "r.route_id, r.route_name, depc.city_name AS departure_city, destc.city_name AS destination_city, r.distance, "
+                + "b.bus_id, b.bus_number, b.bus_type, b.license_plate, "
+                + "s.departure_date, s.departure_time, dr.full_name as driver_name, "
+                + "bs.station_name as boarding_station_name, bsc.city_name as boarding_city, "
+                + "as_st.station_name as alighting_station_name, ascit.city_name as alighting_city "
+                + "FROM Tickets t "
+                + "JOIN Users u ON t.user_id = u.user_id "
+                + "JOIN Schedules s ON t.schedule_id = s.schedule_id "
+                + "JOIN Routes r ON s.route_id = r.route_id "
+                + "JOIN Buses b ON s.bus_id = b.bus_id "
+                + "LEFT JOIN ScheduleDrivers sd ON s.schedule_id = sd.schedule_id "
+                + "LEFT JOIN Drivers d ON sd.driver_id = d.driver_id "
+                + "LEFT JOIN Users dr ON d.user_id = dr.user_id "
+                + "LEFT JOIN Stations bs ON t.boarding_station_id = bs.station_id "
+                + "LEFT JOIN Stations as_st ON t.alighting_station_id = as_st.station_id "
+                + "LEFT JOIN Cities depc ON r.departure_city_id = depc.city_id "
+                + "LEFT JOIN Cities destc ON r.destination_city_id = destc.city_id "
+                + "LEFT JOIN Cities bsc ON bs.city_id = bsc.city_id "
+                + "LEFT JOIN Cities ascit ON as_st.city_id = ascit.city_id "
+                + "WHERE t.ticket_id = ? AND t.status IN ('CONFIRMED','COMPLETED','CHECKED_IN','PENDING','CANCELLED')";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -94,28 +92,27 @@ public class TicketDAO {
     }
 
     public Tickets getTicketByNumber(String ticketNumber) throws SQLException {
-        String sql =
-                "SELECT t.*, u.user_id, u.full_name as user_name, u.username, u.email as user_email, u.phone_number, "
-                        + "r.route_id, r.route_name, depc.city_name AS departure_city, destc.city_name AS destination_city, r.distance, "
-                        + "b.bus_id, b.bus_number, b.bus_type, "
-                        + "s.departure_date, s.departure_time, dr.full_name as driver_name, "
-                        + "bs.station_name as boarding_station_name, bsc.city_name as boarding_city, "
-                        + "as_st.station_name as alighting_station_name, ascit.city_name as alighting_city "
-                        + "FROM Tickets t "
-                        + "JOIN Users u ON t.user_id = u.user_id "
-                        + "JOIN Schedules s ON t.schedule_id = s.schedule_id "
-                        + "JOIN Routes r ON s.route_id = r.route_id "
-                        + "JOIN Buses b ON s.bus_id = b.bus_id "
-                        + "LEFT JOIN ScheduleDrivers sd ON s.schedule_id = sd.schedule_id "
-                        + "LEFT JOIN Drivers d ON sd.driver_id = d.driver_id "
-                        + "LEFT JOIN Users dr ON d.user_id = dr.user_id "
-                        + "LEFT JOIN Stations bs ON t.boarding_station_id = bs.station_id "
-                        + "LEFT JOIN Stations as_st ON t.alighting_station_id = as_st.station_id "
-                        + "LEFT JOIN Cities depc ON r.departure_city_id = depc.city_id "
-                        + "LEFT JOIN Cities destc ON r.destination_city_id = destc.city_id "
-                        + "LEFT JOIN Cities bsc ON bs.city_id = bsc.city_id "
-                        + "LEFT JOIN Cities ascit ON as_st.city_id = ascit.city_id "
-                        + "WHERE t.ticket_number = ? AND t.status IN ('CONFIRMED','COMPLETED','CHECKED_IN','PENDING')";
+        String sql = "SELECT t.*, u.user_id, u.full_name as user_name, u.username, u.email as user_email, u.phone_number, "
+                + "r.route_id, r.route_name, depc.city_name AS departure_city, destc.city_name AS destination_city, r.distance, "
+                + "b.bus_id, b.bus_number, b.bus_type, b.license_plate, "
+                + "s.departure_date, s.departure_time, dr.full_name as driver_name, "
+                + "bs.station_name as boarding_station_name, bsc.city_name as boarding_city, "
+                + "as_st.station_name as alighting_station_name, ascit.city_name as alighting_city "
+                + "FROM Tickets t "
+                + "JOIN Users u ON t.user_id = u.user_id "
+                + "JOIN Schedules s ON t.schedule_id = s.schedule_id "
+                + "JOIN Routes r ON s.route_id = r.route_id "
+                + "JOIN Buses b ON s.bus_id = b.bus_id "
+                + "LEFT JOIN ScheduleDrivers sd ON s.schedule_id = sd.schedule_id "
+                + "LEFT JOIN Drivers d ON sd.driver_id = d.driver_id "
+                + "LEFT JOIN Users dr ON d.user_id = dr.user_id "
+                + "LEFT JOIN Stations bs ON t.boarding_station_id = bs.station_id "
+                + "LEFT JOIN Stations as_st ON t.alighting_station_id = as_st.station_id "
+                + "LEFT JOIN Cities depc ON r.departure_city_id = depc.city_id "
+                + "LEFT JOIN Cities destc ON r.destination_city_id = destc.city_id "
+                + "LEFT JOIN Cities bsc ON bs.city_id = bsc.city_id "
+                + "LEFT JOIN Cities ascit ON as_st.city_id = ascit.city_id "
+                + "WHERE t.ticket_number = ? AND t.status IN ('CONFIRMED','COMPLETED','CHECKED_IN','PENDING','CANCELLED')";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -132,29 +129,28 @@ public class TicketDAO {
 
     public List<Tickets> getTicketsByUserId(UUID userId) throws SQLException {
         List<Tickets> tickets = new ArrayList<>();
-        String sql =
-                "SELECT t.*, u.user_id, u.full_name as user_name, u.username, u.email as user_email, u.phone_number, "
-                        + "r.route_id, r.route_name, depc.city_name AS departure_city, destc.city_name AS destination_city, r.distance, "
-                        + "b.bus_id, b.bus_number, b.bus_type, "
-                        + "s.departure_date, s.departure_time, dr.full_name as driver_name, "
-                        + "bs.station_name as boarding_station_name, bsc.city_name as boarding_city, "
-                        + "as_st.station_name as alighting_station_name, ascit.city_name as alighting_city "
-                        + "FROM Tickets t "
-                        + "JOIN Users u ON t.user_id = u.user_id "
-                        + "JOIN Schedules s ON t.schedule_id = s.schedule_id "
-                        + "JOIN Routes r ON s.route_id = r.route_id "
-                        + "JOIN Buses b ON s.bus_id = b.bus_id "
-                        + "LEFT JOIN ScheduleDrivers sd ON s.schedule_id = sd.schedule_id "
-                        + "LEFT JOIN Drivers d ON sd.driver_id = d.driver_id "
-                        + "LEFT JOIN Users dr ON d.user_id = dr.user_id "
-                        + "LEFT JOIN Stations bs ON t.boarding_station_id = bs.station_id "
-                        + "LEFT JOIN Stations as_st ON t.alighting_station_id = as_st.station_id "
-                        + "LEFT JOIN Cities depc ON r.departure_city_id = depc.city_id "
-                        + "LEFT JOIN Cities destc ON r.destination_city_id = destc.city_id "
-                        + "LEFT JOIN Cities bsc ON bs.city_id = bsc.city_id "
-                        + "LEFT JOIN Cities ascit ON as_st.city_id = ascit.city_id "
-                        + "WHERE t.user_id = ? AND t.status IN ('CONFIRMED','COMPLETED','CHECKED_IN','PENDING') "
-                        + "ORDER BY t.booking_date DESC";
+        String sql = "SELECT t.*, u.user_id, u.full_name as user_name, u.username, u.email as user_email, u.phone_number, "
+                + "r.route_id, r.route_name, depc.city_name AS departure_city, destc.city_name AS destination_city, r.distance, "
+                + "b.bus_id, b.bus_number, b.bus_type, b.license_plate, "
+                + "s.departure_date, s.departure_time, dr.full_name as driver_name, "
+                + "bs.station_name as boarding_station_name, bsc.city_name as boarding_city, "
+                + "as_st.station_name as alighting_station_name, ascit.city_name as alighting_city "
+                + "FROM Tickets t "
+                + "JOIN Users u ON t.user_id = u.user_id "
+                + "JOIN Schedules s ON t.schedule_id = s.schedule_id "
+                + "JOIN Routes r ON s.route_id = r.route_id "
+                + "JOIN Buses b ON s.bus_id = b.bus_id "
+                + "LEFT JOIN ScheduleDrivers sd ON s.schedule_id = sd.schedule_id "
+                + "LEFT JOIN Drivers d ON sd.driver_id = d.driver_id "
+                + "LEFT JOIN Users dr ON d.user_id = dr.user_id "
+                + "LEFT JOIN Stations bs ON t.boarding_station_id = bs.station_id "
+                + "LEFT JOIN Stations as_st ON t.alighting_station_id = as_st.station_id "
+                + "LEFT JOIN Cities depc ON r.departure_city_id = depc.city_id "
+                + "LEFT JOIN Cities destc ON r.destination_city_id = destc.city_id "
+                + "LEFT JOIN Cities bsc ON bs.city_id = bsc.city_id "
+                + "LEFT JOIN Cities ascit ON as_st.city_id = ascit.city_id "
+                + "WHERE t.user_id = ? AND t.status IN ('CONFIRMED','COMPLETED','CHECKED_IN','PENDING','CANCELLED') "
+                + "ORDER BY t.booking_date DESC";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -182,7 +178,7 @@ public class TicketDAO {
                 "SELECT t.*, u.user_id, u.full_name as user_name, u.username, u.email as user_email, u.phone_number, ");
         sql.append(
                 "r.route_id, r.route_name, depc.city_name AS departure_city, destc.city_name AS destination_city, r.distance, ");
-        sql.append("b.bus_id, b.bus_number, b.bus_type, ");
+        sql.append("b.bus_id, b.bus_number, b.bus_type, b.license_plate, ");
         sql.append("s.departure_date, s.departure_time, ");
         sql.append("dr.full_name as driver_name, ");
         sql.append("bs.station_name as boarding_station_name, bsc.city_name as boarding_city, ");
@@ -207,14 +203,17 @@ public class TicketDAO {
         List<Object> parameters = new ArrayList<>();
         parameters.add(userId);
 
-        // Status filter - include all statuses except CANCELLED by default, or filter by specific
+        // Status filter - include all statuses except CANCELLED by default, or filter
+        // by specific
         // status
         if (status != null && !status.trim().isEmpty()) {
             sql.append("AND t.status = ? ");
             parameters.add(status);
         } else {
-            // Show all non-cancelled tickets (CONFIRMED, PENDING, COMPLETED, CHECKED_IN)
-            sql.append("AND t.status IN ('CONFIRMED', 'PENDING', 'COMPLETED', 'CHECKED_IN') ");
+            // Show all tickets including CANCELLED by default (passenger should see
+            // cancelled
+            // tickets so they can acknowledge/remove them)
+            sql.append("AND t.status IN ('CONFIRMED', 'PENDING', 'COMPLETED', 'CHECKED_IN', 'CANCELLED') ");
         }
 
         // Payment status filter
@@ -249,8 +248,7 @@ public class TicketDAO {
     }
 
     public boolean addTicket(Tickets ticket) throws SQLException {
-        String sql =
-                "INSERT INTO Tickets (ticket_id, ticket_number, schedule_id, user_id, seat_number, ticket_price, booking_date, status, payment_status, boarding_station_id, alighting_station_id, customer_name, customer_phone, customer_email, notes, created_by_staff_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO Tickets (ticket_id, ticket_number, schedule_id, user_id, seat_number, ticket_price, booking_date, status, payment_status, boarding_station_id, alighting_station_id, customer_name, customer_phone, customer_email, notes, created_by_staff_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -281,8 +279,7 @@ public class TicketDAO {
     }
 
     public boolean updateTicket(Tickets ticket) throws SQLException {
-        String sql =
-                "UPDATE Tickets SET schedule_id = ?, user_id = ?, seat_number = ?, ticket_price = ?, status = ?, payment_status = ?, boarding_station_id = ?, alighting_station_id = ?, customer_name = ?, customer_phone = ?, customer_email = ?, notes = ?, checked_in_at = ?, checked_in_by_staff_id = ?, updated_date = GETDATE() WHERE ticket_id = ?";
+        String sql = "UPDATE Tickets SET schedule_id = ?, user_id = ?, seat_number = ?, ticket_price = ?, status = ?, payment_status = ?, boarding_station_id = ?, alighting_station_id = ?, customer_name = ?, customer_phone = ?, customer_email = ?, notes = ?, checked_in_at = ?, checked_in_by_staff_id = ?, updated_date = GETDATE() WHERE ticket_id = ?";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -314,8 +311,7 @@ public class TicketDAO {
     public boolean deleteTicket(UUID ticketId) throws SQLException {
         // Soft delete: Change status to CANCELLED instead of hard delete
         // This maintains data integrity and preserves audit trail
-        String sql =
-                "UPDATE Tickets SET status = 'CANCELLED', updated_date = GETDATE() WHERE ticket_id = ?";
+        String sql = "UPDATE Tickets SET status = 'CANCELLED', updated_date = GETDATE() WHERE ticket_id = ?";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -440,7 +436,7 @@ public class TicketDAO {
         String sql = "SELECT TOP " + limit
                 + " t.*, u.user_id, u.full_name as user_name, u.username, u.email as user_email, u.phone_number, "
                 + "r.route_id, r.route_name, depc.city_name AS departure_city, destc.city_name AS destination_city, r.distance, "
-                + "b.bus_id, b.bus_number, b.bus_type, "
+                + "b.bus_id, b.bus_number, b.bus_type, b.license_plate, "
                 + "s.departure_date, s.departure_time, " + "dr.full_name as driver_name "
                 + "FROM Tickets t "
                 + "LEFT JOIN Schedules s ON t.schedule_id = s.schedule_id "
@@ -469,23 +465,22 @@ public class TicketDAO {
 
     public List<Tickets> getTicketsByMonth() throws SQLException {
         List<Tickets> tickets = new ArrayList<>();
-        String sql =
-                "SELECT t.*, u.user_id, u.full_name as user_name, u.username, u.email as user_email, u.phone_number, "
-                        + "r.route_id, r.route_name, depc.city_name AS departure_city, destc.city_name AS destination_city, r.distance, "
-                        + "b.bus_id, b.bus_number, b.bus_type, "
-                        + "s.departure_date, s.departure_time, " + "dr.full_name as driver_name "
-                        + "FROM Tickets t "
-                        + "LEFT JOIN Schedules s ON t.schedule_id = s.schedule_id "
-                        + "LEFT JOIN Routes r ON s.route_id = r.route_id "
-                        + "LEFT JOIN Buses b ON s.bus_id = b.bus_id "
-                        + "LEFT JOIN Users u ON t.user_id = u.user_id "
-                        + "LEFT JOIN ScheduleDrivers sd ON s.schedule_id = sd.schedule_id "
-                        + "LEFT JOIN Drivers d ON sd.driver_id = d.driver_id "
-                        + "LEFT JOIN Users dr ON d.user_id = dr.user_id "
-                        + "LEFT JOIN Cities depc ON r.departure_city_id = depc.city_id "
-                        + "LEFT JOIN Cities destc ON r.destination_city_id = destc.city_id "
-                        + "WHERE t.status = 'CONFIRMED' AND MONTH(t.booking_date) = MONTH(GETDATE()) AND YEAR(t.booking_date) = YEAR(GETDATE()) "
-                        + "ORDER BY t.booking_date DESC";
+        String sql = "SELECT t.*, u.user_id, u.full_name as user_name, u.username, u.email as user_email, u.phone_number, "
+                + "r.route_id, r.route_name, depc.city_name AS departure_city, destc.city_name AS destination_city, r.distance, "
+                + "b.bus_id, b.bus_number, b.bus_type, b.license_plate, "
+                + "s.departure_date, s.departure_time, " + "dr.full_name as driver_name "
+                + "FROM Tickets t "
+                + "LEFT JOIN Schedules s ON t.schedule_id = s.schedule_id "
+                + "LEFT JOIN Routes r ON s.route_id = r.route_id "
+                + "LEFT JOIN Buses b ON s.bus_id = b.bus_id "
+                + "LEFT JOIN Users u ON t.user_id = u.user_id "
+                + "LEFT JOIN ScheduleDrivers sd ON s.schedule_id = sd.schedule_id "
+                + "LEFT JOIN Drivers d ON sd.driver_id = d.driver_id "
+                + "LEFT JOIN Users dr ON d.user_id = dr.user_id "
+                + "LEFT JOIN Cities depc ON r.departure_city_id = depc.city_id "
+                + "LEFT JOIN Cities destc ON r.destination_city_id = destc.city_id "
+                + "WHERE t.status = 'CONFIRMED' AND MONTH(t.booking_date) = MONTH(GETDATE()) AND YEAR(t.booking_date) = YEAR(GETDATE()) "
+                + "ORDER BY t.booking_date DESC";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql);
@@ -529,22 +524,21 @@ public class TicketDAO {
 
     public List<Tickets> getTicketsByDate(java.sql.Date date) throws SQLException {
         List<Tickets> tickets = new ArrayList<>();
-        String sql =
-                "SELECT t.*, u.user_id, u.full_name as user_name, u.username, u.email as user_email, u.phone_number, "
-                        + "r.route_id, r.route_name, depc.city_name AS departure_city, destc.city_name AS destination_city, r.distance, "
-                        + "b.bus_id, b.bus_number, b.bus_type, "
-                        + "s.departure_date, s.departure_time, " + "dr.full_name as driver_name "
-                        + "FROM Tickets t " + "JOIN Users u ON t.user_id = u.user_id "
-                        + "JOIN Schedules s ON t.schedule_id = s.schedule_id "
-                        + "JOIN Routes r ON s.route_id = r.route_id "
-                        + "JOIN Buses b ON s.bus_id = b.bus_id "
-                        + "LEFT JOIN Cities depc ON r.departure_city_id = depc.city_id "
-                        + "LEFT JOIN Cities destc ON r.destination_city_id = destc.city_id "
-                        + "LEFT JOIN ScheduleDrivers sd ON s.schedule_id = sd.schedule_id "
-                        + "LEFT JOIN Drivers d ON sd.driver_id = d.driver_id "
-                        + "LEFT JOIN Users dr ON d.user_id = dr.user_id "
-                        + "WHERE s.departure_date = ? AND t.status IN ('CONFIRMED','COMPLETED','CHECKED_IN','PENDING') "
-                        + "ORDER BY t.booking_date DESC";
+        String sql = "SELECT t.*, u.user_id, u.full_name as user_name, u.username, u.email as user_email, u.phone_number, "
+                + "r.route_id, r.route_name, depc.city_name AS departure_city, destc.city_name AS destination_city, r.distance, "
+                + "b.bus_id, b.bus_number, b.bus_type, b.license_plate, "
+                + "s.departure_date, s.departure_time, " + "dr.full_name as driver_name "
+                + "FROM Tickets t " + "JOIN Users u ON t.user_id = u.user_id "
+                + "JOIN Schedules s ON t.schedule_id = s.schedule_id "
+                + "JOIN Routes r ON s.route_id = r.route_id "
+                + "JOIN Buses b ON s.bus_id = b.bus_id "
+                + "LEFT JOIN Cities depc ON r.departure_city_id = depc.city_id "
+                + "LEFT JOIN Cities destc ON r.destination_city_id = destc.city_id "
+                + "LEFT JOIN ScheduleDrivers sd ON s.schedule_id = sd.schedule_id "
+                + "LEFT JOIN Drivers d ON sd.driver_id = d.driver_id "
+                + "LEFT JOIN Users dr ON d.user_id = dr.user_id "
+                + "WHERE s.departure_date = ? AND t.status IN ('CONFIRMED','COMPLETED','CHECKED_IN','PENDING') "
+                + "ORDER BY t.booking_date DESC";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -565,30 +559,29 @@ public class TicketDAO {
      */
     public List<Tickets> getCheckedInTicketsByDate(java.sql.Date date) throws SQLException {
         List<Tickets> tickets = new ArrayList<>();
-        String sql =
-                "SELECT t.*, u.user_id, u.full_name as user_name, u.username, u.email as user_email, u.phone_number, "
-                        + "r.route_id, r.route_name, depc.city_name AS departure_city, destc.city_name AS destination_city, r.distance, "
-                        + "b.bus_id, b.bus_number, b.bus_type, "
-                        + "s.departure_date, s.departure_time, "
-                        + "dr.full_name as driver_name, "
-                        + "bs.station_name as boarding_station_name, bsc.city_name as boarding_city, "
-                        + "as_st.station_name as alighting_station_name, ascit.city_name as alighting_city "
-                        + "FROM Tickets t "
-                        + "JOIN Users u ON t.user_id = u.user_id "
-                        + "JOIN Schedules s ON t.schedule_id = s.schedule_id "
-                        + "JOIN Routes r ON s.route_id = r.route_id "
-                        + "JOIN Buses b ON s.bus_id = b.bus_id "
-                        + "LEFT JOIN Cities depc ON r.departure_city_id = depc.city_id "
-                        + "LEFT JOIN Cities destc ON r.destination_city_id = destc.city_id "
-                        + "LEFT JOIN ScheduleDrivers sd ON s.schedule_id = sd.schedule_id "
-                        + "LEFT JOIN Drivers d ON sd.driver_id = d.driver_id "
-                        + "LEFT JOIN Users dr ON d.user_id = dr.user_id "
-                        + "LEFT JOIN Stations bs ON t.boarding_station_id = bs.station_id "
-                        + "LEFT JOIN Stations as_st ON t.alighting_station_id = as_st.station_id "
-                        + "LEFT JOIN Cities bsc ON bs.city_id = bsc.city_id "
-                        + "LEFT JOIN Cities ascit ON as_st.city_id = ascit.city_id "
-                        + "WHERE s.departure_date = ? AND t.checked_in_at IS NOT NULL AND t.status != 'CANCELLED' "
-                        + "ORDER BY t.checked_in_at DESC";
+        String sql = "SELECT t.*, u.user_id, u.full_name as user_name, u.username, u.email as user_email, u.phone_number, "
+                + "r.route_id, r.route_name, depc.city_name AS departure_city, destc.city_name AS destination_city, r.distance, "
+                + "b.bus_id, b.bus_number, b.bus_type, b.license_plate, "
+                + "s.departure_date, s.departure_time, "
+                + "dr.full_name as driver_name, "
+                + "bs.station_name as boarding_station_name, bsc.city_name as boarding_city, "
+                + "as_st.station_name as alighting_station_name, ascit.city_name as alighting_city "
+                + "FROM Tickets t "
+                + "JOIN Users u ON t.user_id = u.user_id "
+                + "JOIN Schedules s ON t.schedule_id = s.schedule_id "
+                + "JOIN Routes r ON s.route_id = r.route_id "
+                + "JOIN Buses b ON s.bus_id = b.bus_id "
+                + "LEFT JOIN Cities depc ON r.departure_city_id = depc.city_id "
+                + "LEFT JOIN Cities destc ON r.destination_city_id = destc.city_id "
+                + "LEFT JOIN ScheduleDrivers sd ON s.schedule_id = sd.schedule_id "
+                + "LEFT JOIN Drivers d ON sd.driver_id = d.driver_id "
+                + "LEFT JOIN Users dr ON d.user_id = dr.user_id "
+                + "LEFT JOIN Stations bs ON t.boarding_station_id = bs.station_id "
+                + "LEFT JOIN Stations as_st ON t.alighting_station_id = as_st.station_id "
+                + "LEFT JOIN Cities bsc ON bs.city_id = bsc.city_id "
+                + "LEFT JOIN Cities ascit ON as_st.city_id = ascit.city_id "
+                + "WHERE s.departure_date = ? AND t.checked_in_at IS NOT NULL AND t.status != 'CANCELLED' "
+                + "ORDER BY t.checked_in_at DESC";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -605,8 +598,9 @@ public class TicketDAO {
     }
 
     public boolean isTicketOwnedByUser(UUID ticketId, UUID userId) throws SQLException {
-        String sql =
-                "SELECT COUNT(*) FROM Tickets WHERE ticket_id = ? AND user_id = ? AND status IN ('CONFIRMED','COMPLETED','CHECKED_IN','PENDING')";
+        // Check ownership regardless of ticket status so that users can manage
+        // their tickets (including CANCELLED ones) when appropriate.
+        String sql = "SELECT COUNT(*) FROM Tickets WHERE ticket_id = ? AND user_id = ?";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -790,6 +784,15 @@ public class TicketDAO {
                     if (busType != null) {
                         bus.setBusType(busType);
                     }
+                    // Add license plate
+                    try {
+                        String licensePlate = rs.getString("license_plate");
+                        if (licensePlate != null) {
+                            bus.setLicensePlate(licensePlate);
+                        }
+                    } catch (SQLException e) {
+                        // license_plate column might not exist, ignore
+                    }
                     ticket.setBus(bus);
                 }
             }
@@ -833,7 +836,7 @@ public class TicketDAO {
                 + "u.user_id, u.full_name as user_name, u.username, u.email as user_email, u.phone_number, "
                 + "s.departure_date, s.departure_time, "
                 + "r.route_id, r.route_name, depc.city_name AS departure_city, destc.city_name AS destination_city, r.distance, "
-                + "b.bus_id, b.bus_number, b.bus_type, dr.full_name as driver_name, "
+                + "b.bus_id, b.bus_number, b.bus_type, b.license_plate, dr.full_name as driver_name, "
                 + "bs.station_name as boarding_station_name, bsc.city_name as boarding_city, "
                 + "as_st.station_name as alighting_station_name, ascit.city_name as alighting_city "
                 + "FROM Tickets t "
@@ -876,7 +879,7 @@ public class TicketDAO {
                 + "u.user_id, u.full_name as user_name, u.username, u.email as user_email, u.phone_number, "
                 + "s.departure_date, s.departure_time, "
                 + "r.route_id, r.route_name, depc.city_name AS departure_city, destc.city_name AS destination_city, r.distance, "
-                + "b.bus_id, b.bus_number, b.bus_type, dr.full_name as driver_name, "
+                + "b.bus_id, b.bus_number, b.bus_type, b.license_plate, dr.full_name as driver_name, "
                 + "bs.station_name as boarding_station_name, bsc.city_name as boarding_city, "
                 + "as_st.station_name as alighting_station_name, ascit.city_name as alighting_city "
                 + "FROM Tickets t "
@@ -919,7 +922,7 @@ public class TicketDAO {
                 + "u.user_id, u.full_name as user_name, u.username, u.email as user_email, u.phone_number, "
                 + "s.departure_date, s.departure_time, "
                 + "r.route_id, r.route_name, depc.city_name AS departure_city, destc.city_name AS destination_city, r.distance, "
-                + "b.bus_id, b.bus_number, b.bus_type, dr.full_name as driver_name, "
+                + "b.bus_id, b.bus_number, b.bus_type, b.license_plate, dr.full_name as driver_name, "
                 + "bs.station_name as boarding_station_name, bsc.city_name as boarding_city, "
                 + "as_st.station_name as alighting_station_name, ascit.city_name as alighting_city "
                 + "FROM Tickets t "
@@ -1038,7 +1041,8 @@ public class TicketDAO {
 
     /**
      * Check if a phone or email is already associated with any non-cancelled ticket
-     * on the given schedule. This prevents duplicate passenger contacts on the same trip.
+     * on the given schedule. This prevents duplicate passenger contacts on the same
+     * trip.
      */
     public boolean hasContactConflict(UUID scheduleId, String phone, String email)
             throws SQLException {
@@ -1096,7 +1100,7 @@ public class TicketDAO {
                 "SELECT t.*, u.user_id, u.full_name as user_name, u.username, u.email as user_email, u.phone_number, ");
         sql.append(
                 "r.route_id, r.route_name, depc.city_name AS departure_city, destc.city_name AS destination_city, r.distance, ");
-        sql.append("b.bus_id, b.bus_number, b.bus_type, ");
+        sql.append("b.bus_id, b.bus_number, b.bus_type, b.license_plate, ");
         sql.append("s.departure_date, s.departure_time, ");
         sql.append("dr.full_name as driver_name, ");
         sql.append("bs.station_name as boarding_station_name, bsc.city_name as boarding_city, ");
@@ -1123,7 +1127,7 @@ public class TicketDAO {
         if (searchTerm != null && !searchTerm.trim().isEmpty()) {
             sql.append(
                     "AND (t.ticket_number LIKE ? OR u.full_name LIKE ? OR u.email LIKE ? OR u.phone_number LIKE ? OR t.customer_name LIKE ? OR t.customer_phone LIKE ?) ");
-            String searchPattern = "%" + searchTerm + "%";
+            String searchPattern = "%" + searchTerm.trim() + "%";
             parameters.add(searchPattern);
             parameters.add(searchPattern);
             parameters.add(searchPattern);
@@ -1198,7 +1202,7 @@ public class TicketDAO {
                 "SELECT t.*, u.user_id, u.full_name as user_name, u.username, u.email as user_email, u.phone_number, ");
         sql.append(
                 "r.route_id, r.route_name, depc.city_name AS departure_city, destc.city_name AS destination_city, r.distance, ");
-        sql.append("b.bus_id, b.bus_number, b.bus_type, ");
+        sql.append("b.bus_id, b.bus_number, b.bus_type, b.license_plate, ");
         sql.append("s.departure_date, s.departure_time, ");
         sql.append("dr.full_name as driver_name, ");
         sql.append("bs.station_name as boarding_station_name, bsc.city_name as boarding_city, ");
@@ -1225,7 +1229,7 @@ public class TicketDAO {
         if (searchTerm != null && !searchTerm.trim().isEmpty()) {
             sql.append(
                     "AND (t.ticket_number LIKE ? OR u.full_name LIKE ? OR u.email LIKE ? OR u.phone_number LIKE ? OR t.customer_name LIKE ? OR t.customer_phone LIKE ?) ");
-            String searchPattern = "%" + searchTerm + "%";
+            String searchPattern = "%" + searchTerm.trim() + "%";
             parameters.add(searchPattern);
             parameters.add(searchPattern);
             parameters.add(searchPattern);
@@ -1332,8 +1336,7 @@ public class TicketDAO {
         }
 
         // Total revenue
-        String revenueSql =
-                "SELECT SUM(ticket_price) FROM Tickets WHERE status = 'CONFIRMED' AND payment_status = 'PAID'";
+        String revenueSql = "SELECT SUM(ticket_price) FROM Tickets WHERE status = 'CONFIRMED' AND payment_status = 'PAID'";
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(revenueSql);
                 ResultSet rs = stmt.executeQuery()) {
@@ -1351,23 +1354,22 @@ public class TicketDAO {
     public List<Tickets> getTicketsByDateRange(java.sql.Date startDate, java.sql.Date endDate)
             throws SQLException {
         List<Tickets> tickets = new ArrayList<>();
-        String sql =
-                "SELECT t.*, u.user_id, u.full_name as user_name, u.username, u.email as user_email, u.phone_number, "
-                        + "r.route_id, r.route_name, "
-                        + "depc.city_name AS departure_city, destc.city_name AS destination_city, r.distance, "
-                        + "b.bus_id, b.bus_number, b.bus_type, "
-                        + "s.departure_date, s.departure_time, " + "dr.full_name as driver_name "
-                        + "FROM Tickets t " + "JOIN Users u ON t.user_id = u.user_id "
-                        + "JOIN Schedules s ON t.schedule_id = s.schedule_id "
-                        + "JOIN Routes r ON s.route_id = r.route_id "
-                        + "JOIN Buses b ON s.bus_id = b.bus_id "
-                        + "LEFT JOIN Cities depc ON r.departure_city_id = depc.city_id "
-                        + "LEFT JOIN Cities destc ON r.destination_city_id = destc.city_id "
-                        + "LEFT JOIN ScheduleDrivers sd ON s.schedule_id = sd.schedule_id "
-                        + "LEFT JOIN Drivers d ON sd.driver_id = d.driver_id "
-                        + "LEFT JOIN Users dr ON d.user_id = dr.user_id "
-                        + "WHERE s.departure_date BETWEEN ? AND ? "
-                        + "ORDER BY s.departure_date DESC, s.departure_time DESC";
+        String sql = "SELECT t.*, u.user_id, u.full_name as user_name, u.username, u.email as user_email, u.phone_number, "
+                + "r.route_id, r.route_name, "
+                + "depc.city_name AS departure_city, destc.city_name AS destination_city, r.distance, "
+                + "b.bus_id, b.bus_number, b.bus_type, b.license_plate, "
+                + "s.departure_date, s.departure_time, " + "dr.full_name as driver_name "
+                + "FROM Tickets t " + "JOIN Users u ON t.user_id = u.user_id "
+                + "JOIN Schedules s ON t.schedule_id = s.schedule_id "
+                + "JOIN Routes r ON s.route_id = r.route_id "
+                + "JOIN Buses b ON s.bus_id = b.bus_id "
+                + "LEFT JOIN Cities depc ON r.departure_city_id = depc.city_id "
+                + "LEFT JOIN Cities destc ON r.destination_city_id = destc.city_id "
+                + "LEFT JOIN ScheduleDrivers sd ON s.schedule_id = sd.schedule_id "
+                + "LEFT JOIN Drivers d ON sd.driver_id = d.driver_id "
+                + "LEFT JOIN Users dr ON d.user_id = dr.user_id "
+                + "WHERE s.departure_date BETWEEN ? AND ? "
+                + "ORDER BY s.departure_date DESC, s.departure_time DESC";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -1389,22 +1391,21 @@ public class TicketDAO {
      */
     public List<Tickets> getTicketsByStatus(String status) throws SQLException {
         List<Tickets> tickets = new ArrayList<>();
-        String sql =
-                "SELECT t.*, u.user_id, u.full_name as user_name, u.username, u.email as user_email, u.phone_number, "
-                        + "r.route_id, r.route_name, "
-                        + "depc.city_name AS departure_city, destc.city_name AS destination_city, r.distance, "
-                        + "b.bus_id, b.bus_number, b.bus_type, "
-                        + "s.departure_date, s.departure_time, " + "dr.full_name as driver_name "
-                        + "FROM Tickets t " + "JOIN Users u ON t.user_id = u.user_id "
-                        + "JOIN Schedules s ON t.schedule_id = s.schedule_id "
-                        + "JOIN Routes r ON s.route_id = r.route_id "
-                        + "JOIN Buses b ON s.bus_id = b.bus_id "
-                        + "LEFT JOIN Cities depc ON r.departure_city_id = depc.city_id "
-                        + "LEFT JOIN Cities destc ON r.destination_city_id = destc.city_id "
-                        + "LEFT JOIN ScheduleDrivers sd ON s.schedule_id = sd.schedule_id "
-                        + "LEFT JOIN Drivers d ON sd.driver_id = d.driver_id "
-                        + "LEFT JOIN Users dr ON d.user_id = dr.user_id " + "WHERE t.status = ? "
-                        + "ORDER BY t.booking_date DESC";
+        String sql = "SELECT t.*, u.user_id, u.full_name as user_name, u.username, u.email as user_email, u.phone_number, "
+                + "r.route_id, r.route_name, "
+                + "depc.city_name AS departure_city, destc.city_name AS destination_city, r.distance, "
+                + "b.bus_id, b.bus_number, b.bus_type, b.license_plate, "
+                + "s.departure_date, s.departure_time, " + "dr.full_name as driver_name "
+                + "FROM Tickets t " + "JOIN Users u ON t.user_id = u.user_id "
+                + "JOIN Schedules s ON t.schedule_id = s.schedule_id "
+                + "JOIN Routes r ON s.route_id = r.route_id "
+                + "JOIN Buses b ON s.bus_id = b.bus_id "
+                + "LEFT JOIN Cities depc ON r.departure_city_id = depc.city_id "
+                + "LEFT JOIN Cities destc ON r.destination_city_id = destc.city_id "
+                + "LEFT JOIN ScheduleDrivers sd ON s.schedule_id = sd.schedule_id "
+                + "LEFT JOIN Drivers d ON sd.driver_id = d.driver_id "
+                + "LEFT JOIN Users dr ON d.user_id = dr.user_id " + "WHERE t.status = ? "
+                + "ORDER BY t.booking_date DESC";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -1425,21 +1426,20 @@ public class TicketDAO {
      */
     public List<Tickets> getTicketsByPaymentStatus(String paymentStatus) throws SQLException {
         List<Tickets> tickets = new ArrayList<>();
-        String sql =
-                "SELECT t.*, u.user_id, u.full_name as user_name, u.username, u.email as user_email, u.phone_number, "
-                        + "r.route_id, r.route_name, "
-                        + "depc.city_name AS departure_city, destc.city_name AS destination_city, r.distance, "
-                        + "b.bus_id, b.bus_number, b.bus_type, "
-                        + "s.departure_date, s.departure_time, " + "dr.full_name as driver_name "
-                        + "FROM Tickets t " + "JOIN Users u ON t.user_id = u.user_id "
-                        + "JOIN Schedules s ON t.schedule_id = s.schedule_id "
-                        + "JOIN Routes r ON s.route_id = r.route_id "
-                        + "JOIN Buses b ON s.bus_id = b.bus_id "
-                        + "LEFT JOIN ScheduleDrivers sd ON s.schedule_id = sd.schedule_id "
-                        + "LEFT JOIN Drivers d ON sd.driver_id = d.driver_id "
-                        + "LEFT JOIN Users dr ON d.user_id = dr.user_id "
-                        + "WHERE t.payment_status = ? "
-                        + "ORDER BY t.booking_date DESC";
+        String sql = "SELECT t.*, u.user_id, u.full_name as user_name, u.username, u.email as user_email, u.phone_number, "
+                + "r.route_id, r.route_name, "
+                + "depc.city_name AS departure_city, destc.city_name AS destination_city, r.distance, "
+                + "b.bus_id, b.bus_number, b.bus_type, b.license_plate, "
+                + "s.departure_date, s.departure_time, " + "dr.full_name as driver_name "
+                + "FROM Tickets t " + "JOIN Users u ON t.user_id = u.user_id "
+                + "JOIN Schedules s ON t.schedule_id = s.schedule_id "
+                + "JOIN Routes r ON s.route_id = r.route_id "
+                + "JOIN Buses b ON s.bus_id = b.bus_id "
+                + "LEFT JOIN ScheduleDrivers sd ON s.schedule_id = sd.schedule_id "
+                + "LEFT JOIN Drivers d ON sd.driver_id = d.driver_id "
+                + "LEFT JOIN Users dr ON d.user_id = dr.user_id "
+                + "WHERE t.payment_status = ? "
+                + "ORDER BY t.booking_date DESC";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -1478,28 +1478,50 @@ public class TicketDAO {
     }
 
     /**
+     * Refund and cancel all tickets for a schedule.
+     * Marks ticket status as 'CANCELLED' and payment_status -> 'REFUNDED' when it
+     * was 'PAID'.
+     * Returns number of tickets updated.
+     */
+    public int refundTicketsBySchedule(UUID scheduleId, String reason) throws SQLException {
+        String sql = "UPDATE Tickets SET status = 'CANCELLED', payment_status = CASE WHEN payment_status = 'PAID' THEN 'REFUNDED' ELSE payment_status END, notes = COALESCE(notes, '') + ?, updated_date = GETDATE() WHERE schedule_id = ? AND status != 'CANCELLED'";
+
+        try (Connection conn = DBConnection.getInstance().getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            String noteSuffix = " | Refunded due to schedule cancellation";
+            if (reason != null && !reason.trim().isEmpty()) {
+                noteSuffix = " | Refunded: " + reason;
+            }
+            stmt.setString(1, noteSuffix);
+            stmt.setObject(2, scheduleId);
+
+            return stmt.executeUpdate();
+        }
+    }
+
+    /**
      * Get the latest (most recent by departure date/time) ticket of a passenger
      * that belongs to any schedule assigned to the given driver (by driver userId).
      */
     public Tickets getLatestTicketForPassengerByDriver(UUID driverUserId, UUID passengerUserId)
             throws SQLException {
-        String sql =
-                "SELECT TOP 1 t.*, u.user_id, u.full_name as user_name, u.username, u.email as user_email, u.phone_number, "
-                        + "s.departure_date, s.departure_time, "
-                        + "bs.station_name as boarding_station_name, bsc.city_name as boarding_city, "
-                        + "as_st.station_name as alighting_station_name, ascit.city_name as alighting_city "
-                        + "FROM Tickets t "
-                        + "JOIN Users u ON t.user_id = u.user_id "
-                        + "JOIN Schedules s ON t.schedule_id = s.schedule_id "
-                        + "JOIN ScheduleDrivers sd ON s.schedule_id = sd.schedule_id "
-                        + "JOIN Drivers d ON sd.driver_id = d.driver_id "
-                        + "JOIN Users du ON d.user_id = du.user_id "
-                        + "LEFT JOIN Stations bs ON t.boarding_station_id = bs.station_id "
-                        + "LEFT JOIN Stations as_st ON t.alighting_station_id = as_st.station_id "
-                        + "LEFT JOIN Cities bsc ON bs.city_id = bsc.city_id "
-                        + "LEFT JOIN Cities ascit ON as_st.city_id = ascit.city_id "
-                        + "WHERE du.user_id = ? AND t.user_id = ? AND t.status IN ('PENDING','CONFIRMED','COMPLETED') "
-                        + "ORDER BY s.departure_date DESC, s.departure_time DESC";
+        String sql = "SELECT TOP 1 t.*, u.user_id, u.full_name as user_name, u.username, u.email as user_email, u.phone_number, "
+                + "s.departure_date, s.departure_time, "
+                + "bs.station_name as boarding_station_name, bsc.city_name as boarding_city, "
+                + "as_st.station_name as alighting_station_name, ascit.city_name as alighting_city "
+                + "FROM Tickets t "
+                + "JOIN Users u ON t.user_id = u.user_id "
+                + "JOIN Schedules s ON t.schedule_id = s.schedule_id "
+                + "JOIN ScheduleDrivers sd ON s.schedule_id = sd.schedule_id "
+                + "JOIN Drivers d ON sd.driver_id = d.driver_id "
+                + "JOIN Users du ON d.user_id = du.user_id "
+                + "LEFT JOIN Stations bs ON t.boarding_station_id = bs.station_id "
+                + "LEFT JOIN Stations as_st ON t.alighting_station_id = as_st.station_id "
+                + "LEFT JOIN Cities bsc ON bs.city_id = bsc.city_id "
+                + "LEFT JOIN Cities ascit ON as_st.city_id = ascit.city_id "
+                + "WHERE du.user_id = ? AND t.user_id = ? AND t.status IN ('PENDING','CONFIRMED','COMPLETED') "
+                + "ORDER BY s.departure_date DESC, s.departure_time DESC";
 
         try (Connection conn = DBConnection.getInstance().getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
