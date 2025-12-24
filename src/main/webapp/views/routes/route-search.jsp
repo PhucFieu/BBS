@@ -254,11 +254,11 @@
                                                 </div>
 
                                                 <!-- Search Button -->
-                                                <div class="col-12 text-center">
+<!--                                                <div class="col-12 text-center">
                                                     <button type="submit" class="btn btn-search btn-lg px-5">
                                                         <i class="fas fa-search me-2"></i>Search Routes
                                                     </button>
-                                                </div>
+                                                </div>-->
                                             </div>
                                         </form>
                                     </div>
@@ -786,74 +786,61 @@
                                     mainRow.appendChild(contentDiv);
                                     cardBody.appendChild(mainRow);
 
-                                    // Dates section
-                                    const datesDiv = document.createElement('div');
-                                    datesDiv.className = 'mt-3';
-                                    datesDiv.id = 'dates-' + route.routeId;
-                                    datesDiv.style.display = 'none';
+                                    // Nearest schedule section (replaces date picker)
+                                    const scheduleDiv = document.createElement('div');
+                                    scheduleDiv.className = 'mt-3';
+                                    scheduleDiv.id = 'schedule-info-' + route.routeId;
+                                    scheduleDiv.style.display = 'none';
 
-                                    const datesLabel = document.createElement('label');
-                                    datesLabel.className = 'form-label fw-bold small';
-                                    datesLabel.textContent = 'Select departure date:';
-                                    datesDiv.appendChild(datesLabel);
+                                    if (route.nearestScheduleDate && route.nearestScheduleTime) {
+                                        const nearestDate = formatDate(route.nearestScheduleDate);
+                                        const nearestTime = route.nearestScheduleTime.substring(0, 5); // HH:mm format
 
-                                    if (route.availableDates && route.availableDates.length > 0) {
-                                        const datesContainer = document.createElement('div');
-                                        datesContainer.className = 'd-flex flex-wrap gap-2';
-
-                                        // Store routeId in container for reference
-                                        datesContainer.id = 'dates-container-' + route.routeId;
-
-                                        route.availableDates.forEach((date, index) => {
-                                            const dateBtn = document.createElement('button');
-                                            dateBtn.type = 'button';
-                                            dateBtn.className = 'btn btn-sm btn-outline-primary date-btn';
-                                            // Hide dates beyond the first 30
-                                            if (index >= 30) {
-                                                dateBtn.style.display = 'none';
-                                                dateBtn.classList.add('date-hidden-' + route.routeId);
-                                            }
-                                            dateBtn.setAttribute('data-route-id', route.routeId);
-                                            dateBtn.setAttribute('data-date', date);
-                                            dateBtn.textContent = formatDate(date);
-                                            dateBtn.onclick = function (e) {
-                                                selectDate(route.routeId, date, e);
-                                            };
-                                            datesContainer.appendChild(dateBtn);
-                                        });
-
-                                        // Add "See More" button if there are more than 30 dates
-                                        if (route.availableDates.length > 30) {
-                                            const seeMoreBtn = document.createElement('button');
-                                            seeMoreBtn.type = 'button';
-                                            seeMoreBtn.className = 'btn btn-sm btn-link text-decoration-none';
-                                            seeMoreBtn.textContent = 'See More...';
-                                            seeMoreBtn.id = 'see-more-' + route.routeId;
-                                            seeMoreBtn.onclick = function (e) {
-                                                e.stopPropagation();
-                                                toggleMoreDates(route.routeId);
-                                            };
-                                            datesContainer.appendChild(seeMoreBtn);
-                                        }
-
-                                        datesDiv.appendChild(datesContainer);
+                                        scheduleDiv.innerHTML =
+                                            '<div class="alert alert-success mb-2">' +
+                                            '<div class="d-flex justify-content-between align-items-center flex-wrap gap-2">' +
+                                            '<div>' +
+                                            '<i class="fas fa-clock me-2"></i>' +
+                                            '<strong>Chuyến gần nhất:</strong> ' + nearestDate + ' lúc ' + nearestTime +
+                                            '</div>' +
+                                            '<a href="${pageContext.request.contextPath}/tickets/book?routeId=' + route.routeId + '&departureDate=' + route.nearestScheduleDate + '" class="btn btn-success btn-sm">' +
+                                            '<i class="fas fa-ticket-alt me-1"></i>Đặt vé ngay' +
+                                            '</a>' +
+                                            '</div>' +
+                                            '</div>' +
+                                            '<div class="text-muted small">' +
+                                            '<i class="fas fa-info-circle me-1"></i>' +
+                                            'Có ' + route.availableDates.length + ' ngày khả dụng. ' +
+                                            '<a href="${pageContext.request.contextPath}/tickets/book?routeId=' + route.routeId + '" class="text-primary">Xem tất cả lịch trình →</a>' +
+                                            '</div>';
+                                    } else if (route.availableDates && route.availableDates.length > 0) {
+                                        // Fallback: if nearest schedule not available but dates exist
+                                        const firstDate = route.availableDates[0];
+                                        scheduleDiv.innerHTML =
+                                            '<div class="alert alert-info mb-2">' +
+                                            '<i class="fas fa-calendar me-2"></i>' +
+                                            '<strong>Ngày khả dụng gần nhất:</strong> ' + formatDate(firstDate) +
+                                            '<a href="${pageContext.request.contextPath}/tickets/book?routeId=' + route.routeId + '&departureDate=' + firstDate + '" class="btn btn-primary btn-sm ms-3">' +
+                                            '<i class="fas fa-ticket-alt me-1"></i>Đặt vé' +
+                                            '</a>' +
+                                            '</div>';
                                     } else {
-                                        const noDatesAlert = document.createElement('div');
-                                        noDatesAlert.className = 'alert alert-warning small mb-0';
-                                        noDatesAlert.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i>No available schedules for this route yet';
-                                        datesDiv.appendChild(noDatesAlert);
+                                        scheduleDiv.innerHTML =
+                                            '<div class="alert alert-warning small mb-0">' +
+                                            '<i class="fas fa-exclamation-triangle me-2"></i>Hiện chưa có lịch trình cho tuyến này' +
+                                            '</div>';
                                     }
 
-                                    cardBody.appendChild(datesDiv);
+                                    cardBody.appendChild(scheduleDiv);
                                     routeCard.appendChild(cardBody);
 
                                     routeCard.addEventListener('click', function (e) {
-                                        if (!e.target.classList.contains('date-btn')) {
-                                            datesDiv.style.display = datesDiv.style.display === 'none' ? 'block' : 'none';
+                                        if (!e.target.closest('a')) { // Don't toggle if clicking a link
+                                            scheduleDiv.style.display = scheduleDiv.style.display === 'none' ? 'block' : 'none';
 
-                                            // Close other route dates
-                                            document.querySelectorAll('[id^="dates-"]').forEach(div => {
-                                                if (div.id !== 'dates-' + route.routeId) {
+                                            // Close other route info sections
+                                            document.querySelectorAll('[id^="schedule-info-"]').forEach(div => {
+                                                if (div.id !== 'schedule-info-' + route.routeId) {
                                                     div.style.display = 'none';
                                                 }
                                             });
